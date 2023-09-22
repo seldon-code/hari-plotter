@@ -1,2 +1,6 @@
-# hari-plotter - Post-processing and plotting of Seldon simulations.
+# hari-plotter
 ![Logo](res/logo_text.png)
+
+## About 
+
+`hari-plotter` enables post-processing, plotting and visualizations of Seldon simulations and output (under development). 
