@@ -2,7 +2,7 @@ import json
 import os
 from pathlib import Path
 import random
-from rich import print
+from rich.console import Console, OverflowMethod
 
 
 def select_quote(file=Path(os.path.dirname(__file__)) / "res/Quotes.json"):
@@ -16,9 +16,11 @@ def select_quote(file=Path(os.path.dirname(__file__)) / "res/Quotes.json"):
 
 def print_quote():
     quote_json = select_quote()
-    text = f"{quote_json['Quote']} (Book {quote_json['Book']})"
-    print(text)
-
+    console = Console(width=70)
+    console.rule(f"Book {quote_json['Book']}", style="red")
+    text = f"{quote_json['Quote']}"
+    console.print(text, justify="full")
+    console.rule(style="red")
 
 if __name__ == "__main__":
     print_quote()
