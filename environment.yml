@@ -1,0 +1,18 @@
+# $ micromamba create -f environment.yml
+# $ micromamba activate hariplotterenv
+#
+
+name: hariplotterenv
+channels:
+  - conda-forge
+# requirements:
+#   build:
+#     - {{ compiler('c') }}
+#     - {{ compiler('c++') }}
+dependencies:
+  - meson
+  - numpy
+  - pip:
+    - rich
+    - rich-pixels
+    - Pillow
