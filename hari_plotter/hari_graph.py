@@ -680,6 +680,31 @@ class HariGraph(nx.DiGraph):
             plt.show()
         return fig, ax
 
+    @property
+    def cluster_size(self):
+        """
+        Returns a dictionary with the sizes of the nodes.
+        Key is the node ID, and value is the size of the node.
+        """
+        return {node: len(self.nodes[node].get('label', [node])) for node in self.nodes}
+
+    @property
+    def importance(self):
+        """
+        Returns a dictionary with the importance of the nodes.
+        Key is the node ID, and value is the ratio of the sum of influences of the node to the size of the node.
+        """
+        importance_dict = {}
+        size_dict = self.cluster_size
+
+        for node in self.nodes:
+            influences_sum = sum(data['value']
+                                 for _, _, data in self.edges(node, data=True))
+            importance_dict[node] = influences_sum / \
+                size_dict[node] if size_dict[node] != 0 else 0
+
+        return importance_dict
+
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"
 

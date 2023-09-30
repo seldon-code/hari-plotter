@@ -102,3 +102,27 @@ class TestHariGraph:
             0.0 <= value <= 0.1 for value in component_1_values), "Values in the first component are incorrect."
         assert all(0.9 <= value <= 1.0 for value in component_2_values) or all(
             0.0 <= value <= 0.1 for value in component_2_values), "Values in the second component are incorrect."
+
+    def test_cluster_size(self):
+        cluster_size = self.graph.cluster_size
+        assert isinstance(
+            cluster_size, dict), "cluster_size should return a dictionary."
+
+        for node in self.graph.nodes:
+            label = self.graph.nodes[node].get('label', [node])
+            assert cluster_size[node] == len(
+                label), f"Size of node {node} is incorrect."
+
+    def test_importance(self):
+        importance = self.graph.importance
+        cluster_size = self.graph.cluster_size
+        assert isinstance(
+            importance, dict), "importance should return a dictionary."
+
+        for node in self.graph.nodes:
+            influences_sum = sum(
+                data['value'] for _, _, data in self.graph.edges(node, data=True))
+            calculated_importance = influences_sum / \
+                cluster_size[node] if cluster_size[node] != 0 else 0
+            assert importance[node] == pytest.approx(
+                calculated_importance), f"Importance of node {node} is incorrect."
