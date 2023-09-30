@@ -1,3 +1,4 @@
+import networkx as nx
 import pytest
 
 from hari_plotter import HariGraph
@@ -64,3 +65,40 @@ class TestHariGraph:
     def test_load_from_network(self):
         assert self.graph_from_files.weighted_mean_value == pytest.approx(
             0.6279692643403699), "Weighted mean value from network and opinions files is not as expected."
+
+    def test_strongly_connected_components(self):
+        n1, n2 = 5, 4  # Number of nodes in the two components
+        connect_nodes = 1  # Number of nodes to connect between components
+        graph = HariGraph.strongly_connected_components(n1, n2, connect_nodes)
+
+        assert isinstance(
+            graph, HariGraph), "Method should return an instance of HariGraph."
+
+        # Check if the generated graph has two strongly connected components
+        strongly_connected_components = [
+            c for c in nx.strongly_connected_components(graph)]
+        assert len(
+            strongly_connected_components) == 2, "Graph should have two strongly connected components."
+
+        # Check the number of nodes in each component
+        assert len(strongly_connected_components[0]) == n1 or len(
+            strongly_connected_components[0]) == n2, "Number of nodes in the first component is incorrect."
+        assert len(strongly_connected_components[1]) == n1 or len(
+            strongly_connected_components[1]) == n2, "Number of nodes in the second component is incorrect."
+
+        # Check if the graph has weak connectivity between the two components
+        # Convert to undirected graph for weak connectivity check
+        weakly_connected_subgraph = nx.Graph(graph)
+        assert nx.is_connected(
+            weakly_connected_subgraph), "The graph should be weakly connected."
+
+        # Check the values of the nodes in each strongly connected component
+        component_1_values = [graph.nodes[node]['value']
+                              for node in strongly_connected_components[0]]
+        component_2_values = [graph.nodes[node]['value']
+                              for node in strongly_connected_components[1]]
+
+        assert all(0.9 <= value <= 1.0 for value in component_1_values) or all(
+            0.0 <= value <= 0.1 for value in component_1_values), "Values in the first component are incorrect."
+        assert all(0.9 <= value <= 1.0 for value in component_2_values) or all(
+            0.0 <= value <= 0.1 for value in component_2_values), "Values in the second component are incorrect."
