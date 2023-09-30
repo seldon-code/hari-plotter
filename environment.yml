@@ -12,6 +12,10 @@ channels:
 dependencies:
   - meson
   - numpy
+  - pytest
+  - coverage
+  - matplotlib
+  - networkx
   - pip:
     - rich
     - rich-pixels
