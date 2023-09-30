@@ -143,7 +143,7 @@ class HariGraph(nx.DiGraph):
 
         return G
 
-    def save_json(self, filename):
+    def write_json(self, filename):
         """
         Saves the HariGraph to a JSON file.
 
