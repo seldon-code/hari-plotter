@@ -13,3 +13,12 @@ You can use a `micromamba` environment to get started, and get all your dependen
 micromamba create -f environment.yml # Just once 
 micromamba activate hairplotterenv # To activate, every time 
 ```
+
+## Test
+
+You can use `pytest` and `covarage` for tests: 
+
+```bash
+coverage run --source=hari_plotter -m pytest tests/ # To test
+coverage report # To get the report
+```
