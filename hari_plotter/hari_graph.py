@@ -218,6 +218,60 @@ class HariGraph(nx.DiGraph):
 
         return G
 
+    @classmethod
+    def strongly_connected_components(cls, n1, n2, connect_nodes=1):
+        """
+        Creates a HariGraph instance with two strongly connected components, 
+        one with a value close to 1 and the other close to 0.
+
+        :param n1: Number of nodes in the first component.
+        :param n2: Number of nodes in the second component.
+        :param connect_nodes: Number of nodes to connect between components, ensuring weak connectivity.
+        :return: A new HariGraph instance.
+        """
+        if n1 < 2 or n2 < 2:
+            raise ValueError(
+                "Number of nodes in each component should be at least 2")
+
+        if connect_nodes > min(n1, n2):
+            raise ValueError(
+                "Number of connecting nodes should not exceed the number of nodes in any component")
+
+        G = cls()
+
+        # Create the first strongly connected component with values close to 1
+        for i in range(n1):
+            G.add_node(i, value=0.9 + random.uniform(0, 0.1))
+        for i in range(n1):
+            for j in range(i + 1, n1):
+                G.add_edge(i, j, value=random.random())
+                G.add_edge(j, i, value=random.random())
+
+        # Create the second strongly connected component with values close to 0
+        for i in range(n1, n1 + n2):
+            G.add_node(i, value=random.uniform(0, 0.1))
+        for i in range(n1, n1 + n2):
+            for j in range(i + 1, n1 + n2):
+                G.add_edge(i, j, value=random.random())
+                G.add_edge(j, i, value=random.random())
+
+        # Connect the components weakly
+        first_component_nodes = list(range(n1))
+        second_component_nodes = list(range(n1, n1 + n2))
+
+        for _ in range(connect_nodes):
+            u = random.choice(first_component_nodes)
+            v = random.choice(second_component_nodes)
+
+            # Ensure that the selected nodes are not already connected
+            while G.has_edge(u, v) or G.has_edge(v, u):
+                u = random.choice(first_component_nodes)
+                v = random.choice(second_component_nodes)
+
+            G.add_edge(u, v, value=random.random())
+
+        return G
+
     def copy(self):
         G_copy = super().copy(as_view=False)
         G_copy = HariGraph(G_copy) if not isinstance(
