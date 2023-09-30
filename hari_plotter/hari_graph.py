@@ -32,7 +32,7 @@ class HariGraph(nx.DiGraph):
     def remove_self_loops(self):
         """
         Removes any self-loops present in the graph.
-        
+
         A self-loop is an edge that connects a node to itself.
         """
         # Iterate over all nodes in the graph
@@ -41,22 +41,21 @@ class HariGraph(nx.DiGraph):
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
 
-
     @classmethod
     def read_network(cls, network_file, opinion_file):
         """
         Class method to create an instance of HariGraph from the provided files.
-        
+
         Parameters:
             network_file (str): The path to the network file.
             opinion_file (str): The path to the opinion file.
-            
+
         Returns:
             HariGraph: An instance of HariGraph.
         """
         # Create an instance of HariGraph
         G = cls()
-        
+
         # Read network file and add nodes and edges to the graph
         with open(network_file, 'r') as f:
             next(f)  # Skip header line
@@ -66,14 +65,14 @@ class HariGraph(nx.DiGraph):
                 n_neighbours = int(parts[1])
                 indices_neighbours = map(int, parts[2:2+n_neighbours])
                 weights = map(float, parts[2+n_neighbours:])
-                
+
                 # Add nodes with initial value 0, value will be updated from opinion_file
                 G.add_node(idx_agent, value=0)
-                
+
                 # Add edges with weights
                 for neighbour, weight in zip(indices_neighbours, weights):
                     G.add_edge(neighbour, idx_agent, value=weight)
-                    
+
         # Read opinion file and update node values in the G
         with open(opinion_file, 'r') as f:
             next(f)  # Skip header line
@@ -81,16 +80,44 @@ class HariGraph(nx.DiGraph):
                 parts = line.split()
                 idx_agent = int(parts[0])
                 opinion = float(parts[1])
-                
+
                 # Update node value
                 G.nodes[idx_agent]['value'] = opinion
 
         G.generate_labels()
         G.remove_self_loops()
 
-                
         return G
 
+    def write_network(self, network_file, opinion_file):
+        '''
+        Save the network structure and node opinions to separate files.
+        Attention! This save loses the information about the labels.
+
+        :param network_file: The name of the file to write the network structure to.
+        :param opinion_file: The name of the file to write the node opinions to.
+        '''
+        # Save network structure
+        with open(network_file, 'w') as f:
+            # Write header
+            f.write(
+                "# idx_agent n_neighbours_in indices_neighbours_in[...] weights_in[...]\n")
+            for node in self.nodes:
+                # Get incoming neighbors
+                neighbors = list(self.predecessors(node))
+                weights = [self[neighbor][node]['value']
+                           for neighbor in neighbors]  # Get weights of incoming edges
+                # Write each node's information in a separate line
+                f.write(
+                    f"{node} {len(neighbors)} {' '.join(map(str, neighbors + weights))}\n")
+
+        # Save node opinions
+        with open(opinion_file, 'w') as f:
+            # Write header
+            f.write("# idx_agent opinion[...]\n")
+            for node, data in self.nodes(data=True):
+                # Write each node's opinion value in a separate line
+                f.write(f"{node} {data['value']}\n")
 
     @classmethod
     def read_json(cls, filename):
