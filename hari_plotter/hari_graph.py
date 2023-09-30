@@ -681,7 +681,7 @@ class HariGraph(nx.DiGraph):
         return fig, ax
 
     @property
-    def size(self):
+    def cluster_size(self):
         """
         Returns a dictionary with the sizes of the nodes.
         Key is the node ID, and value is the size of the node.
@@ -695,7 +695,7 @@ class HariGraph(nx.DiGraph):
         Key is the node ID, and value is the ratio of the sum of influences of the node to the size of the node.
         """
         importance_dict = {}
-        size_dict = self.size  # Use the size property defined above
+        size_dict = self.cluster_size
 
         for node in self.nodes:
             influences_sum = sum(data['value']
