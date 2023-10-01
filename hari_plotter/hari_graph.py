@@ -596,6 +596,62 @@ class HariGraph(nx.DiGraph):
             clusters.append(cluster)
 
         return clusters
+    
+    def merge_by_intervals(self, intervals):
+        """
+        Merges nodes into clusters based on the intervals defined by the input list of values.
+        
+        Parameters:
+            intervals (List[float]): A sorted list of values between 0 and 1 representing the boundaries of the intervals.
+        """
+        if not all(0 <= val <= 1 for val in intervals):
+            raise ValueError("All values in intervals must be between 0 and 1")
+        if not intervals:
+            raise ValueError("Intervals list cannot be empty")
+            
+        # Sort the intervals to ensure they are in ascending order
+        intervals = sorted(intervals)
+        
+        # Create a list to hold the clusters
+        clusters = [[] for _ in range(len(intervals) + 1)]
+        
+        # Define the intervals
+        intervals = [0] + intervals + [1]
+        for i in range(len(intervals) - 1):
+            lower_bound = intervals[i]
+            upper_bound = intervals[i + 1]
+            
+            # Iterate over all nodes and assign them to the appropriate cluster
+            for node, data in self.nodes(data=True):
+                value = data.get('value', 0)
+                if lower_bound <= value < upper_bound:
+                    clusters[i].append(node)
+                    
+        # Convert the clusters list of lists to a list of sets
+        clusters = [set(cluster) for cluster in clusters if cluster]
+        
+        # Merge the clusters
+        if clusters:
+            self.merge_clusters(clusters)
+
+
+    
+    def get_cluster_mapping(self):
+        """
+        Generates a mapping of current clusters in the graph.
+        
+        The method returns a dictionary where the key is the ID of a current node
+        and the value is a set containing the IDs of the original nodes that were merged 
+        to form that node.
+        
+        :return: A dictionary representing the current clusters in the graph.
+        """
+        cluster_mapping = {}
+        for node in self.nodes:
+            label = self.nodes[node].get('label', [node])
+            cluster_mapping[node] = set(label)
+        return cluster_mapping
+
 
     def merge_clusters(self, clusters):
         """

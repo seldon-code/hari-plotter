@@ -166,5 +166,12 @@ class TestHariGraph:
         max_values = self.graph.max_values
         assert isinstance(
             max_values, dict), "max_values should return a dictionary."
-        assert np.all(np.array(list(min_values.values()))>=0) and np.all(np.array(list(min_values.values()))<=1), "min_values are not in range."
-        assert np.all(np.array(list(max_values.values()))>=0) and np.all(np.array(list(max_values.values()))<=1), "max_values are not in range."
+        assert np.all(np.array(list(min_values.values())) >= 0) and np.all(
+            np.array(list(min_values.values())) <= 1), "min_values are not in range."
+        assert np.all(np.array(list(max_values.values())) >= 0) and np.all(
+            np.array(list(max_values.values())) <= 1), "max_values are not in range."
+
+    def test_merge_by_intervals(self):
+        self.graph.merge_by_intervals([0.25, 0.75])
+        assert self.graph.number_of_nodes(
+        ) <= 3, f"Expected maximum 3 nodes, but got {self.graph.number_of_nodes()}"
