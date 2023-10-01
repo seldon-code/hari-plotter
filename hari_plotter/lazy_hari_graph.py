@@ -11,6 +11,21 @@ class LazyHariGraph:
         if self._hari_graph is None:
             self._hari_graph = self._classmethod(*self._args, **self._kwargs)
 
+    def uninitialize(self):
+        self._hari_graph = None
+
+    def reinitialize(self):
+        self._hari_graph = self._classmethod(*self._args, **self._kwargs)
+
+    def is_initialized(self):
+        return self._hari_graph is not None
+
     def __getattr__(self, name):
         self._initialize()  # Initialize the HariGraph instance if not already done
         return getattr(self._hari_graph, name)
+
+    def __str__(self):
+        if self._hari_graph is not None:
+            return f"<LasyHariGraph with {self._hari_graph.number_of_nodes()} nodes and {self._hari_graph.number_of_edges()} edges>"
+        else:
+            return f"<Uninitialized LasyHariGraph object at {id(self)}>"
