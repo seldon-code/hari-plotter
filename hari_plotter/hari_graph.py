@@ -219,7 +219,7 @@ class HariGraph(nx.DiGraph):
         return G
 
     @classmethod
-    def strongly_connected_components(cls, n1, n2, connect_nodes=1):
+    def strongly_connected_components(cls, n1, n2, connect_nodes=2):
         """
         Creates a HariGraph instance with two strongly connected components, 
         one with a value close to 1 and the other close to 0.
@@ -232,6 +232,9 @@ class HariGraph(nx.DiGraph):
         if n1 < 2 or n2 < 2:
             raise ValueError(
                 "Number of nodes in each component should be at least 2")
+
+        if connect_nodes < 2:
+            raise ValueError("Number of connecting nodes should be at least 2")
 
         if connect_nodes > min(n1, n2):
             raise ValueError(
@@ -259,15 +262,27 @@ class HariGraph(nx.DiGraph):
         first_component_nodes = list(range(n1))
         second_component_nodes = list(range(n1, n1 + n2))
 
-        for _ in range(connect_nodes):
+        # Splitting connect_nodes randomly into two parts, each at least 1.
+        split = random.randint(1, connect_nodes - 1)
+        connect_nodes_first_to_second = split
+        connect_nodes_second_to_first = connect_nodes - split
+
+        # Creating connections from the first component to the second
+        for _ in range(connect_nodes_first_to_second):
             u = random.choice(first_component_nodes)
             v = random.choice(second_component_nodes)
-
-            # Ensure that the selected nodes are not already connected
-            while G.has_edge(u, v) or G.has_edge(v, u):
+            while G.has_edge(u, v):
                 u = random.choice(first_component_nodes)
                 v = random.choice(second_component_nodes)
+            G.add_edge(u, v, value=random.random())
 
+        # Creating connections from the second component to the first
+        for _ in range(connect_nodes_second_to_first):
+            u = random.choice(second_component_nodes)
+            v = random.choice(first_component_nodes)
+            while G.has_edge(u, v):
+                u = random.choice(second_component_nodes)
+                v = random.choice(first_component_nodes)
             G.add_edge(u, v, value=random.random())
 
         return G
@@ -484,6 +499,144 @@ class HariGraph(nx.DiGraph):
         # Remove the old nodes
         self.remove_node(i)
         self.remove_node(j)
+
+    def find_clusters(self, max_opinion_difference=0.1, min_influence=0.1):
+        """
+        Finds clusters of nodes in the graph where the difference in the nodes' values 
+        is less than max_opinion_difference, and the influence of i on j is higher than 
+        min_influence * size(i).
+
+        Parameters:
+            max_opinion_difference (float): Maximum allowed difference in the values of nodes to form a cluster.
+            min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.
+
+        Returns:
+            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.
+        """
+        clusters = []
+        visited_nodes = set()
+
+        for i in self.nodes:
+            if i in visited_nodes:
+                continue
+
+            cluster = [i]
+            visited_nodes.add(i)
+
+            # Use a list as a simple queue for Breadth-First Search (BFS)
+            queue = [i]
+
+            while queue:
+                node = queue.pop(0)  # Dequeue a node
+
+                for neighbor in set(self.successors(node)).union(self.predecessors(node)):
+                    if neighbor in visited_nodes:
+                        continue  # Skip already visited nodes
+
+                    vi = self.nodes[node]['value']
+                    vj = self.nodes[neighbor]['value']
+                    size_i = len(self.nodes[node].get('label', [node]))
+
+                    if self.has_edge(node, neighbor):
+                        influence_ij = self[node][neighbor]['value']
+                    else:
+                        influence_ij = 0
+
+                    if self.has_edge(neighbor, node):
+                        influence_ji = self[neighbor][node]['value']
+                    else:
+                        influence_ji = 0
+
+                    # Check conditions for being in the same cluster
+                    if (abs(vi - vj) <= max_opinion_difference and
+                            (influence_ij >= min_influence * size_i or
+                             influence_ji >= min_influence * size_i)):
+                        cluster.append(neighbor)  # Add to the current cluster
+                        visited_nodes.add(neighbor)
+                        queue.append(neighbor)  # Enqueue for BFS
+
+            # Add found cluster to the list of clusters
+            clusters.append(cluster)
+
+        return clusters
+
+    def merge_clusters(self, clusters):
+        """
+        Merges clusters of nodes in the graph into new nodes.
+
+        For each cluster, a new node is created whose value is the weighted 
+        average of the values of the nodes in the cluster, with the weights 
+        being the lengths of the labels of the nodes. The new node's label 
+        is the concatenation of the labels of the nodes in the cluster.
+        The edges are reconnected to the new nodes, and the old nodes are removed.
+
+        Parameters:
+            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing 
+                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
+                                    to new node IDs.
+
+        Example:
+            If we have two clusters [{0, 1}, {2, 3}] to merge, this method will create 
+            two new nodes, one for each cluster, calculate their values, labels, and
+            importances, reconnect the edges, and remove the old nodes (0, 1, 2, 3).
+        """
+
+        # Determine whether clusters are provided as a list or a dictionary
+        if isinstance(clusters, dict):
+            id_mapping = clusters
+            new_ids = set(id_mapping.values())
+            clusters_list = []
+            for new_id in new_ids:
+                clusters_list.append(
+                    set([old_id for old_id, mapped_id in id_mapping.items() if mapped_id == new_id]))
+        elif isinstance(clusters, list):
+            id_mapping = {}
+            new_id_start = max(self.nodes) + 1
+            for i, cluster in enumerate(clusters):
+                new_id = new_id_start + i
+                for node_id in cluster:
+                    assert node_id not in self.nodes or node_id in id_mapping, f"Node {node_id} already exists in the graph or is being merged multiple times."
+                    id_mapping[node_id] = new_id
+            clusters_list = clusters
+        else:
+            raise ValueError(
+                "clusters must be a list of sets or a dictionary.")
+
+        # Creating New Nodes with combined labels, importances, and values.
+        for i, cluster in enumerate(clusters_list):
+            new_id = id_mapping[next(iter(cluster))]
+            labels = []
+            importance = 0
+            total_value = 0
+            total_weight = 0
+            for node_id in cluster:
+                node = self.nodes[node_id]
+                labels.extend(node.get('label', [node_id]))
+                importance += node.get('importance', 0)
+                value = node.get('value', 0)
+                weight = len(node.get('label', [node_id]))
+                total_value += value * weight
+                total_weight += weight
+            new_value = total_value / total_weight if total_weight > 0 else 0
+            self.add_node(new_id, label=labels,
+                          importance=importance, value=new_value)
+
+        # Creating New Edges and reconnecting them to the new nodes.
+        for cluster in clusters_list:
+            new_id = id_mapping[next(iter(cluster))]
+            for node_id in cluster:
+                for neighbor_id, edge_value in list(self[node_id].items()):
+                    if neighbor_id not in cluster:
+                        new_neighbor_id = id_mapping[neighbor_id]
+                        if self.has_edge(new_id, new_neighbor_id):
+                            self[new_id][new_neighbor_id]['value'] += edge_value['value']
+                        else:
+                            self.add_edge(new_id, new_neighbor_id,
+                                          value=edge_value['value'])
+
+        # Removing Old Nodes and Edges.
+        for old_node_id in id_mapping.keys():
+            self.remove_node(old_node_id)
 
     def simplify_graph_one_iteration(self):
         """
