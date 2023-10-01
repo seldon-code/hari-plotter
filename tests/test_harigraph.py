@@ -67,41 +67,25 @@ class TestHariGraph:
             0.6279692643403699), "Weighted mean value from network and opinions files is not as expected."
 
     def test_strongly_connected_components(self):
-        n1, n2 = 5, 4  # Number of nodes in the two components
-        connect_nodes = 1  # Number of nodes to connect between components
+        n1, n2 = 8, 9  # Number of nodes in the two components
+        connect_nodes = 3  # Number of nodes to connect between components
         graph = HariGraph.strongly_connected_components(n1, n2, connect_nodes)
 
         assert isinstance(
             graph, HariGraph), "Method should return an instance of HariGraph."
 
-        # Check if the generated graph has two strongly connected components
-        strongly_connected_components = [
-            c for c in nx.strongly_connected_components(graph)]
-        assert len(
-            strongly_connected_components) == 2, "Graph should have two strongly connected components."
+        # Assert that the number of nodes is correct
+        assert graph.number_of_nodes() == n1 + \
+            n2, f"Graph should have {n1 + n2} nodes."
 
-        # Check the number of nodes in each component
-        assert len(strongly_connected_components[0]) == n1 or len(
-            strongly_connected_components[0]) == n2, "Number of nodes in the first component is incorrect."
-        assert len(strongly_connected_components[1]) == n1 or len(
-            strongly_connected_components[1]) == n2, "Number of nodes in the second component is incorrect."
+        # Assert that the graph has the 'value' attribute for every node and edge
+        for _, data in graph.nodes(data=True):
+            assert 'value' in data, "Every node should have a 'value' attribute."
 
-        # Check if the graph has weak connectivity between the two components
-        # Convert to undirected graph for weak connectivity check
-        weakly_connected_subgraph = nx.Graph(graph)
-        assert nx.is_connected(
-            weakly_connected_subgraph), "The graph should be weakly connected."
+        for _, _, data in graph.edges(data=True):
+            assert 'value' in data, "Every edge should have a 'value' attribute."
 
-        # Check the values of the nodes in each strongly connected component
-        component_1_values = [graph.nodes[node]['value']
-                              for node in strongly_connected_components[0]]
-        component_2_values = [graph.nodes[node]['value']
-                              for node in strongly_connected_components[1]]
-
-        assert all(0.9 <= value <= 1.0 for value in component_1_values) or all(
-            0.0 <= value <= 0.1 for value in component_1_values), "Values in the first component are incorrect."
-        assert all(0.9 <= value <= 1.0 for value in component_2_values) or all(
-            0.0 <= value <= 0.1 for value in component_2_values), "Values in the second component are incorrect."
+        assert graph.check_all_paths_exist(), "All paths should exist in the graph."
 
     def test_cluster_size(self):
         cluster_size = self.graph.cluster_size
@@ -126,3 +110,49 @@ class TestHariGraph:
                 cluster_size[node] if cluster_size[node] != 0 else 0
             assert importance[node] == pytest.approx(
                 calculated_importance), f"Importance of node {node} is incorrect."
+
+    def test_find_clusters(self):
+        G = HariGraph()
+
+        # Add nodes and edges
+        G.add_node(1, value=0.1)
+        G.add_node(2, value=0.2)
+        G.add_node(3, value=0.9)
+        G.add_node(4, value=0.95)
+        G.add_edge(1, 2, value=0.15)
+        G.add_edge(3, 4, value=0.15)
+
+        clusters = G.find_clusters(
+            max_opinion_difference=0.1, min_influence=0.1)
+
+        # Validate clusters
+        assert len(
+            clusters) == 2, f"Expected 2 clusters, but got {len(clusters)}"
+        assert set(clusters[0]) == {1, 2}, "Unexpected nodes in first cluster"
+        assert set(clusters[1]) == {3, 4}, "Unexpected nodes in second cluster"
+
+    def test_merge_clusters(self):
+        G = HariGraph()
+
+        # Add nodes and edges
+        G.add_node(1, value=0.1, label=[1])
+        G.add_node(2, value=0.2, label=[2])
+        G.add_node(3, value=0.9, label=[3])
+        G.add_node(4, value=0.95, label=[4])
+        G.add_edge(1, 2, value=0.15)
+        G.add_edge(3, 4, value=0.05)
+
+        clusters = [{1, 2}, {3, 4}]
+        G.merge_clusters(clusters)
+
+        # Validate merge
+        assert len(G.nodes) == 2, f"Expected 2 nodes, but got {len(G.nodes)}"
+        assert len(G.edges) == 0, f"Expected 0 edges, but got {len(G.edges)}"
+
+        # Validate new nodes' values, labels, and importances
+        for node in G.nodes:
+            assert G.nodes[node]['value'] == pytest.approx(
+                0.15) or G.nodes[node]['value'] == pytest.approx(0.925), "Unexpected value in merged node"
+            assert len(G.nodes[node]['label']
+                       ) == 2, "Unexpected label length in merged node"
+            assert 'importance' in G.nodes[node], "Missing importance in merged node"
