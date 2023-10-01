@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 import pytest
 
 from hari_plotter import HariGraph
@@ -11,6 +12,8 @@ class TestHariGraph:
         cls.graph = HariGraph.read_json('tests/test.json')
         cls.graph_from_files = HariGraph.read_network(
             'tests/network.txt', 'tests/opinions_0.txt')
+        cls.strongly_connected_graph = HariGraph.strongly_connected_components(
+            15, 25, 6)
 
     def test_read_json(self):
         assert isinstance(
@@ -156,3 +159,46 @@ class TestHariGraph:
             assert len(G.nodes[node]['label']
                        ) == 2, "Unexpected label length in merged node"
             assert 'importance' in G.nodes[node], "Missing importance in merged node"
+
+    def test_min_max_values(self):
+        self.graph.generate_min_max_values()
+        min_values = self.graph.min_values
+        assert isinstance(
+            min_values, dict), "min_values should return a dictionary."
+        max_values = self.graph.max_values
+        assert isinstance(
+            max_values, dict), "max_values should return a dictionary."
+        assert np.all(np.array(list(min_values.values())) >= 0) and np.all(
+            np.array(list(min_values.values())) <= 1), "min_values are not in range."
+        assert np.all(np.array(list(max_values.values())) >= 0) and np.all(
+            np.array(list(max_values.values())) <= 1), "max_values are not in range."
+
+    def test_merge_by_intervals(self):
+        self.graph.merge_by_intervals([0.25, 0.75])
+        assert self.graph.number_of_nodes(
+        ) <= 3, f"Expected maximum 3 nodes, but got {self.graph.number_of_nodes()}"
+
+    def test_merge_by_intervals_2(self):
+        expected_clusters = {
+            40: set(range(15, 40)),
+            41: set(range(15))
+        }
+
+        assert len(self.strongly_connected_graph.nodes) == 40
+        assert len(self.strongly_connected_graph.edges) == 816
+
+        self.strongly_connected_graph.merge_by_intervals([0.5])
+
+        # Check the number of nodes and edges after merging
+        assert len(self.strongly_connected_graph.nodes) == 2
+        assert len(self.strongly_connected_graph.edges) == 2
+
+        # Check the cluster mapping
+        cluster_mapping = self.strongly_connected_graph.get_cluster_mapping()
+        assert cluster_mapping == expected_clusters
+
+        # Check each node in the cluster mapping
+        for new_id, cluster in cluster_mapping.items():
+            for old_id in cluster:
+                assert old_id in self.strongly_connected_graph.nodes[new_id][
+                    'label'], f"Node {old_id} should be in the label of the new node {new_id}"

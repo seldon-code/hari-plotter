@@ -29,6 +29,19 @@ class HariGraph(nx.DiGraph):
             for i in self.nodes:
                 self.nodes[i]['label'] = [i]
 
+    def generate_min_max_values(self):
+        """
+        Generates min_value and max_value for each node in the graph.
+
+        For single nodes, min_value and max_value are equal to the node's value.
+        For cluster nodes, min_value is the minimum of the values of the original nodes,
+        and max_value is the maximum of the values of the original nodes.
+        """
+        for node, data in self.nodes(data=True):
+            # If the node is a single node, set min_value and max_value to its value
+            if 'label' not in data:
+                data['min_value'] = data['max_value'] = data['value']
+
     def remove_self_loops(self):
         """
         Removes any self-loops present in the graph.
@@ -85,6 +98,7 @@ class HariGraph(nx.DiGraph):
                 G.nodes[idx_agent]['value'] = opinion
 
         G.generate_labels()
+        G.generate_min_max_values()
         G.remove_self_loops()
 
         return G
@@ -136,6 +150,10 @@ class HariGraph(nx.DiGraph):
         G = cls()
         for node in graph_dict["nodes"]:
             G.add_node(node["id"], value=node["value"],
+                       # defaulting to value if not present
+                       min_value=node.get('min_value', node["value"]),
+                       # defaulting to value if not present
+                       max_value=node.get('max_value', node["value"]),
                        label=node.get('label', [node["id"]]))
 
         for edge in graph_dict["edges"]:
@@ -151,8 +169,11 @@ class HariGraph(nx.DiGraph):
         """
         graph_dict = {
             "nodes": [
-                {"id": n, "value": self.nodes[n]["value"], "label": self.nodes[n].get('label', [
-                                                                                      n])}
+                {"id": n,
+                 "value": self.nodes[n]["value"],
+                 "min_value": self.nodes[n].get('min_value', self.nodes[n]["value"]),
+                 "max_value": self.nodes[n].get('max_value', self.nodes[n]["value"]),
+                 "label": self.nodes[n].get('label', [n])}
                 for n in self.nodes()
             ],
             "edges": [{"source": u, "target": v, "value": self[u][v]["value"]} for u, v in self.edges()]
@@ -188,6 +209,9 @@ class HariGraph(nx.DiGraph):
                 if random.choice([True, False]) and not G.has_edge(v, u):
                     G.add_edge(v, u, value=random.random())
 
+        G.generate_labels()
+        G.generate_min_max_values()
+
         return G
 
     @classmethod
@@ -215,6 +239,9 @@ class HariGraph(nx.DiGraph):
         edges_to_remove = random.sample(
             G.edges, int(len(G.edges) * (1 - factor)))
         G.remove_edges_from(edges_to_remove)
+
+        G.generate_labels()
+        G.generate_min_max_values()
 
         return G
 
@@ -285,6 +312,9 @@ class HariGraph(nx.DiGraph):
                 v = random.choice(first_component_nodes)
             G.add_edge(u, v, value=random.random())
 
+        G.generate_labels()
+        G.generate_min_max_values()
+
         return G
 
     def copy(self):
@@ -302,7 +332,7 @@ class HariGraph(nx.DiGraph):
         """
         for source, target in permutations(self.nodes, 2):
             if not nx.has_path(self, source, target):
-                print(f"No path exists from {source} to {target}")
+                # print(f"No path exists from {source} to {target}")
                 return False
         return True
 
@@ -458,20 +488,27 @@ class HariGraph(nx.DiGraph):
             i (int): The identifier for the first node to merge.
             j (int): The identifier for the second node to merge.
         """
-        # Calculate new value and label
+        # Calculate new value, label, min_value, and max_value
         label_i = self.nodes[i].get('label', [i])
         label_j = self.nodes[j].get('label', [j])
         new_label = label_i + label_j
 
         vi = self.nodes[i]['value']
         vj = self.nodes[j]['value']
+
+        min_value = min(self.nodes[i].get(
+            'min_value', vi), self.nodes[j].get('min_value', vj))
+        max_value = max(self.nodes[i].get(
+            'max_value', vi), self.nodes[j].get('max_value', vj))
+
         weight_i = len(label_i)
         weight_j = len(label_j)
         new_value = (vi * weight_i + vj * weight_j) / (weight_i + weight_j)
 
-        # Add a new node to the graph with the calculated value and label
+        # Add a new node to the graph with the calculated value, label, min_value, and max_value
         new_node = max(self.nodes) + 1
-        self.add_node(new_node, value=new_value, label=new_label)
+        self.add_node(new_node, value=new_value, label=new_label,
+                      min_value=min_value, max_value=max_value)
 
         # Reconnect edges
         for u, v, data in list(self.edges(data=True)):
@@ -560,6 +597,59 @@ class HariGraph(nx.DiGraph):
 
         return clusters
 
+    def merge_by_intervals(self, intervals):
+        """
+        Merges nodes into clusters based on the intervals defined by the input list of values.
+
+        Parameters:
+            intervals (List[float]): A sorted list of values between 0 and 1 representing the boundaries of the intervals.
+        """
+        if not all(0 <= val <= 1 for val in intervals):
+            raise ValueError("All values in intervals must be between 0 and 1")
+        if not intervals:
+            raise ValueError("Intervals list cannot be empty")
+
+        # Sort the intervals to ensure they are in ascending order
+        intervals = sorted(intervals)
+
+        # Create a list to hold the clusters
+        clusters = [[] for _ in range(len(intervals) + 1)]
+
+        # Define the intervals
+        intervals = [0] + intervals + [1]
+        for i in range(len(intervals) - 1):
+            lower_bound = intervals[i]
+            upper_bound = intervals[i + 1]
+
+            # Iterate over all nodes and assign them to the appropriate cluster
+            for node, data in self.nodes(data=True):
+                value = data.get('value', 0)
+                if lower_bound <= value < upper_bound:
+                    clusters[i].append(node)
+
+        # Convert the clusters list of lists to a list of sets
+        clusters = [set(cluster) for cluster in clusters if cluster]
+
+        # Merge the clusters
+        if clusters:
+            self.merge_clusters(clusters)
+
+    def get_cluster_mapping(self):
+        """
+        Generates a mapping of current clusters in the graph.
+
+        The method returns a dictionary where the key is the ID of a current node
+        and the value is a set containing the IDs of the original nodes that were merged 
+        to form that node.
+
+        :return: A dictionary representing the current clusters in the graph.
+        """
+        cluster_mapping = {}
+        for node in self.nodes:
+            label = self.nodes[node].get('label', [node])
+            cluster_mapping[node] = set(label)
+        return cluster_mapping
+
     def merge_clusters(self, clusters):
         """
         Merges clusters of nodes in the graph into new nodes.
@@ -574,16 +664,15 @@ class HariGraph(nx.DiGraph):
             clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing 
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
-
-        Example:
-            If we have two clusters [{0, 1}, {2, 3}] to merge, this method will create 
-            two new nodes, one for each cluster, calculate their values, labels, and
-            importances, reconnect the edges, and remove the old nodes (0, 1, 2, 3).
         """
 
         # Determine whether clusters are provided as a list or a dictionary
         if isinstance(clusters, dict):
-            id_mapping = clusters
+            # Create id_mapping dictionary where each old node ID is mapped to its new node ID
+            id_mapping = {}
+            for new_id, old_ids_set in clusters.items():
+                for old_id in old_ids_set:
+                    id_mapping[old_id] = new_id
             new_ids = set(id_mapping.values())
             clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
             ) if mapped_id == new_id) for new_id in new_ids]
@@ -608,33 +697,38 @@ class HariGraph(nx.DiGraph):
             importance = 0
             total_value = 0
             total_weight = 0
+            min_value = float('inf')
+            max_value = float('-inf')
+
             for node_id in cluster:
                 node = self.nodes[node_id]
                 labels.extend(node.get('label', [node_id]))
                 importance += node.get('importance', 0)
                 value = node.get('value', 0)
+                min_value = min(min_value, node.get('min_value', value))
+                max_value = max(max_value, node.get('max_value', value))
                 weight = len(node.get('label', [node_id]))
                 total_value += value * weight
                 total_weight += weight
+
             new_value = total_value / total_weight if total_weight > 0 else 0
-            self.add_node(new_id, label=labels,
-                          importance=importance, value=new_value)
+            self.add_node(new_id, label=labels, importance=importance,
+                          value=new_value, min_value=min_value, max_value=max_value)
 
-        # Creating New Edges and reconnecting them to the new nodes.
-        for cluster in clusters_list:
-            new_id = id_mapping[next(iter(cluster))]
-            for node_id in cluster:
-                for neighbor_id, edge_value in list(self[node_id].items()):
-                    if neighbor_id not in cluster:
-                        new_neighbor_id = id_mapping[neighbor_id]
-                        if self.has_edge(new_id, new_neighbor_id):
-                            self[new_id][new_neighbor_id]['value'] += edge_value['value']
-                        else:
-                            self.add_edge(new_id, new_neighbor_id,
-                                          value=edge_value['value'])
+        # Reassigning Edges to New Nodes and Removing Old Nodes.
+        for old_node_id, new_id in id_mapping.items():
+            for successor in self.successors(old_node_id):
+                mapped_successor = id_mapping.get(successor, successor)
+                if mapped_successor != new_id:  # avoid creating self-loop
+                    self.add_edge(new_id, mapped_successor,
+                                  value=self[old_node_id][successor]['value'])
 
-        # Removing Old Nodes and Edges.
-        for old_node_id in id_mapping.keys():
+            for predecessor in self.predecessors(old_node_id):
+                mapped_predecessor = id_mapping.get(predecessor, predecessor)
+                if mapped_predecessor != new_id:  # avoid creating self-loop
+                    self.add_edge(mapped_predecessor, new_id,
+                                  value=self[predecessor][old_node_id]['value'])
+
             self.remove_node(old_node_id)
 
     def simplify_graph_one_iteration(self):
@@ -671,25 +765,43 @@ class HariGraph(nx.DiGraph):
             i, j = pair
             self = self.merge_nodes(i, j)
 
-    def draw(self, plot_node_info='none', use_node_color=True,
+    def position_nodes(self, seed=None):
+        """
+        Determines the positions of the nodes in the graph using the spring layout algorithm.
+
+        :param seed: int, optional
+            Seed for the spring layout algorithm, affecting the randomness in the positioning of the nodes.
+            If None, the positioning of the nodes will be determined by the underlying algorithm's default behavior.
+            Default is None.
+
+        :return: dict
+            A dictionary representing the positions of the nodes in a 2D space, where the keys are node IDs
+            and the values are the corresponding (x, y) coordinates.
+        """
+        return nx.spring_layout(self, seed=seed)
+
+    def draw(self, pos=None, plot_node_info='none', use_node_color=True,
              use_edge_thickness=True, plot_edge_values=False,
              node_size_multiplier=200,
              arrowhead_length=0.2, arrowhead_width=0.2,
              min_line_width=0.1, max_line_width=3.0,
              seed=None, save_filepath=None, show=True,
-             fig=None, ax=None):
+             fig=None, ax=None, bottom_right_text=None):
         """
         Visualizes the graph with various customization options.
+
+        :param pos: dict, optional
+            Position of nodes as a dictionary of coordinates. If not provided, the spring layout is used to position nodes.
 
         :param plot_node_info: str, optional
             Determines the information to display on the nodes.
             Options: 'none', 'values', 'ids', 'labels', 'size'. Default is 'none'.
 
         :param use_node_color: bool, optional
-            If True, nodes are colored based on their values. Default is True.
+            If True, nodes are colored based on their values using a colormap. Default is True.
 
         :param use_edge_thickness: bool, optional
-            If True, the thickness of the edges is determined by their values. Default is True.
+            If True, the thickness of the edges is determined by their values, scaled between min_line_width and max_line_width. Default is True.
 
         :param plot_edge_values: bool, optional
             If True, displays the values of the edges on the plot. Default is False.
@@ -724,12 +836,17 @@ class HariGraph(nx.DiGraph):
         :param ax: matplotlib.axes._axes.Axes, optional
             Matplotlib Axes object. If None, a new axis is created. Default is None.
 
+        :param bottom_right_text: str, optional
+            Text to display in the bottom right corner of the plot. Default is None.
+
         :return: tuple
             A tuple containing the Matplotlib Figure and Axes objects.
         """
         if fig is None or ax is None:
             fig, ax = plt.subplots(figsize=(10, 7))
-        pos = nx.spring_layout(self, seed=seed)
+
+        if pos is None:
+            pos = self.position_nodes(seed=seed)
 
         # Get the node and edge attributes
         node_attributes = nx.get_node_attributes(self, 'value')
@@ -823,7 +940,12 @@ class HariGraph(nx.DiGraph):
         if edge_labels:
             nx.draw_networkx_edge_labels(self, pos, edge_labels=edge_labels)
 
-            # Save the plot if save_filepath is provided
+        # Add text in the bottom right corner if provided
+        if bottom_right_text:
+            ax.text(1, 0, bottom_right_text, horizontalalignment='right',
+                    verticalalignment='bottom', transform=ax.transAxes)
+
+        # Save the plot if save_filepath is provided
         if save_filepath:
             plt.savefig(save_filepath)
 
@@ -856,6 +978,30 @@ class HariGraph(nx.DiGraph):
                 size_dict[node] if size_dict[node] != 0 else 0
 
         return importance_dict
+
+    @property
+    def values(self):
+        """
+        Returns a dictionary with the values of the nodes.
+        Key is the node ID, and value is the value of the node.
+        """
+        return {node: self.nodes[node]["value"] for node in self.nodes}
+
+    @property
+    def min_values(self):
+        """
+        Returns a dictionary with the minimum values of the nodes.
+        Key is the node ID, and value is the min_value of the node.
+        """
+        return {node: self.nodes[node].get('min_value', self.nodes[node]["value"]) for node in self.nodes}
+
+    @property
+    def max_values(self):
+        """
+        Returns a dictionary with the maximum values of the nodes.
+        Key is the node ID, and value is the max_value of the node.
+        """
+        return {node: self.nodes[node].get('max_value', self.nodes[node]["value"]) for node in self.nodes}
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"
