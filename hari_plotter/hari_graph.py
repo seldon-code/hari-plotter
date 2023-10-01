@@ -585,19 +585,18 @@ class HariGraph(nx.DiGraph):
         if isinstance(clusters, dict):
             id_mapping = clusters
             new_ids = set(id_mapping.values())
-            clusters_list = []
-            for new_id in new_ids:
-                clusters_list.append(
-                    set([old_id for old_id, mapped_id in id_mapping.items() if mapped_id == new_id]))
+            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
+            ) if mapped_id == new_id) for new_id in new_ids]
         elif isinstance(clusters, list):
             id_mapping = {}
+            # Define clusters_list here when clusters is a list.
+            clusters_list = clusters
             new_id_start = max(self.nodes) + 1
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:
-                    assert node_id not in self.nodes or node_id in id_mapping, f"Node {node_id} already exists in the graph or is being merged multiple times."
+                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id} already exists in the graph or is being merged multiple times."
                     id_mapping[node_id] = new_id
-            clusters_list = clusters
         else:
             raise ValueError(
                 "clusters must be a list of sets or a dictionary.")
