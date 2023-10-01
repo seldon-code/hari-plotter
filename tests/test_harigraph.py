@@ -1,4 +1,5 @@
 import networkx as nx
+import numpy as np
 import pytest
 
 from hari_plotter import HariGraph
@@ -156,3 +157,14 @@ class TestHariGraph:
             assert len(G.nodes[node]['label']
                        ) == 2, "Unexpected label length in merged node"
             assert 'importance' in G.nodes[node], "Missing importance in merged node"
+
+    def test_min_max_values(self):
+        self.graph.generate_min_max_values()
+        min_values = self.graph.min_values
+        assert isinstance(
+            min_values, dict), "min_values should return a dictionary."
+        max_values = self.graph.max_values
+        assert isinstance(
+            max_values, dict), "max_values should return a dictionary."
+        assert np.all(np.array(list(min_values.values()))>=0) and np.all(np.array(list(min_values.values()))<=1), "min_values are not in range."
+        assert np.all(np.array(list(max_values.values()))>=0) and np.all(np.array(list(max_values.values()))<=1), "max_values are not in range."

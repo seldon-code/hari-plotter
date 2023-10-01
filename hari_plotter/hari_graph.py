@@ -29,6 +29,19 @@ class HariGraph(nx.DiGraph):
             for i in self.nodes:
                 self.nodes[i]['label'] = [i]
 
+    def generate_min_max_values(self):
+        """
+        Generates min_value and max_value for each node in the graph.
+
+        For single nodes, min_value and max_value are equal to the node's value.
+        For cluster nodes, min_value is the minimum of the values of the original nodes,
+        and max_value is the maximum of the values of the original nodes.
+        """
+        for node, data in self.nodes(data=True):
+            # If the node is a single node, set min_value and max_value to its value
+            if 'label' not in data:
+                data['min_value'] = data['max_value'] = data['value']
+
     def remove_self_loops(self):
         """
         Removes any self-loops present in the graph.
@@ -85,6 +98,7 @@ class HariGraph(nx.DiGraph):
                 G.nodes[idx_agent]['value'] = opinion
 
         G.generate_labels()
+        G.generate_min_max_values()
         G.remove_self_loops()
 
         return G
@@ -136,6 +150,10 @@ class HariGraph(nx.DiGraph):
         G = cls()
         for node in graph_dict["nodes"]:
             G.add_node(node["id"], value=node["value"],
+                       # defaulting to value if not present
+                       min_value=node.get('min_value', node["value"]),
+                       # defaulting to value if not present
+                       max_value=node.get('max_value', node["value"]),
                        label=node.get('label', [node["id"]]))
 
         for edge in graph_dict["edges"]:
@@ -151,8 +169,11 @@ class HariGraph(nx.DiGraph):
         """
         graph_dict = {
             "nodes": [
-                {"id": n, "value": self.nodes[n]["value"], "label": self.nodes[n].get('label', [
-                                                                                      n])}
+                {"id": n,
+                 "value": self.nodes[n]["value"],
+                 "min_value": self.nodes[n].get('min_value', self.nodes[n]["value"]),
+                 "max_value": self.nodes[n].get('max_value', self.nodes[n]["value"]),
+                 "label": self.nodes[n].get('label', [n])}
                 for n in self.nodes()
             ],
             "edges": [{"source": u, "target": v, "value": self[u][v]["value"]} for u, v in self.edges()]
@@ -188,6 +209,9 @@ class HariGraph(nx.DiGraph):
                 if random.choice([True, False]) and not G.has_edge(v, u):
                     G.add_edge(v, u, value=random.random())
 
+        G.generate_labels()
+        G.generate_min_max_values()
+
         return G
 
     @classmethod
@@ -215,6 +239,9 @@ class HariGraph(nx.DiGraph):
         edges_to_remove = random.sample(
             G.edges, int(len(G.edges) * (1 - factor)))
         G.remove_edges_from(edges_to_remove)
+
+        G.generate_labels()
+        G.generate_min_max_values()
 
         return G
 
@@ -284,6 +311,9 @@ class HariGraph(nx.DiGraph):
                 u = random.choice(second_component_nodes)
                 v = random.choice(first_component_nodes)
             G.add_edge(u, v, value=random.random())
+
+        G.generate_labels()
+        G.generate_min_max_values()
 
         return G
 
@@ -458,20 +488,27 @@ class HariGraph(nx.DiGraph):
             i (int): The identifier for the first node to merge.
             j (int): The identifier for the second node to merge.
         """
-        # Calculate new value and label
+        # Calculate new value, label, min_value, and max_value
         label_i = self.nodes[i].get('label', [i])
         label_j = self.nodes[j].get('label', [j])
         new_label = label_i + label_j
 
         vi = self.nodes[i]['value']
         vj = self.nodes[j]['value']
+
+        min_value = min(self.nodes[i].get(
+            'min_value', vi), self.nodes[j].get('min_value', vj))
+        max_value = max(self.nodes[i].get(
+            'max_value', vi), self.nodes[j].get('max_value', vj))
+
         weight_i = len(label_i)
         weight_j = len(label_j)
         new_value = (vi * weight_i + vj * weight_j) / (weight_i + weight_j)
 
-        # Add a new node to the graph with the calculated value and label
+        # Add a new node to the graph with the calculated value, label, min_value, and max_value
         new_node = max(self.nodes) + 1
-        self.add_node(new_node, value=new_value, label=new_label)
+        self.add_node(new_node, value=new_value, label=new_label,
+                      min_value=min_value, max_value=max_value)
 
         # Reconnect edges
         for u, v, data in list(self.edges(data=True)):
@@ -574,11 +611,6 @@ class HariGraph(nx.DiGraph):
             clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing 
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
-
-        Example:
-            If we have two clusters [{0, 1}, {2, 3}] to merge, this method will create 
-            two new nodes, one for each cluster, calculate their values, labels, and
-            importances, reconnect the edges, and remove the old nodes (0, 1, 2, 3).
         """
 
         # Determine whether clusters are provided as a list or a dictionary
@@ -621,18 +653,26 @@ class HariGraph(nx.DiGraph):
                           importance=importance, value=new_value)
 
         # Creating New Edges and reconnecting them to the new nodes.
-        for cluster in clusters_list:
+        for i, cluster in enumerate(clusters_list):
             new_id = id_mapping[next(iter(cluster))]
+            labels = []
+            importance = 0
+            total_value = 0
+            total_weight = 0
+            min_value = float('inf')
+            max_value = float('-inf')
             for node_id in cluster:
-                for neighbor_id, edge_value in list(self[node_id].items()):
-                    if neighbor_id not in cluster:
-                        new_neighbor_id = id_mapping[neighbor_id]
-                        if self.has_edge(new_id, new_neighbor_id):
-                            self[new_id][new_neighbor_id]['value'] += edge_value['value']
-                        else:
-                            self.add_edge(new_id, new_neighbor_id,
-                                          value=edge_value['value'])
-
+                node = self.nodes[node_id]
+                labels.extend(node.get('label', [node_id]))
+                importance += node.get('importance', 0)
+                value = node.get('value', 0)
+                min_value = min(min_value, node.get('min_value', value))
+                max_value = max(max_value, node.get('max_value', value))
+                weight = len(node.get('label', [node_id]))
+                total_value += value * weight
+                total_weight += weight
+            new_value = total_value / total_weight if total_weight > 0 else 0
+            self.add_node(new_id, label=labels, importance=importance, value=new_value, min_value=min_value, max_value=max_value)
         # Removing Old Nodes and Edges.
         for old_node_id in id_mapping.keys():
             self.remove_node(old_node_id)
@@ -856,6 +896,22 @@ class HariGraph(nx.DiGraph):
                 size_dict[node] if size_dict[node] != 0 else 0
 
         return importance_dict
+
+    @property
+    def min_values(self):
+        """
+        Returns a dictionary with the minimum values of the nodes.
+        Key is the node ID, and value is the min_value of the node.
+        """
+        return {node: self.nodes[node].get('min_value', self.nodes[node]["value"]) for node in self.nodes}
+
+    @property
+    def max_values(self):
+        """
+        Returns a dictionary with the maximum values of the nodes.
+        Key is the node ID, and value is the max_value of the node.
+        """
+        return {node: self.nodes[node].get('max_value', self.nodes[node]["value"]) for node in self.nodes}
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"
