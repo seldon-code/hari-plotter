@@ -20,6 +20,7 @@ class HariGraph(nx.DiGraph):
         super().__init__(incoming_graph_data, **attr)
         self.generate_labels()
         self.similarity_function = self.default_similarity_function
+        self.node_parameter_gatherer = self.default_node_parameter_gatherer
 
     def generate_labels(self):
         """Generates labels for the nodes if they don't exist."""
@@ -29,18 +30,21 @@ class HariGraph(nx.DiGraph):
             for i in self.nodes:
                 self.nodes[i]['label'] = [i]
 
-    def generate_min_max_values(self):
+    def add_parameters_to_nodes(self, node_ids=None):
         """
-        Generates min_value and max_value for each node in the graph.
+        Adds parameters to specified nodes using the node_parameter_gatherer method.
+        If node_ids is None, parameters are added to all nodes in the graph.
 
-        For single nodes, min_value and max_value are equal to the node's value.
-        For cluster nodes, min_value is the minimum of the values of the original nodes,
-        and max_value is the maximum of the values of the original nodes.
+        :param node_ids: List[int], a list of identifiers for the nodes to which parameters will be added.
         """
-        for node, data in self.nodes(data=True):
-            # If the node is a single node, set min_value and max_value to its value
-            if 'label' not in data:
-                data['min_value'] = data['max_value'] = data['value']
+        if node_ids is None:
+            node_ids = list(self.nodes)
+
+        for node_id in node_ids:
+            # Gather parameters for the node
+            parameters = self.node_parameter_gatherer([self.nodes[node_id]])
+            # Update the node's attributes with the gathered parameters
+            self.nodes[node_id].update(parameters)
 
     def remove_self_loops(self):
         """
@@ -98,7 +102,7 @@ class HariGraph(nx.DiGraph):
                 G.nodes[idx_agent]['value'] = opinion
 
         G.generate_labels()
-        G.generate_min_max_values()
+        G.add_parameters_to_nodes()
         G.remove_self_loops()
 
         return G
@@ -169,15 +173,11 @@ class HariGraph(nx.DiGraph):
         """
         graph_dict = {
             "nodes": [
-                {"id": n,
-                 "value": self.nodes[n]["value"],
-                 "min_value": self.nodes[n].get('min_value', self.nodes[n]["value"]),
-                 "max_value": self.nodes[n].get('max_value', self.nodes[n]["value"]),
-                 "label": self.nodes[n].get('label', [n])}
-                for n in self.nodes()
+                {"id": n, **{prop: self.node_values[prop][n] for prop in self.node_values}} for n in self.nodes()
             ],
             "edges": [{"source": u, "target": v, "value": self[u][v]["value"]} for u, v in self.edges()]
         }
+
         with open(filename, 'w') as file:
             json.dump(graph_dict, file)
 
@@ -210,7 +210,7 @@ class HariGraph(nx.DiGraph):
                     G.add_edge(v, u, value=random.random())
 
         G.generate_labels()
-        G.generate_min_max_values()
+        G.add_parameters_to_nodes()
 
         return G
 
@@ -241,7 +241,7 @@ class HariGraph(nx.DiGraph):
         G.remove_edges_from(edges_to_remove)
 
         G.generate_labels()
-        G.generate_min_max_values()
+        G.add_parameters_to_nodes()
 
         return G
 
@@ -313,7 +313,7 @@ class HariGraph(nx.DiGraph):
             G.add_edge(u, v, value=random.random())
 
         G.generate_labels()
-        G.generate_min_max_values()
+        G.add_parameters_to_nodes()
 
         return G
 
@@ -441,6 +441,22 @@ class HariGraph(nx.DiGraph):
         # Combine the impacts
         return value_proximity + extreme_proximity + influence + size_impact
 
+    @staticmethod
+    def default_node_parameter_gatherer(nodes):
+        """
+        Gathers default parameters for a node that is a result of merging given nodes.
+
+        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
+        :return: Dict, a dictionary with calculated 'max_value' and 'min_value'.
+        """
+        if not nodes:
+            raise ValueError("The input list of nodes must not be empty.")
+
+        return {
+            'max_value': max(node.get('max_value', node['value']) for node in nodes),
+            'min_value': min(node.get('min_value', node['value']) for node in nodes)
+        }
+
     def compute_similarity(self, i, j, similarity_function=None):
         """
         Computes the similarity between two nodes in the graph.
@@ -496,19 +512,17 @@ class HariGraph(nx.DiGraph):
         vi = self.nodes[i]['value']
         vj = self.nodes[j]['value']
 
-        min_value = min(self.nodes[i].get(
-            'min_value', vi), self.nodes[j].get('min_value', vj))
-        max_value = max(self.nodes[i].get(
-            'max_value', vi), self.nodes[j].get('max_value', vj))
+        # Get 'min_value', 'max_value' (and others later) using the 'node_parameter_gatherer' method
+        parameters = self.node_parameter_gatherer(
+            [self.nodes[i], self.nodes[j]])
 
         weight_i = len(label_i)
         weight_j = len(label_j)
         new_value = (vi * weight_i + vj * weight_j) / (weight_i + weight_j)
 
-        # Add a new node to the graph with the calculated value, label, min_value, and max_value
+        # Add a new node to the graph with the calculated value, label, and unpacked parameters
         new_node = max(self.nodes) + 1
-        self.add_node(new_node, value=new_value, label=new_label,
-                      min_value=min_value, max_value=max_value)
+        self.add_node(new_node, value=new_value, label=new_label, **parameters)
 
         # Reconnect edges
         for u, v, data in list(self.edges(data=True)):
@@ -665,7 +679,6 @@ class HariGraph(nx.DiGraph):
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
         """
-
         # Determine whether clusters are provided as a list or a dictionary
         if isinstance(clusters, dict):
             # Create id_mapping dictionary where each old node ID is mapped to its new node ID
@@ -678,7 +691,6 @@ class HariGraph(nx.DiGraph):
             ) if mapped_id == new_id) for new_id in new_ids]
         elif isinstance(clusters, list):
             id_mapping = {}
-            # Define clusters_list here when clusters is a list.
             clusters_list = clusters
             new_id_start = max(self.nodes) + 1
             for i, cluster in enumerate(clusters):
@@ -697,23 +709,25 @@ class HariGraph(nx.DiGraph):
             importance = 0
             total_value = 0
             total_weight = 0
-            min_value = float('inf')
-            max_value = float('-inf')
+
+            # Gathering parameters for the new node using the 'node_parameter_gatherer' method
+            parameters = self.node_parameter_gatherer(
+                [self.nodes[node_id] for node_id in cluster])
 
             for node_id in cluster:
                 node = self.nodes[node_id]
                 labels.extend(node.get('label', [node_id]))
                 importance += node.get('importance', 0)
                 value = node.get('value', 0)
-                min_value = min(min_value, node.get('min_value', value))
-                max_value = max(max_value, node.get('max_value', value))
                 weight = len(node.get('label', [node_id]))
                 total_value += value * weight
                 total_weight += weight
 
             new_value = total_value / total_weight if total_weight > 0 else 0
-            self.add_node(new_id, label=labels, importance=importance,
-                          value=new_value, min_value=min_value, max_value=max_value)
+
+            # Add a new node to the graph with the calculated value, label, importance, and unpacked parameters
+            self.add_node(new_id, label=labels,
+                          importance=importance, value=new_value, **parameters)
 
         # Reassigning Edges to New Nodes and Removing Old Nodes.
         for old_node_id, new_id in id_mapping.items():
@@ -988,20 +1002,19 @@ class HariGraph(nx.DiGraph):
         return {node: self.nodes[node]["value"] for node in self.nodes}
 
     @property
-    def min_values(self):
+    def node_values(self):
         """
-        Returns a dictionary with the minimum values of the nodes.
-        Key is the node ID, and value is the min_value of the node.
+        Returns a nested dictionary with the properties of the nodes.
+        The first key is the property name, and the value is another dictionary 
+        with node IDs as keys and the corresponding property values as values.
         """
-        return {node: self.nodes[node].get('min_value', self.nodes[node]["value"]) for node in self.nodes}
-
-    @property
-    def max_values(self):
-        """
-        Returns a dictionary with the maximum values of the nodes.
-        Key is the node ID, and value is the max_value of the node.
-        """
-        return {node: self.nodes[node].get('max_value', self.nodes[node]["value"]) for node in self.nodes}
+        properties_dict = {}
+        for node, node_data in self.nodes(data=True):
+            for property_name, property_value in node_data.items():
+                if property_name not in properties_dict:
+                    properties_dict[property_name] = {}
+                properties_dict[property_name][node] = property_value
+        return properties_dict
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"

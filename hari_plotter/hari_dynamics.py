@@ -111,26 +111,26 @@ class HariDynamics:
         self.merge_nodes_based_on_mapping(mapping, skip_indices=[index])
 
     def plot_values(self, reference_index=0):
-        assert all(isinstance(graph.values, dict)
-                   for graph in self.lazy_hari_graphs), "All graph values must be dictionaries"
+        assert all(isinstance(graph.node_values, dict)
+                   for graph in self.lazy_hari_graphs), "All graph node_values must be dictionaries"
 
         # Extracting the common keys from the first graph values
-        common_keys = set(self.lazy_hari_graphs[0].values.keys())
+        common_keys = set(self.lazy_hari_graphs[0].node_values['value'].keys())
 
         # Asserting that all the graphs have the same keys in their values, min_values, and max_values
         for graph in self.lazy_hari_graphs:
-            assert set(
-                graph.values.keys()) == common_keys, "All graph values must have the same keys"
-            assert set(graph.min_values.keys(
+            assert set(graph.node_values['value'].keys(
+            )) == common_keys, "All graph values must have the same keys"
+            assert set(graph.node_values['min_value'].keys(
             )) == common_keys, "All graph min_values must have the same keys"
-            assert set(graph.max_values.keys(
+            assert set(graph.node_values['max_value'].keys(
             )) == common_keys, "All graph max_values must have the same keys"
 
         # Find the value furthest from 0.5 among all values of all nodes in all graphs
         furthest_distance = max(
             abs(value - 0.5)
             for graph in self.lazy_hari_graphs
-            for value in graph.values.values()
+            for value in graph.node_values['value'].values()
         )
 
         # Define the colormap range based on the furthest_distance from 0.5
@@ -138,16 +138,17 @@ class HariDynamics:
         vmax = 0.5 + furthest_distance
 
         fig, ax = plt.subplots(figsize=(10, 6))
-
         x = list(range(len(self.lazy_hari_graphs)))
 
         for key in common_keys:
-            y = [g.values[key] for g in self.lazy_hari_graphs]
-            min_y = [g.min_values[key] for g in self.lazy_hari_graphs]
-            max_y = [g.max_values[key] for g in self.lazy_hari_graphs]
+            y = [g.node_values['value'][key] for g in self.lazy_hari_graphs]
+            min_y = [g.node_values['min_value'][key]
+                     for g in self.lazy_hari_graphs]
+            max_y = [g.node_values['max_value'][key]
+                     for g in self.lazy_hari_graphs]
 
             # Extract the reference color from the graph at reference_index and map it to the adjusted colormap range
-            ref_value = self.lazy_hari_graphs[reference_index].values[key]
+            ref_value = self.lazy_hari_graphs[reference_index].node_values['value'][key]
             color = plt.get_cmap('RdBu')((ref_value - vmin) / (vmax - vmin))
 
             # Plotting the semitransparent region between min and max values
