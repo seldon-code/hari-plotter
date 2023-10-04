@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "hari-plotter"
+version = "0.1.0"
+description = "`hari-plotter` enables post-processing, plotting, and visualizations of Seldon simulations and output (under development)."
+authors = ["Ivan Tambovtsev <imtambovtcev@gmail.com>"]
+readme = "README.md"
+packages = [{include = "hari_plotter"}]
+
+[tool.poetry.dependencies]
+python = "^3.10,<3.13"
+numpy = "^1.26.0"
+pytest = "^7.4.2"
+coverage = "^7.3.2"
+matplotlib = "^3.8.0"
+networkx = "^3.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
