@@ -88,7 +88,7 @@ class HariGraph(nx.DiGraph):
 
                 # Add edges with weights
                 for neighbour, weight in zip(indices_neighbours, weights):
-                    G.add_edge(neighbour, idx_agent, value=weight)
+                    G.add_edge(neighbour, idx_agent, value=weight)  # Corrected order of nodes
 
         # Read opinion file and update node values in the G
         with open(opinion_file, 'r') as f:
@@ -118,16 +118,13 @@ class HariGraph(nx.DiGraph):
         # Save network structure
         with open(network_file, 'w') as f:
             # Write header
-            f.write(
-                "# idx_agent n_neighbours_in indices_neighbours_in[...] weights_in[...]\n")
+            f.write("# idx_agent n_neighbours_in indices_neighbours_in[...] weights_in[...]\n")
             for node in self.nodes:
                 # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
-                weights = [self[neighbor][node]['value']
-                           for neighbor in neighbors]  # Get weights of incoming edges
+                weights = [self[neighbor][node]['value'] for neighbor in neighbors]  
                 # Write each node's information in a separate line
-                f.write(
-                    f"{node} {len(neighbors)} {' '.join(map(str, neighbors + weights))}\n")
+                f.write(f"{node} {len(neighbors)} {' '.join(map(str, neighbors + weights))}\n")
 
         # Save node opinions
         with open(opinion_file, 'w') as f:
@@ -136,6 +133,7 @@ class HariGraph(nx.DiGraph):
             for node, data in self.nodes(data=True):
                 # Write each node's opinion value in a separate line
                 f.write(f"{node} {data['value']}\n")
+
 
     @classmethod
     def read_json(cls, filename):
