@@ -88,7 +88,8 @@ class HariGraph(nx.DiGraph):
 
                 # Add edges with weights
                 for neighbour, weight in zip(indices_neighbours, weights):
-                    G.add_edge(neighbour, idx_agent, value=weight)  # Corrected order of nodes
+                    # Corrected order of nodes
+                    G.add_edge(neighbour, idx_agent, value=weight)
 
         # Read opinion file and update node values in the G
         with open(opinion_file, 'r') as f:
@@ -118,13 +119,16 @@ class HariGraph(nx.DiGraph):
         # Save network structure
         with open(network_file, 'w') as f:
             # Write header
-            f.write("# idx_agent n_neighbours_in indices_neighbours_in[...] weights_in[...]\n")
+            f.write(
+                "# idx_agent n_neighbours_in indices_neighbours_in[...] weights_in[...]\n")
             for node in self.nodes:
                 # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
-                weights = [self[neighbor][node]['value'] for neighbor in neighbors]  
+                weights = [self[neighbor][node]['value']
+                           for neighbor in neighbors]
                 # Write each node's information in a separate line
-                f.write(f"{node} {len(neighbors)} {' '.join(map(str, neighbors + weights))}\n")
+                f.write(
+                    f"{node} {len(neighbors)} {' '.join(map(str, neighbors + weights))}\n")
 
         # Save node opinions
         with open(opinion_file, 'w') as f:
@@ -133,7 +137,6 @@ class HariGraph(nx.DiGraph):
             for node, data in self.nodes(data=True):
                 # Write each node's opinion value in a separate line
                 f.write(f"{node} {data['value']}\n")
-
 
     @classmethod
     def read_json(cls, filename):
@@ -519,7 +522,7 @@ class HariGraph(nx.DiGraph):
         new_value = (vi * weight_i + vj * weight_j) / (weight_i + weight_j)
 
         # Add a new node to the graph with the calculated value, label, and unpacked parameters
-        new_node = max(self.nodes) + 1
+        new_node = max(max(self.nodes), max(item for sublist in self.labels for item in sublist)) + 1
         self.add_node(new_node, value=new_value, label=new_label, **parameters)
 
         # Reconnect edges
@@ -679,69 +682,59 @@ class HariGraph(nx.DiGraph):
         """
         # Determine whether clusters are provided as a list or a dictionary
         if isinstance(clusters, dict):
-            # Create id_mapping dictionary where each old node ID is mapped to its new node ID
-            id_mapping = {}
-            for new_id, old_ids_set in clusters.items():
-                for old_id in old_ids_set:
-                    id_mapping[old_id] = new_id
+            # Filter out trivial mappings (like {4: {4}})
+            clusters = {k: v for k, v in clusters.items() if k not in v or len(v) > 1}
+            id_mapping = {old_id: new_id for new_id, old_ids_set in clusters.items() for old_id in old_ids_set}
             new_ids = set(id_mapping.values())
-            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
-            ) if mapped_id == new_id) for new_id in new_ids]
+            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items() if mapped_id == new_id) for new_id in new_ids]
         elif isinstance(clusters, list):
             id_mapping = {}
             clusters_list = clusters
-            new_id_start = max(self.nodes) + 1
+            new_id_start = max(max(self.nodes), max(item for sublist in self.labels for item in sublist)) + 1
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:
                     assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id} already exists in the graph or is being merged multiple times."
                     id_mapping[node_id] = new_id
         else:
-            raise ValueError(
-                "clusters must be a list of sets or a dictionary.")
+            raise ValueError("clusters must be a list of sets or a dictionary.")
 
-        # Creating New Nodes with combined labels, importances, and values.
+
         for i, cluster in enumerate(clusters_list):
             new_id = id_mapping[next(iter(cluster))]
             labels = []
-            importance = 0
             total_value = 0
             total_weight = 0
 
-            # Gathering parameters for the new node using the 'node_parameter_gatherer' method
             parameters = self.node_parameter_gatherer(
                 [self.nodes[node_id] for node_id in cluster])
 
             for node_id in cluster:
                 node = self.nodes[node_id]
                 labels.extend(node.get('label', [node_id]))
-                importance += node.get('importance', 0)
                 value = node.get('value', 0)
                 weight = len(node.get('label', [node_id]))
                 total_value += value * weight
                 total_weight += weight
 
             new_value = total_value / total_weight if total_weight > 0 else 0
+            self.add_node(new_id, label=labels, value=new_value, **parameters)
 
-            # Add a new node to the graph with the calculated value, label, importance, and unpacked parameters
-            self.add_node(new_id, label=labels,
-                          importance=importance, value=new_value, **parameters)
-
-        # Reassigning Edges to New Nodes and Removing Old Nodes.
         for old_node_id, new_id in id_mapping.items():
-            for successor in self.successors(old_node_id):
+            for successor in list(self.successors(old_node_id)):
                 mapped_successor = id_mapping.get(successor, successor)
-                if mapped_successor != new_id:  # avoid creating self-loop
+                if mapped_successor != new_id:
                     self.add_edge(new_id, mapped_successor,
-                                  value=self[old_node_id][successor]['value'])
+                                value=self[old_node_id][successor]['value'])
 
-            for predecessor in self.predecessors(old_node_id):
+            for predecessor in list(self.predecessors(old_node_id)):
                 mapped_predecessor = id_mapping.get(predecessor, predecessor)
-                if mapped_predecessor != new_id:  # avoid creating self-loop
+                if mapped_predecessor != new_id:
                     self.add_edge(mapped_predecessor, new_id,
-                                  value=self[predecessor][old_node_id]['value'])
+                                value=self[predecessor][old_node_id]['value'])
 
             self.remove_node(old_node_id)
+
 
     def simplify_graph_one_iteration(self):
         """
@@ -965,6 +958,12 @@ class HariGraph(nx.DiGraph):
         if show:
             plt.show()
         return fig, ax
+
+    @property
+    def labels(self):
+        """Returns a list of labels for all nodes in the graph. 
+        If a node doesn't have a label, its ID will be used as the default label."""
+        return [data.get('label', node) for node, data in self.nodes(data=True)]
 
     @property
     def cluster_size(self):
