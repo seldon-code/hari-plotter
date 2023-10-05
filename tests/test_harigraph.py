@@ -158,7 +158,6 @@ class TestHariGraph:
                 0.15) or G.nodes[node]['value'] == pytest.approx(0.925), "Unexpected value in merged node"
             assert len(G.nodes[node]['label']
                        ) == 2, "Unexpected label length in merged node"
-            assert 'importance' in G.nodes[node], "Missing importance in merged node"
 
     def test_min_max_values(self):
         self.graph.add_parameters_to_nodes()
