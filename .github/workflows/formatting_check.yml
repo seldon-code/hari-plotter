@@ -1,0 +1,30 @@
+name: Code Formatting Check
+
+on:
+  pull_request:
+    paths:
+    - '**.py'
+
+jobs:
+  autopep8-check:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.x
+
+    - name: Install autopep8
+      run: pip install autopep8
+
+    - name: Check code formatting
+      run: |
+        FILES=$(find . -name "*.py")
+        autopep8 --diff $FILES | tee format.diff
+        if [[ -s format.diff ]]; then
+            echo "Code is not formatted properly"
+            exit 1
+        fi

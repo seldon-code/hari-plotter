@@ -22,5 +22,6 @@ def print_quote():
     console.print(text, justify="full")
     console.rule(style="red")
 
+
 if __name__ == "__main__":
     print_quote()
