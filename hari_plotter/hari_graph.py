@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
+from .distibutions import generate_mixture_of_gaussians
+
 
 class HariGraph(nx.DiGraph):
     """
@@ -180,7 +182,7 @@ class HariGraph(nx.DiGraph):
             for node in self.nodes:
                 # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
-                weights = [self[neighbor][node]['opinion']
+                weights = [self[neighbor][node]['influence']
                            for neighbor in neighbors]
                 # Write each node's information in a separate line
                 f.write(
@@ -326,10 +328,15 @@ class HariGraph(nx.DiGraph):
         cluster_sizes = list(cluster_sizes)
         random.shuffle(cluster_sizes)
 
-        # Generate opinions based on the normal distribution
+        # Generate opinions based on the mixture of Gaussians
         total_nodes = sum(cluster_sizes)
-        opinions = np.random.normal(
-            loc=mean_opinion, scale=0.1, size=total_nodes)
+        opinions = generate_mixture_of_gaussians(n_samples=total_nodes,
+                                                 number_of_peaks=len(
+                                                     cluster_sizes),
+                                                 opinion_limits=(-1, 1),
+                                                 mean_opinion=mean_opinion,
+                                                 size_of_each_peak=cluster_sizes,
+                                                 seed=seed)
         opinions = sorted(opinions)
 
         # Step 1: Create the "meta-graph"
@@ -348,7 +355,7 @@ class HariGraph(nx.DiGraph):
 
         # Spread the remaining inter-cluster edges across the meta-graph
         while inter_cluster_edges > 0:
-            u, v = random.sample(meta_graph.nodes, 2)
+            u, v = random.sample(list(meta_graph.nodes), 2)
             if u != v:
                 edge_key = tuple(sorted((u, v)))
                 if edge_key not in edge_counters:
