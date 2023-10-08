@@ -44,6 +44,9 @@ class HariDynamics:
 
         return self.lazy_hari_graphs[index]
 
+    def __iter__(self):
+        return iter(self.lazy_hari_graphs)
+
     def __getattr__(self, name):
         # Try to get the attribute from the first LazyHariGraph object in the list.
         # If it exists, assume it exists on all HariGraph instances in the list.
@@ -112,27 +115,28 @@ class HariDynamics:
 
         self.merge_nodes_based_on_mapping(mapping, skip_indices=[index])
 
-    def plot_values(self, reference_index=0):
+    def plot_opinions(self, reference_index=0, show=True, save=False):
         assert all(isinstance(graph.node_values, dict)
                    for graph in self.lazy_hari_graphs), "All graph node_values must be dictionaries"
 
-        # Extracting the common keys from the first graph values
-        common_keys = set(self.lazy_hari_graphs[0].node_values['value'].keys())
+        # Extracting the common keys from the first graph opinions
+        common_keys = set(
+            self.lazy_hari_graphs[0].node_values['opinion'].keys())
 
-        # Asserting that all the graphs have the same keys in their values, min_values, and max_values
+        # Asserting that all the graphs have the same keys in their opinions, min_opinions, and max_opinions
         for graph in self.lazy_hari_graphs:
-            assert set(graph.node_values['value'].keys(
-            )) == common_keys, "All graph values must have the same keys"
-            assert set(graph.node_values['min_value'].keys(
-            )) == common_keys, "All graph min_values must have the same keys"
-            assert set(graph.node_values['max_value'].keys(
-            )) == common_keys, "All graph max_values must have the same keys"
+            assert set(graph.node_values['opinion'].keys(
+            )) == common_keys, "All graph opinions must have the same keys"
+            assert set(graph.node_values['min_opinion'].keys(
+            )) == common_keys, "All graph min_opinions must have the same keys"
+            assert set(graph.node_values['max_opinion'].keys(
+            )) == common_keys, "All graph max_opinions must have the same keys"
 
-        # Find the value furthest from 0.5 among all values of all nodes in all graphs
+        # Find the opinion furthest from 0.5 among all opinions of all nodes in all graphs
         furthest_distance = max(
-            abs(value - 0.5)
+            abs(opinion - 0.5)
             for graph in self.lazy_hari_graphs
-            for value in graph.node_values['value'].values()
+            for opinion in graph.node_values['opinion'].values()
         )
 
         # Define the colormap range based on the furthest_distance from 0.5
@@ -143,28 +147,39 @@ class HariDynamics:
         x = list(range(len(self.lazy_hari_graphs)))
 
         for key in common_keys:
-            y = [g.node_values['value'][key] for g in self.lazy_hari_graphs]
-            min_y = [g.node_values['min_value'][key]
-                     for g in self.lazy_hari_graphs]
-            max_y = [g.node_values['max_value'][key]
-                     for g in self.lazy_hari_graphs]
+            # Extract node_values once for each graph in self.lazy_hari_graphs
+            node_values_list = [g.node_values for g in self.lazy_hari_graphs]
+            y = [nv['opinion'][key] for nv in node_values_list]
+            min_y = [nv['min_opinion'][key] for nv in node_values_list]
+            max_y = [nv['max_opinion'][key] for nv in node_values_list]
 
             # Extract the reference color from the graph at reference_index and map it to the adjusted colormap range
-            ref_value = self.lazy_hari_graphs[reference_index].node_values['value'][key]
-            color = plt.get_cmap('RdBu')((ref_value - vmin) / (vmax - vmin))
+            ref_opinion = node_values_list[reference_index]['opinion'][key]
+            color = plt.get_cmap('RdBu')((ref_opinion - vmin) / (vmax - vmin))
 
-            # Plotting the semitransparent region between min and max values
+            # Plotting the semitransparent region between min and max opinions
             ax.fill_between(x, min_y, max_y, color=color, alpha=0.2)
 
-            # Plotting the line for the values
+            # Plotting the line for the opinions
             ax.plot(x, y, color=color, label=f'Node {key}')
 
-        ax.set_title(f"Node Values Over Time")
-        ax.set_xlabel("Time")
-        ax.set_ylabel("Value")
-        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+            ax.set_title(f"Node Values Over Time")
+            ax.set_xlabel("Time")
+            ax.set_ylabel("Value")
+            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
         plt.tight_layout()
-        plt.show()
+
+        # If save contains a filename, save the plot to that file
+        if save:
+            plt.savefig(save)
+
+        # If show is True, display the plot
+        if show:
+            plt.show()
+
+        # Close the plot to free up resources
+        plt.close(fig)
 
     def draw_dynamic_graphs(self, reference_index: int = 0, save: Optional[Union[str, List[str]]] = None,
                             show_timestamp: bool = False, **kwargs):

@@ -25,9 +25,9 @@ class TestHariGraph:
             assert 'label' in self.graph.nodes[
                 node], f"Node {node} should have a label after calling generate_labels."
 
-    def test_weighted_mean_value(self):
-        assert self.graph.weighted_mean_value == pytest.approx(
-            0.79070086941968), "Weighted mean value is not as expected."
+    def test_mean_opinion(self):
+        assert self.graph.mean_opinion == pytest.approx(
+            0.79070086941968), "Mean opinion is not as expected."
 
     def test_default_similarity_function(self):
         similarity = self.graph.compute_similarity(56, 75)
@@ -66,8 +66,8 @@ class TestHariGraph:
             self.graph) == f"<HariGraph object at {id(self.graph)}: {self.graph.number_of_nodes()} nodes, {self.graph.number_of_edges()} edges>"
 
     def test_load_from_network(self):
-        assert self.graph_from_files.weighted_mean_value == pytest.approx(
-            0.6279692643403699), "Weighted mean value from network and opinions files is not as expected."
+        assert self.graph_from_files.mean_opinion == pytest.approx(
+            0.6279692643403699), "Mean opinion from network and opinions files is not as expected."
 
     def test_strongly_connected_components(self):
         n1, n2 = 8, 9  # Number of nodes in the two components
@@ -81,12 +81,12 @@ class TestHariGraph:
         assert graph.number_of_nodes() == n1 + \
             n2, f"Graph should have {n1 + n2} nodes."
 
-        # Assert that the graph has the 'value' attribute for every node and edge
+        # Assert that the graph has the 'opinion' attribute for every node and edge
         for _, data in graph.nodes(data=True):
-            assert 'value' in data, "Every node should have a 'value' attribute."
+            assert 'opinion' in data, "Every node should have a 'opinion' attribute."
 
         for _, _, data in graph.edges(data=True):
-            assert 'value' in data, "Every edge should have a 'value' attribute."
+            assert 'influence' in data, "Every edge should have a 'influence' attribute."
 
         assert graph.check_all_paths_exist(), "All paths should exist in the graph."
 
@@ -108,7 +108,7 @@ class TestHariGraph:
 
         for node in self.graph.nodes:
             influences_sum = sum(
-                data['value'] for _, _, data in self.graph.edges(node, data=True))
+                data['influence'] for _, _, data in self.graph.edges(node, data=True))
             calculated_importance = influences_sum / \
                 cluster_size[node] if cluster_size[node] != 0 else 0
             assert importance[node] == pytest.approx(
@@ -118,12 +118,12 @@ class TestHariGraph:
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node(1, value=0.1)
-        G.add_node(2, value=0.2)
-        G.add_node(3, value=0.9)
-        G.add_node(4, value=0.95)
-        G.add_edge(1, 2, value=0.15)
-        G.add_edge(3, 4, value=0.15)
+        G.add_node(1, opinion=0.1)
+        G.add_node(2, opinion=0.2)
+        G.add_node(3, opinion=0.9)
+        G.add_node(4, opinion=0.95)
+        G.add_edge(1, 2, influence=0.15)
+        G.add_edge(3, 4, influence=0.15)
 
         clusters = G.find_clusters(
             max_opinion_difference=0.1, min_influence=0.1)
@@ -138,12 +138,12 @@ class TestHariGraph:
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node(1, value=0.1, label=[1])
-        G.add_node(2, value=0.2, label=[2])
-        G.add_node(3, value=0.9, label=[3])
-        G.add_node(4, value=0.95, label=[4])
-        G.add_edge(1, 2, value=0.15)
-        G.add_edge(3, 4, value=0.05)
+        G.add_node(1, opinion=0.1, label=[1])
+        G.add_node(2, opinion=0.2, label=[2])
+        G.add_node(3, opinion=0.9, label=[3])
+        G.add_node(4, opinion=0.95, label=[4])
+        G.add_edge(1, 2, influence=0.15)
+        G.add_edge(3, 4, influence=0.05)
 
         clusters = [{1, 2}, {3, 4}]
         G.merge_clusters(clusters)
@@ -152,27 +152,27 @@ class TestHariGraph:
         assert len(G.nodes) == 2, f"Expected 2 nodes, but got {len(G.nodes)}"
         assert len(G.edges) == 0, f"Expected 0 edges, but got {len(G.edges)}"
 
-        # Validate new nodes' values, labels, and importances
+        # Validate new nodes' opinions, labels, and importances
         for node in G.nodes:
-            assert G.nodes[node]['value'] == pytest.approx(
-                0.15) or G.nodes[node]['value'] == pytest.approx(0.925), "Unexpected value in merged node"
+            assert G.nodes[node]['opinion'] == pytest.approx(
+                0.15) or G.nodes[node]['opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['opinion'] = }"
             assert len(G.nodes[node]['label']
                        ) == 2, "Unexpected label length in merged node"
 
-    def test_min_max_values(self):
+    def test_min_max_opinions(self):
         self.graph.add_parameters_to_nodes()
-        values = self.graph.node_values
-        min_values = values['min_value']
-        max_values = values['max_value']
+        opinions = self.graph.node_values
+        min_opinions = opinions['min_opinion']
+        max_opinions = opinions['max_opinion']
         assert isinstance(
-            min_values, dict), "min_values should return a dictionary."
+            min_opinions, dict), "min_opinions should return a dictionary."
 
         assert isinstance(
-            max_values, dict), "max_values should return a dictionary."
-        assert np.all(np.array(list(min_values.values())) >= 0) and np.all(
-            np.array(list(min_values.values())) <= 1), "min_values are not in range."
-        assert np.all(np.array(list(max_values.values())) >= 0) and np.all(
-            np.array(list(max_values.values())) <= 1), "max_values are not in range."
+            max_opinions, dict), "max_opinions should return a dictionary."
+        assert np.all(np.array(list(min_opinions.values())) >= 0) and np.all(
+            np.array(list(min_opinions.values())) <= 1), "min_opinions are not in range."
+        assert np.all(np.array(list(max_opinions.values())) >= 0) and np.all(
+            np.array(list(max_opinions.values())) <= 1), "max_opinions are not in range."
 
     def test_merge_by_intervals(self):
         self.graph.merge_by_intervals([0.25, 0.75])
