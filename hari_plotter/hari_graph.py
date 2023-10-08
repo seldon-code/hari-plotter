@@ -11,6 +11,8 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
+from .distibutions import generate_mixture_of_gaussians
+
 
 class HariGraph(nx.DiGraph):
     """
@@ -59,6 +61,58 @@ class HariGraph(nx.DiGraph):
             # Check if there is an edge from the node to itself and remove it
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
+
+    def assign_random_influences(self, mean_influence, influence_range, seed=None):
+        """
+        Assigns random influence values to all edges of the graph within the given range centered around the mean influence.
+
+        :param mean_influence: float, mean value of the influence.
+        :param influence_range: float, the range within which the influence values should fall.
+        :param seed: int, random seed (default None).
+        """
+        if seed is not None:
+            random.seed(seed)
+
+        lower_bound = mean_influence - (influence_range / 2)
+        upper_bound = mean_influence + (influence_range / 2)
+
+        for u, v in self.edges():
+            random_influence = random.uniform(lower_bound, upper_bound)
+            self[u][v]['influence'] = random_influence
+
+    def is_degroot_converging(self, tolerance=1e-2):
+        for node in self.nodes():
+            incoming_edges = [(neighbor, node)
+                              for neighbor in self.predecessors(node)]
+            total_influence = sum(self[u][v]['influence']
+                                  for u, v in incoming_edges)
+            if not (1 - tolerance <= total_influence <= 1 + tolerance):
+                return False
+        return True
+
+    def make_degroot_converging(self, seed=None):
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+
+        for node in self.nodes():
+            incoming_edges = [(neighbor, node)
+                              for neighbor in self.predecessors(node)]
+
+            # Calculate the total influence of incoming edges for the current node
+            total_influence = sum(self[u][v]['influence']
+                                  for u, v in incoming_edges)
+
+            # If the total influence is zero, assign random influences to incoming edges
+            if total_influence == 0:
+                for u, v in incoming_edges:
+                    self[u][v]['influence'] = random.random()
+                total_influence = sum(self[u][v]['influence']
+                                      for u, v in incoming_edges)
+
+            # Adjust the influences proportionally
+            for u, v in incoming_edges:
+                self[u][v]['influence'] /= total_influence
 
     @classmethod
     def read_network(cls, network_file, opinion_file):
@@ -128,7 +182,7 @@ class HariGraph(nx.DiGraph):
             for node in self.nodes:
                 # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
-                weights = [self[neighbor][node]['opinion']
+                weights = [self[neighbor][node]['influence']
                            for neighbor in neighbors]
                 # Write each node's information in a separate line
                 f.write(
@@ -252,71 +306,92 @@ class HariGraph(nx.DiGraph):
         return G
 
     @classmethod
-    def strongly_connected_components(cls, n1, n2, connect_nodes=2):
+    def strongly_connected_components(cls, cluster_sizes, inter_cluster_edges, mean_opinion=0.5, seed=None):
         """
-        Creates a HariGraph instance with two strongly connected components, 
-        one with a opinion close to 1 and the other close to -1.
+        Creates a HariGraph instance with multiple strongly connected components.
 
-        :param n1: Number of nodes in the first component.
-        :param n2: Number of nodes in the second component.
-        :param connect_nodes: Number of nodes to connect between components, ensuring weak connectivity.
+        :param cluster_sizes: List[int], sizes of the clusters.
+        :param inter_cluster_edges: int, number of edges between the components.
+        :param mean_opinion: float, mean opinion of the graph.
+        :param seed: int, random seed.
         :return: A new HariGraph instance.
         """
-        if n1 < 2 or n2 < 2:
+        if seed is not None:
+            random.seed(seed)
+            np.random.seed(seed)
+
+        if inter_cluster_edges < len(cluster_sizes):
             raise ValueError(
-                "Number of nodes in each component should be at least 2")
+                "Number of inter-cluster edges should be at least the number of clusters.")
 
-        if connect_nodes < 2:
-            raise ValueError("Number of connecting nodes should be at least 2")
+        # Convert cluster_sizes to a list (if it isn't already) and shuffle it
+        cluster_sizes = list(cluster_sizes)
+        random.shuffle(cluster_sizes)
 
-        if connect_nodes > min(n1, n2):
-            raise ValueError(
-                "Number of connecting nodes should not exceed the number of nodes in any component")
+        # Generate opinions based on the mixture of Gaussians
+        total_nodes = sum(cluster_sizes)
+        opinions = generate_mixture_of_gaussians(n_samples=total_nodes,
+                                                 number_of_peaks=len(
+                                                     cluster_sizes),
+                                                 opinion_limits=(-1, 1),
+                                                 mean_opinion=mean_opinion,
+                                                 size_of_each_peak=cluster_sizes,
+                                                 seed=seed)
+        opinions = sorted(opinions)
 
+        # Step 1: Create the "meta-graph"
+        meta_graph = nx.Graph()
+        meta_graph.add_nodes_from(range(len(cluster_sizes)))
+        edge_counters = {}
+
+        # Ensure the meta-graph is connected by connecting nodes sequentially
+        for i in range(len(cluster_sizes) - 1):
+            meta_graph.add_edge(i, i + 1)
+            edge_counters[(i, i + 1)] = 1
+            inter_cluster_edges -= 1
+        meta_graph.add_edge(len(cluster_sizes) - 1, 0)
+        edge_counters[(len(cluster_sizes) - 1, 0)] = 1
+        inter_cluster_edges -= 1
+
+        # Spread the remaining inter-cluster edges across the meta-graph
+        while inter_cluster_edges > 0:
+            u, v = random.sample(list(meta_graph.nodes), 2)
+            if u != v:
+                edge_key = tuple(sorted((u, v)))
+                if edge_key not in edge_counters:
+                    edge_counters[edge_key] = 0
+                edge_counters[edge_key] += 1
+                inter_cluster_edges -= 1
+
+        # Step 2: Create the actual graph with strongly connected clusters
         G = cls()
+        start = 0
+        opinion_idx = 0
+        for size in cluster_sizes:
+            for i in range(start, start + size):
+                G.add_node(i, opinion=opinions[opinion_idx])
+                opinion_idx += 1
+            for i in range(start, start + size):
+                for j in range(i + 1, start + size):
+                    G.add_edge(i, j)
+                    G.add_edge(j, i)
+            start += size
 
-        # Create the first strongly connected component with opinions close to 1
-        for i in range(n1):
-            G.add_node(i, opinion=0.9 + random.uniform(0, 0.1))
-        for i in range(n1):
-            for j in range(i + 1, n1):
-                G.add_edge(i, j, influence=random.random())
-                G.add_edge(j, i, influence=random.random())
+        # Step 3: Add inter-cluster edges based on the meta-graph connections
+        cluster_starts = [sum(cluster_sizes[:i])
+                          for i in range(len(cluster_sizes))]
+        for (u, v), count in edge_counters.items():
+            for _ in range(count):
+                # Pick random nodes from clusters u and v to connect
+                source_node = random.choice(
+                    range(cluster_starts[u], cluster_starts[u] + cluster_sizes[u]))
+                target_node = random.choice(
+                    range(cluster_starts[v], cluster_starts[v] + cluster_sizes[v]))
+                G.add_edge(source_node, target_node)
 
-        # Create the second strongly connected component with opinions close to 0
-        for i in range(n1, n1 + n2):
-            G.add_node(i, opinion=-0.9 - random.uniform(0, 0.1))
-        for i in range(n1, n1 + n2):
-            for j in range(i + 1, n1 + n2):
-                G.add_edge(i, j, influence=random.random())
-                G.add_edge(j, i, influence=random.random())
-
-        # Connect the components weakly
-        first_component_nodes = list(range(n1))
-        second_component_nodes = list(range(n1, n1 + n2))
-
-        # Splitting connect_nodes randomly into two parts, each at least 1.
-        split = random.randint(1, connect_nodes - 1)
-        connect_nodes_first_to_second = split
-        connect_nodes_second_to_first = connect_nodes - split
-
-        # Creating connections from the first component to the second
-        for _ in range(connect_nodes_first_to_second):
-            u = random.choice(first_component_nodes)
-            v = random.choice(second_component_nodes)
-            while G.has_edge(u, v):
-                u = random.choice(first_component_nodes)
-                v = random.choice(second_component_nodes)
-            G.add_edge(u, v, influence=random.random())
-
-        # Creating connections from the second component to the first
-        for _ in range(connect_nodes_second_to_first):
-            u = random.choice(second_component_nodes)
-            v = random.choice(first_component_nodes)
-            while G.has_edge(u, v):
-                u = random.choice(second_component_nodes)
-                v = random.choice(first_component_nodes)
-            G.add_edge(u, v, influence=random.random())
+        # Assign random influences to the edges of the graph
+        G.assign_random_influences(
+            mean_influence=0.1, influence_range=0.1, seed=seed)
 
         G.generate_labels()
         G.add_parameters_to_nodes()
