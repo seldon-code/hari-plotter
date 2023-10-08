@@ -6,9 +6,15 @@ class TestHariDynamics:
 
     @classmethod
     def setup_class(cls):
-        cls.graph = HariDynamics.read_network(
+        cls.HD = HariDynamics.read_network(
             'tests/5_ring/network.txt', [f'tests/5_ring/opinions_{i}.txt' for i in range(3)])
 
-    def test_mean_value(self):
-        mean_value = np.array(self.graph.weighted_mean_value)
-        assert np.all(mean_value <= 1) and np.all(mean_value >= 0)
+    def test_initialize(self):
+        self.HD.mean_opinion
+        assert all(H.is_initialized() for H in self.HD)
+
+    def test_draw_dynamic_graphs(self):
+        self.HD.draw_dynamic_graphs(show=False, show_timestamp=True)
+
+    def test_plot_opinions(self):
+        self.HD.plot_opinions(reference_index=0, show=False)
