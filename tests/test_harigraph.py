@@ -208,3 +208,36 @@ class TestHariGraph:
     def test_degroot_converging(self):
         self.strongly_connected_graph.make_degroot_converging()
         assert self.strongly_connected_graph.is_degroot_converging()
+
+    def test_opinions_setter(self):
+        # Test with a single value
+        try:
+            self.graph.opinions = 0.5
+            for node_opinion in self.graph.opinions.values():
+                assert node_opinion == pytest.approx(
+                    0.5), "All nodes should have an opinion of 0.5"
+        except Exception as e:
+            pytest.fail(
+                f"Setting opinions with a single value should not raise an exception. Raised: {str(e)}")
+
+        # Test with a list of values matching the number of nodes
+        opinions_list_correct_length = [0.1] * len(self.graph.nodes)
+        try:
+            self.graph.opinions = opinions_list_correct_length
+            for node, expected_opinion in zip(self.graph.nodes, opinions_list_correct_length):
+                assert self.graph.opinions[node] == pytest.approx(
+                    expected_opinion), f"Node {node} should have an opinion of {expected_opinion}"
+        except Exception as e:
+            pytest.fail(
+                f"Setting opinions with a list of correct length should not raise an exception. Raised: {str(e)}")
+
+        # Test with a dictionary of values
+        opinions_dict = {node: 0.2 for node in self.graph.nodes}
+        try:
+            self.graph.opinions = opinions_dict
+            for node, expected_opinion in opinions_dict.items():
+                assert self.graph.opinions[node] == pytest.approx(
+                    expected_opinion), f"Node {node} should have an opinion of {expected_opinion}"
+        except Exception as e:
+            pytest.fail(
+                f"Setting opinions with a dictionary should not raise an exception. Raised: {str(e)}")
