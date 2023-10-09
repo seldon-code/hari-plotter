@@ -4,6 +4,7 @@ import os
 import random
 import re
 import warnings
+from collections import Counter
 from itertools import combinations, permutations
 
 import matplotlib.cm as cm
@@ -159,7 +160,7 @@ class HariGraph(nx.DiGraph):
                 # Update node opinion
                 G.nodes[idx_agent]['opinion'] = opinion
 
-        G.remove_self_loops()
+        # G.remove_self_loops()
         G.generate_labels()
         G.add_parameters_to_nodes()
 
@@ -1020,6 +1021,57 @@ class HariGraph(nx.DiGraph):
             plt.show()
         return fig, ax
 
+    def plot_opinion_distribution(self):
+        """
+        Visualizes the distribution of opinions in the graph using a histogram.
+        """
+        # Extract all opinions from the nodes
+        opinions = [data['opinion'] for _, data in self.nodes(data=True)]
+
+        # Plot the histogram
+        plt.hist(opinions, bins=50, edgecolor='black', alpha=0.75)
+        plt.title('Opinion Distribution')
+        plt.xlabel('Opinion Value')
+        plt.ylabel('Number of Nodes')
+        plt.grid(axis='y', alpha=0.75)
+        plt.show()
+
+    def plot_neighbor_mean_opinion(self):
+        """
+        Draws a hexbin plot with nodes' opinion values on the x-axis 
+        and the mean opinion value of their neighbors on the y-axis.
+        """
+        # Extract opinion values for all nodes
+        opinions = nx.get_node_attributes(self, 'opinion')
+
+        x_values = []  # Node's opinion
+        y_values = []  # Mean opinion of neighbors
+
+        for node in self.nodes():
+            node_opinion = opinions[node]
+            neighbors = list(self.neighbors(node))
+            if neighbors:  # Ensure the node has neighbors
+                mean_neighbor_opinion = sum(
+                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
+                x_values.append(node_opinion)
+                y_values.append(mean_neighbor_opinion)
+
+        # Create a background filled with the `0` value of the colormap
+        extent = [min(x_values), max(x_values), min(y_values), max(y_values)]
+        plt.imshow([[0, 0], [0, 0]], cmap='inferno', interpolation='nearest',
+                   aspect='auto', extent=extent)
+
+        # Create the hexbin plot
+        hb = plt.hexbin(x_values, y_values, gridsize=50,
+                        cmap='inferno', bins='log', extent=extent)
+        cb = plt.colorbar(hb)
+        cb.set_label('Log(Number of points in bin)')
+
+        plt.title('Node Opinion vs. Mean Neighbor Opinion')
+        plt.xlabel('Node Opinion')
+        plt.ylabel('Mean Neighbor Opinion')
+        plt.show()
+
     @property
     def labels(self):
         """Returns a list of labels for all nodes in the graph. 
@@ -1058,6 +1110,35 @@ class HariGraph(nx.DiGraph):
         Key is the node ID, and opinion is the opinion of the node.
         """
         return {node: self.nodes[node]["opinion"] for node in self.nodes}
+
+    @opinions.setter
+    def opinions(self, values):
+        """
+        Sets the opinions of the nodes based on the provided value(s).
+        Value(s) can be a single float, a list of floats, or a dictionary with node IDs as keys.
+        """
+        if isinstance(values, (int, float)):  # Single value provided
+            for node in self.nodes:
+                self.nodes[node]["opinion"] = values
+
+        elif isinstance(values, list):  # List of values provided
+            if len(values) != len(self.nodes):
+                raise ValueError(
+                    "Length of provided list does not match the number of nodes in the graph.")
+            for node, opinion in zip(self.nodes, values):
+                self.nodes[node]["opinion"] = opinion
+
+        elif isinstance(values, dict):  # Dictionary provided
+            for node, opinion in values.items():
+                if node in self.nodes:
+                    self.nodes[node]["opinion"] = opinion
+                else:
+                    raise ValueError(
+                        f"Node {node} does not exist in the graph.")
+
+        else:
+            raise TypeError(
+                "Invalid type for opinions. Expected int, float, list, or dict.")
 
     @property
     def node_values(self):
