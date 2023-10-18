@@ -229,6 +229,68 @@ class HariDynamics:
                        ax=ax, bottom_right_text=bottom_right_text, **kwargs)
             plt.close()
 
+    def plot_neighbor_mean_opinion(self,
+                                   save: Optional[Union[str,
+                                                        List[str]]] = None,
+                                   show_timestamp: bool = False, cmax=None, uninit=False, num_images=None, **kwargs):
+        """
+        Plots the neighbor mean opinion for each graph in lazy_hari_graphs.
+
+        :param save: str, list of str, or None, optional
+            If str, treated as a directory and each plot is saved with a filename '{i}.png'.
+            If list of str, each string in the list is treated as a filename for saving the corresponding plot.
+            If None, plots are not saved.
+            Default is None.
+
+        :param show_timestamp: bool, optional
+            If True, the index of each graph is displayed as a timestamp in title.
+            Default is False.
+
+        :param num_images: int or None, optional
+            The number of images to generate. If set to a specific number, 
+            images are spread evenly across the time span. 
+            Default is None (all images).
+
+        :param kwargs: keyword arguments
+            Additional settings that will be provided to the plot_neighbor_mean_opinion method of each graph.
+
+        :return: None
+        """
+        total_graphs = len(self.lazy_hari_graphs)
+
+        # Determine the indices of graphs to plot
+        if num_images is None or num_images >= total_graphs:
+            indices = list(range(total_graphs))
+        else:
+            step = total_graphs / num_images
+            indices = [int(i*step) for i in range(num_images)]
+
+        # Adjust the save_filepaths logic based on the selected indices
+        if isinstance(save, str):
+            os.makedirs(save, exist_ok=True)
+            save_filepaths = [os.path.join(save, f'{i}.png') for i in indices]
+        elif isinstance(save, list):
+            assert len(save) >= len(
+                indices), "The length of 'save' list must be at least the number of selected images."
+            save_filepaths = [save[i] for i in indices]
+        else:
+            save_filepaths = [None] * len(indices)
+
+        # Plot neighbor_mean_opinion for selected graphs
+        for idx, save_filepath in zip(indices, save_filepaths):
+            graph = self.lazy_hari_graphs[idx]
+            fig, ax = plt.subplots(figsize=(10, 7))
+
+            # Use the plot_neighbor_mean_opinion method of the graph
+            title_text = f't = {idx}' if show_timestamp else None
+
+            graph.plot_neighbor_mean_opinion(
+                fig=fig, ax=ax, save=save_filepath, title=title_text, cmax=cmax, **kwargs)
+
+            plt.close()
+            if uninit:
+                graph.uninitialize()
+
     def __str__(self):
         initialized_count = sum(
             1 for lazy_graph in self.lazy_hari_graphs if lazy_graph.is_initialized())
