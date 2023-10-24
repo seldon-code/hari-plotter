@@ -24,6 +24,9 @@ class LazyHariGraph:
         self._initialize()  # Initialize the HariGraph instance if not already done
         return getattr(self._hari_graph, name)
 
+    def __getitem__(self, n):
+        return self._hari_graph.__getitem__(n)
+
     def __str__(self):
         if self._hari_graph is not None:
             return f"<LasyHariGraph with {self._hari_graph.number_of_nodes()} nodes and {self._hari_graph.number_of_edges()} edges>"

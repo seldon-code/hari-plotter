@@ -12,22 +12,36 @@ class HariDynamics:
         self.lazy_hari_graphs = []  # Initialize an empty list to hold LazyHariGraph objects
 
     @classmethod
-    def read_network(cls, network_file, opinion_files):
+    def read_network(cls, network_files, opinion_files):
         """
-        Reads the network file and a list of opinion files to create LazyHariGraph objects
+        Reads a list of network files and a list of opinion files to create LazyHariGraph objects
         and appends them to the lazy_hari_graphs list of a HariDynamics instance.
 
         Parameters:
-            network_file (str): The path to the network file.
+            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.
             opinion_files (List[str]): A list of paths to the opinion files.
 
         Returns:
             HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.
+
+        Raises:
+            ValueError: If the length of network_files is not equal to the length of opinion_files or other invalid cases.
         """
+        # If network_files is a string, convert it to a list
+        if isinstance(network_files, str):
+            network_files = [network_files]
+
+        if len(network_files) == 1:
+            network_files = network_files*len(opinion_files)
+
+        if len(network_files) != len(opinion_files):
+            raise ValueError(
+                "The number of network files must be equal to the number of opinion files.")
+
         # Create an instance of HariDynamics
         dynamics_instance = cls()
 
-        for opinion_file in opinion_files:
+        for network_file, opinion_file in zip(network_files, opinion_files):
             # Append LazyHariGraph objects to the list, with the class method and parameters needed
             # to create the actual HariGraph instances when they are required.
             dynamics_instance.lazy_hari_graphs.append(
@@ -115,38 +129,84 @@ class HariDynamics:
 
         self.merge_nodes_based_on_mapping(mapping, skip_indices=[index])
 
-    def plot_opinions(self, reference_index=0, show=True, save=False):
+    def plot_opinions(self, reference_index=0, show=True, save=False, minimum_cluster_size=1, colormap = 'coolwarm'):
+        """
+        Visualizes the opinions of nodes over time using a line graph and a semitransparent region 
+        that spans between the minimum and maximum values of those opinions.
+        
+        Parameters:
+        -----------
+        reference_index : int, optional
+            Index for the graph which will be used as a reference for coloring the nodes. Default is 0.
+        
+        show : bool, optional
+            Whether or not to display the plot immediately after generating it. Default is True.
+
+        save : bool or str, optional
+            If given a string (filename), the plot will be saved to the specified filename. 
+            If False, the plot will not be saved. Default is False.
+
+        minimum_cluster_size : int, optional
+            Minimum cluster size for a node to be considered in the plot. 
+            Nodes with sizes less than this value will be excluded. Default is 1.
+
+        colormap : str, optional
+            Name of the colormap to use for coloring the nodes. Default is 'coolwarm'.
+
+        Raises:
+        -------
+        AssertionError
+            If the node_values of all graphs are not dictionaries or if opinions, min_opinions, 
+            and max_opinions in each graph don't have the same set of keys.
+
+        Description:
+        ------------
+        The method begins by ensuring the consistency of node_values across all graphs. 
+        It then extracts the common keys of nodes from the first graph and verifies that 
+        these keys are consistent across the opinions, min_opinions, and max_opinions of all graphs.
+
+        For nodes that meet the minimum_cluster_size criteria, it plots their opinions over time. 
+        A semitransparent region is plotted between the minimum and maximum values of those opinions, 
+        allowing for a visualization of the possible variation or uncertainty in the opinions. 
+        Each node is colored based on the value of its opinion in the graph at reference_index, 
+        mapped to the provided colormap.
+
+        """
         assert all(isinstance(graph.node_values, dict)
                    for graph in self.lazy_hari_graphs), "All graph node_values must be dictionaries"
 
         # Extracting the common keys from the first graph opinions
-        common_keys = set(
-            self.lazy_hari_graphs[0].node_values['opinion'].keys())
+        nodes_set = set(self.lazy_hari_graphs[0].nodes)
 
         # Asserting that all the graphs have the same keys in their opinions, min_opinions, and max_opinions
         for graph in self.lazy_hari_graphs:
-            assert set(graph.node_values['opinion'].keys(
-            )) == common_keys, "All graph opinions must have the same keys"
-            assert set(graph.node_values['min_opinion'].keys(
-            )) == common_keys, "All graph min_opinions must have the same keys"
-            assert set(graph.node_values['max_opinion'].keys(
-            )) == common_keys, "All graph max_opinions must have the same keys"
+            graph_node_values = graph.node_values
+            assert set(graph_node_values['opinion'].keys(
+            )) == nodes_set, "All graph opinions must have the same keys"
+            assert set(graph_node_values['min_opinion'].keys(
+            )) == nodes_set, "All graph min_opinions must have the same keys"
+            assert set(graph_node_values['max_opinion'].keys(
+            )) == nodes_set, "All graph max_opinions must have the same keys"
+
+        print(f'{nodes_set = }')
+
+        new_nodes_set = [
+            key for key in nodes_set if self.lazy_hari_graphs[0].nodes[key].get("size", 1) >= minimum_cluster_size]
+
+        print(f'{new_nodes_set = }')
 
         # Find the opinion furthest from 0.5 among all opinions of all nodes in all graphs
-        furthest_distance = max(
-            abs(opinion - 0.5)
-            for graph in self.lazy_hari_graphs
-            for opinion in graph.node_values['opinion'].values()
-        )
 
-        # Define the colormap range based on the furthest_distance from 0.5
-        vmin = 0.5 - furthest_distance
-        vmax = 0.5 + furthest_distance
+        vmax = max(
+            abs(graph.nodes[key]['opinion'])
+            for graph in self.lazy_hari_graphs
+            for key in new_nodes_set
+        )
 
         fig, ax = plt.subplots(figsize=(10, 6))
         x = list(range(len(self.lazy_hari_graphs)))
 
-        for key in common_keys:
+        for key in new_nodes_set:
             # Extract node_values once for each graph in self.lazy_hari_graphs
             node_values_list = [g.node_values for g in self.lazy_hari_graphs]
             y = [nv['opinion'][key] for nv in node_values_list]
@@ -155,7 +215,7 @@ class HariDynamics:
 
             # Extract the reference color from the graph at reference_index and map it to the adjusted colormap range
             ref_opinion = node_values_list[reference_index]['opinion'][key]
-            color = plt.get_cmap('RdBu')((ref_opinion - vmin) / (vmax - vmin))
+            color = plt.get_cmap(colormap)((ref_opinion+vmax) / (2*vmax))
 
             # Plotting the semitransparent region between min and max opinions
             ax.fill_between(x, min_y, max_y, color=color, alpha=0.2)
