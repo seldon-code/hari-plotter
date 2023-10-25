@@ -156,7 +156,9 @@ class HariGraph(nx.DiGraph):
                 parts = re.split(r'[ ,]+', line.strip())
                 idx_agent = int(parts[0])
                 opinion = float(parts[1])
-
+                # Check if node exists, if not, add it
+                if not G.has_node(idx_agent):
+                    G.add_node(idx_agent)
                 # Update node opinion
                 G.nodes[idx_agent]['opinion'] = opinion
 
@@ -1025,22 +1027,15 @@ class HariGraph(nx.DiGraph):
         """
         Visualizes the distribution of opinions in the graph using a histogram.
         """
-        # Extract all opinions from the nodes
-        opinions = [data['opinion'] for _, data in self.nodes(data=True)]
-
         # Plot the histogram
-        plt.hist(opinions, bins=50, edgecolor='black', alpha=0.75)
+        plt.hist(self.opinions, bins=50, edgecolor='black', alpha=0.75)
         plt.title('Opinion Distribution')
         plt.xlabel('Opinion Value')
         plt.ylabel('Number of Nodes')
         plt.grid(axis='y', alpha=0.75)
         plt.show()
 
-    def plot_neighbor_mean_opinion(self):
-        """
-        Draws a hexbin plot with nodes' opinion values on the x-axis 
-        and the mean opinion value of their neighbors on the y-axis.
-        """
+    def get_opinion_neighbor_mean_opinion_pairs(self):
         # Extract opinion values for all nodes
         opinions = nx.get_node_attributes(self, 'opinion')
 
@@ -1055,22 +1050,82 @@ class HariGraph(nx.DiGraph):
                     opinions[neighbor] for neighbor in neighbors) / len(neighbors)
                 x_values.append(node_opinion)
                 y_values.append(mean_neighbor_opinion)
+        return x_values, y_values
+
+    def get_opinion_neighbor_mean_opinion_pairs_dict(self):
+        # Extract opinion values for all nodes
+        opinions = nx.get_node_attributes(self, 'opinion')
+
+        data = {}
+
+        for node in self.nodes():
+            node_opinion = opinions[node]
+            neighbors = list(self.neighbors(node))
+            if neighbors:  # Ensure the node has neighbors
+                mean_neighbor_opinion = sum(
+                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
+                data[node] = (node_opinion, mean_neighbor_opinion)
+        return data
+
+    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, **kwargs):
+        """
+        Draws a hexbin plot with nodes' opinion values on the x-axis 
+        and the mean opinion value of their neighbors on the y-axis.
+
+        Parameters:
+            fig (matplotlib.figure.Figure): Pre-existing figure object. If None, a new figure is created.
+            ax (matplotlib.axes._axes.Axes): Pre-existing axes object. If None, new axes are created.
+            save (str): Filepath to save the plot. If None, the plot is not saved.
+            show (bool): Whether to display the plot. Default is True.
+            extent (list): List specifying the range for the plot. If None, it's calculated from the data.
+                        If the list has 2 values, they are used to create a square extent. 
+                        If the list has 4 values, they are used directly.
+            cmax (float or None): Maximum limit for the colorbar. If None, it's calculated from the data.
+            **kwargs: Additional keyword arguments passed to plt.hexbin.
+        """
+        x_values, y_values = self.get_opinion_neighbor_mean_opinion_pairs()
+
+        # Ensure the data returned is valid
+        if not (x_values and y_values) or len(x_values) != len(y_values):
+            print("Invalid data received. Cannot plot.")
+            return
+
+        if fig is None or ax is None:
+            fig, ax = plt.subplots()
+
+        # Handle extent parameter
+        if extent is None:
+            extent = [min(x_values), max(x_values),
+                      min(y_values), max(y_values)]
+        elif len(extent) == 2:
+            extent = [extent[0], extent[1], extent[0], extent[1]]
+        elif len(extent) != 4:
+            print("Invalid extent value. Please provide None, 2 values, or 4 values.")
+            return
 
         # Create a background filled with the `0` value of the colormap
-        extent = [min(x_values), max(x_values), min(y_values), max(y_values)]
-        plt.imshow([[0, 0], [0, 0]], cmap='inferno', interpolation='nearest',
-                   aspect='auto', extent=extent)
+        ax.imshow([[0, 0], [0, 0]], cmap='inferno', interpolation='nearest',
+                  aspect='auto', extent=extent)
 
         # Create the hexbin plot
-        hb = plt.hexbin(x_values, y_values, gridsize=50,
-                        cmap='inferno', bins='log', extent=extent)
-        cb = plt.colorbar(hb)
+        hb = ax.hexbin(x_values, y_values, gridsize=50,
+                       cmap='inferno', bins='log', extent=extent, vmax=cmax, **kwargs)
+        cb = fig.colorbar(hb, ax=ax)
         cb.set_label('Log(Number of points in bin)')
 
-        plt.title('Node Opinion vs. Mean Neighbor Opinion')
-        plt.xlabel('Node Opinion')
-        plt.ylabel('Mean Neighbor Opinion')
-        plt.show()
+        ax.set_title(title or 'Node Opinion vs. Mean Neighbor Opinion')
+        ax.set_xlabel('Node Opinion')
+        ax.set_ylabel('Mean Neighbor Opinion')
+
+        # Save the plot if save_filepath is provided
+        if save:
+            plt.savefig(save)
+
+        # Show the plot if show is True
+        if show:
+            plt.show()
+
+        return fig, ax
 
     @property
     def labels(self):

@@ -18,3 +18,6 @@ class TestHariDynamics:
 
     def test_plot_opinions(self):
         self.HD.plot_opinions(reference_index=0, show=False)
+
+    def test_plot_neighbor_mean_opinion(self):
+        self.HD.plot_neighbor_mean_opinion(show=False, show_timestamp=True)
