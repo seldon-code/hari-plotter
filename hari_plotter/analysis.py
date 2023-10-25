@@ -28,7 +28,8 @@ def is_single_cluster(x_array, y_array):
     - bool : True if data likely represents a single cluster, False otherwise.
     """
     points = np.column_stack((x_array, y_array))
-    kmeans = KMeans(n_clusters=2, init='k-means++', n_init='auto', random_state=42)
+    kmeans = KMeans(n_clusters=2, init='k-means++',
+                    n_init='auto', random_state=42)
     kmeans.fit(points)
     cluster_labels = kmeans.predict(points)
     two_cluster_score = silhouette_score(points, cluster_labels)
@@ -92,14 +93,16 @@ def optimal_clusters(x_array, y_array, min_distance=1e-2):
 
     wcss = []
     for i in range(1, 11):
-        kmeans = KMeans(n_clusters=i, init='k-means++', n_init='auto', random_state=42)
+        kmeans = KMeans(n_clusters=i, init='k-means++',
+                        n_init='auto', random_state=42)
         kmeans.fit(points)
         wcss.append(kmeans.inertia_)
 
     deltas = np.diff(wcss)
     n = np.where(deltas == min(deltas))[0][0] + 2
 
-    kmeans = KMeans(n_clusters=n, init='k-means++', n_init='auto', random_state=42)
+    kmeans = KMeans(n_clusters=n, init='k-means++',
+                    n_init='auto', random_state=42)
     kmeans.fit(points)
     labels, centroids = merge_close_clusters(
         kmeans.cluster_centers_, kmeans.labels_, min_distance)

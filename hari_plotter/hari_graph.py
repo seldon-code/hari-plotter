@@ -1051,12 +1051,12 @@ class HariGraph(nx.DiGraph):
                 x_values.append(node_opinion)
                 y_values.append(mean_neighbor_opinion)
         return x_values, y_values
-    
+
     def get_opinion_neighbor_mean_opinion_pairs_dict(self):
         # Extract opinion values for all nodes
         opinions = nx.get_node_attributes(self, 'opinion')
 
-        data={}
+        data = {}
 
         for node in self.nodes():
             node_opinion = opinions[node]
@@ -1064,7 +1064,7 @@ class HariGraph(nx.DiGraph):
             if neighbors:  # Ensure the node has neighbors
                 mean_neighbor_opinion = sum(
                     opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                data[node] = (node_opinion,mean_neighbor_opinion)
+                data[node] = (node_opinion, mean_neighbor_opinion)
         return data
 
     def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, **kwargs):

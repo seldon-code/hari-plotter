@@ -129,16 +129,16 @@ class HariDynamics:
 
         self.merge_nodes_based_on_mapping(mapping, skip_indices=[index])
 
-    def plot_opinions(self, reference_index=0, show=True, save=False, minimum_cluster_size=1, colormap = 'coolwarm'):
+    def plot_opinions(self, reference_index=0, show=True, save=False, minimum_cluster_size=1, colormap='coolwarm'):
         """
         Visualizes the opinions of nodes over time using a line graph and a semitransparent region 
         that spans between the minimum and maximum values of those opinions.
-        
+
         Parameters:
         -----------
         reference_index : int, optional
             Index for the graph which will be used as a reference for coloring the nodes. Default is 0.
-        
+
         show : bool, optional
             Whether or not to display the plot immediately after generating it. Default is True.
 
