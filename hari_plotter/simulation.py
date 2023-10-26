@@ -3,14 +3,14 @@ from .model import Model
 
 
 class Simulation:
-    def __init__(self, model, rng_seed, max_iterations, network):
+    def __init__(self, model, max_iterations, network, rng_seed=None):
         self.model = model
         self.rng_seed = rng_seed
         self.max_iterations = max_iterations
         self.network = network
 
     @classmethod
-    def read(cls, filename):
+    def from_toml(cls, filename):
         data = toml.load(filename)
 
         model_type = data.get("simulation", {}).get("model")
@@ -27,7 +27,7 @@ class Simulation:
 
         return cls(model, rng_seed, max_iterations, network)
 
-    def write(self, filename):
+    def to_toml(self, filename):
         data = {
             "simulation": {
                 "model": self.model.model_type,
