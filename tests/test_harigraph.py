@@ -158,7 +158,7 @@ class TestHariGraph:
         # Validate new nodes' opinions, labels, and importances
         for node in G.nodes:
             assert G.nodes[node]['opinion'] == pytest.approx(
-                0.15) or G.nodes[node]['opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['opinion'] = }"
+                0.15) or G.nodes[node]['opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['opinion'] =}"
             assert len(G.nodes[node]['label']
                        ) == 2, "Unexpected label length in merged node"
 

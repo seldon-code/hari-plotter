@@ -733,7 +733,7 @@ class HariGraph(nx.DiGraph):
                 if lower_bound <= data['opinion'] < upper_bound:
                     cluster.append(node)
             if len(cluster) > 0:
-                print(f'{cluster = }')
+                print(f'{cluster=}')
                 clusters.append(set(cluster))
 
         # Merge the clusters
@@ -789,7 +789,8 @@ class HariGraph(nx.DiGraph):
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:
-                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id} already exists in the graph or is being merged multiple times."
+                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {
+                        node_id} already exists in the graph or is being merged multiple times."
                     id_mapping[node_id] = new_id
         else:
             raise ValueError(
