@@ -789,8 +789,8 @@ class HariGraph(nx.DiGraph):
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:
-                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {
-                        node_id} already exists in the graph or is being merged multiple times."
+                    assert node_id in self.nodes and node_id not in id_mapping,\
+                        f"Node {node_id} already exists in the graph or is being merged multiple times."
                     id_mapping[node_id] = new_id
         else:
             raise ValueError(
