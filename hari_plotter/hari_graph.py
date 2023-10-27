@@ -161,6 +161,8 @@ class HariGraph(nx.DiGraph):
                     G.add_node(idx_agent)
                 # Update node opinion
                 G.nodes[idx_agent]['opinion'] = opinion
+                if len(parts) == 3:
+                    G.nodes[idx_agent]['activity'] = float(parts[2])
 
         # G.remove_self_loops()
         G.generate_labels()
