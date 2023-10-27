@@ -63,7 +63,8 @@ class HariGraph(nx.DiGraph):
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
 
-    def assign_random_influences(self, mean_influence, influence_range, seed=None):
+    def assign_random_influences(
+            self, mean_influence, influence_range, seed=None):
         """
         Assigns random influence values to all edges of the graph within the given range centered around the mean influence.
 
@@ -100,11 +101,13 @@ class HariGraph(nx.DiGraph):
             incoming_edges = [(neighbor, node)
                               for neighbor in self.predecessors(node)]
 
-            # Calculate the total influence of incoming edges for the current node
+            # Calculate the total influence of incoming edges for the current
+            # node
             total_influence = sum(self[u][v]['influence']
                                   for u, v in incoming_edges)
 
-            # If the total influence is zero, assign random influences to incoming edges
+            # If the total influence is zero, assign random influences to
+            # incoming edges
             if total_influence == 0:
                 for u, v in incoming_edges:
                     self[u][v]['influence'] = random.random()
@@ -138,10 +141,11 @@ class HariGraph(nx.DiGraph):
                 parts = re.split(r'[ ,]+', line.strip())
                 idx_agent = int(parts[0])
                 n_neighbours = int(parts[1])
-                indices_neighbours = map(int, parts[2:2+n_neighbours])
-                weights = map(float, parts[2+n_neighbours:])
+                indices_neighbours = map(int, parts[2:2 + n_neighbours])
+                weights = map(float, parts[2 + n_neighbours:])
 
-                # Add nodes with initial opinion 0, opinion will be updated from opinion_file
+                # Add nodes with initial opinion 0, opinion will be updated
+                # from opinion_file
                 G.add_node(idx_agent, opinion=0)
 
                 # Add edges with weights
@@ -311,7 +315,8 @@ class HariGraph(nx.DiGraph):
         return G
 
     @classmethod
-    def strongly_connected_components(cls, cluster_sizes, inter_cluster_edges, mean_opinion=0.5, seed=None):
+    def strongly_connected_components(
+            cls, cluster_sizes, inter_cluster_edges, mean_opinion=0.5, seed=None):
         """
         Creates a HariGraph instance with multiple strongly connected components.
 
@@ -453,13 +458,13 @@ class HariGraph(nx.DiGraph):
         """
         Calculates the weighted mean opinion of the nodes in the graph.
 
-        For each node, its opinion is multiplied by its weight. 
-        The weight of a node is the length of its label if defined, 
-        otherwise, it is assumed to be 1. The method returns the 
+        For each node, its opinion is multiplied by its weight.
+        The weight of a node is the length of its label if defined,
+        otherwise, it is assumed to be 1. The method returns the
         sum of the weighted opinions divided by the sum of the weights.
 
         Returns:
-            float: The weighted mean opinion of the nodes in the graph. 
+            float: The weighted mean opinion of the nodes in the graph.
                 Returns 0 if the total weight is 0 to avoid division by zero.
         """
         total_opinion = 0
@@ -504,7 +509,8 @@ class HariGraph(nx.DiGraph):
         # Calculate Value Proximity Impact (high if opinions are close)
         opinion_proximity = opinion_coef * (1 - abs(vi - vj))
 
-        # Calculate Proximity to 0 or 1 Impact (high if opinions are close to 0 or 1)
+        # Calculate Proximity to 0 or 1 Impact (high if opinions are close to 0
+        # or 1)
         extreme_proximity = extreme_coef * \
             min(min(vi, vj), min(1 - vi, 1 - vj))
 
@@ -556,9 +562,9 @@ class HariGraph(nx.DiGraph):
         Parameters:
             i (int): The identifier for the first node.
             j (int): The identifier for the second node.
-            similarity_function (callable, optional): 
-                A custom similarity function to be used for this computation. 
-                If None, the instance's similarity_function is used. 
+            similarity_function (callable, optional):
+                A custom similarity function to be used for this computation.
+                If None, the instance's similarity_function is used.
                 Default is None.
 
         Returns:
@@ -582,15 +588,16 @@ class HariGraph(nx.DiGraph):
 
         # Choose the correct similarity function and calculate the similarity
         func = similarity_function or self.similarity_function
-        return func(vi, vj, size_i, size_j, edge_influence, reverse_edge_influence)
+        return func(vi, vj, size_i, size_j,
+                    edge_influence, reverse_edge_influence)
 
     def merge_nodes(self, i, j):
         """
         Merges two nodes in the graph into a new node.
 
-        The new node's opinion is a weighted average of the opinions of 
-        the merged nodes, and its label is the concatenation of the labels 
-        of the merged nodes. The edges are reconnected to the new node, 
+        The new node's opinion is a weighted average of the opinions of
+        the merged nodes, and its label is the concatenation of the labels
+        of the merged nodes. The edges are reconnected to the new node,
         and the old nodes are removed.
 
         Parameters:
@@ -598,11 +605,13 @@ class HariGraph(nx.DiGraph):
             j (int): The identifier for the second node to merge.
         """
 
-        # Get opinions and others paramenters using the 'node_parameter_gatherer' method
+        # Get opinions and others paramenters using the
+        # 'node_parameter_gatherer' method
         parameters = self.node_parameter_gatherer(
             [self.nodes[i], self.nodes[j]])
 
-        # Add a new node to the graph with the calculated opinion, label, and other unpacked parameters
+        # Add a new node to the graph with the calculated opinion, label, and
+        # other unpacked parameters
         new_node = max(max(self.nodes), max(
             item for sublist in self.labels for item in sublist)) + 1
         self.add_node(new_node, **parameters)
@@ -613,21 +622,25 @@ class HariGraph(nx.DiGraph):
                 if v != i and v != j:  # Avoid connecting the new node to itself
                     influence = self[u][v]['influence']
                     if self.has_edge(new_node, v):
-                        # Sum the influences if both original nodes were connected to the same node
+                        # Sum the influences if both original nodes were
+                        # connected to the same node
                         self[new_node][v]['influence'] += influence
                     else:
                         self.add_edge(new_node, v, influence=influence)
-                if self.has_edge(u, v):  # Check if the edge exists before removing it
+                if self.has_edge(
+                        u, v):  # Check if the edge exists before removing it
                     self.remove_edge(u, v)
             if v == i or v == j:
                 if u != i and u != j:  # Avoid connecting the new node to itself
                     influence = self[u][v]['influence']
                     if self.has_edge(u, new_node):
-                        # Sum the influences if both original nodes were connected to the same node
+                        # Sum the influences if both original nodes were
+                        # connected to the same node
                         self[u][new_node]['influence'] += influence
                     else:
                         self.add_edge(u, new_node, influence=influence)
-                if self.has_edge(u, v):  # Check if the edge exists before removing it
+                if self.has_edge(
+                        u, v):  # Check if the edge exists before removing it
                     self.remove_edge(u, v)
 
         # Remove the old nodes
@@ -636,8 +649,8 @@ class HariGraph(nx.DiGraph):
 
     def find_clusters(self, max_opinion_difference=0.1, min_influence=0.1):
         """
-        Finds clusters of nodes in the graph where the difference in the nodes' opinions 
-        is less than max_opinion_difference, and the influence of i on j is higher than 
+        Finds clusters of nodes in the graph where the difference in the nodes' opinions
+        is less than max_opinion_difference, and the influence of i on j is higher than
         min_influence * size(i).
 
         Parameters:
@@ -663,7 +676,8 @@ class HariGraph(nx.DiGraph):
             while queue:
                 node = queue.pop(0)  # Dequeue a node
 
-                for neighbor in set(self.successors(node)).union(self.predecessors(node)):
+                for neighbor in set(self.successors(node)).union(
+                        self.predecessors(node)):
                     if neighbor in visited_nodes:
                         continue  # Skip already visited nodes
 
@@ -731,7 +745,7 @@ class HariGraph(nx.DiGraph):
         Generates a mapping of current clusters in the graph.
 
         The method returns a dictionary where the key is the ID of a current node
-        and the opinion is a set containing the IDs of the original nodes that were merged 
+        and the opinion is a set containing the IDs of the original nodes that were merged
         to form that node.
 
         :return: A dictionary representing the current clusters in the graph.
@@ -746,14 +760,14 @@ class HariGraph(nx.DiGraph):
         """
         Merges clusters of nodes in the graph into new nodes.
 
-        For each cluster, a new node is created whose opinion is the weighted 
-        average of the opinions of the nodes in the cluster, with the weights 
-        being the lengths of the labels of the nodes. The new node's label 
+        For each cluster, a new node is created whose opinion is the weighted
+        average of the opinions of the nodes in the cluster, with the weights
+        being the lengths of the labels of the nodes. The new node's label
         is the concatenation of the labels of the nodes in the cluster.
         The edges are reconnected to the new nodes, and the old nodes are removed.
 
         Parameters:
-            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing 
+            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
         """
@@ -806,8 +820,8 @@ class HariGraph(nx.DiGraph):
         """
         Simplifies the graph by one iteration.
 
-        In each iteration, it finds the pair of nodes with the maximum similarity 
-        and merges them. If labels are not initialized, it initializes them. 
+        In each iteration, it finds the pair of nodes with the maximum similarity
+        and merges them. If labels are not initialized, it initializes them.
         If there is only one node left, no further simplification is possible.
 
         Returns:
@@ -958,7 +972,8 @@ class HariGraph(nx.DiGraph):
             # or np.log1p(edge_weights) for logarithmic scaling
             scaled_weights = np.sqrt(edge_weights)
 
-            # Normalize scaled weights to range [min_line_width, max_line_width]
+            # Normalize scaled weights to range [min_line_width,
+            # max_line_width]
             max_scaled_weight = max(scaled_weights)
             min_scaled_weight = min(scaled_weights)
 
@@ -991,13 +1006,15 @@ class HariGraph(nx.DiGraph):
             self, pos, node_color=node_colors, node_size=node_sizes, ax=ax)
 
         for (u, v), width in zip(self.edges(), edge_widths):
-            # Here, node_v_size and node_u_size represent the sizes (or the "radii") of the nodes.
+            # Here, node_v_size and node_u_size represent the sizes (or the
+            # "radii") of the nodes.
             node_v_size = node_sizes[list(self.nodes).index(v)]
             node_u_size = node_sizes[list(self.nodes).index(u)]
 
-            # Adjust the margins based on node sizes to avoid collision with arrowheads and to avoid unnecessary gaps.
-            target_margin = 5*node_v_size / node_size_multiplier
-            source_margin = 5*node_u_size / node_size_multiplier
+            # Adjust the margins based on node sizes to avoid collision with
+            # arrowheads and to avoid unnecessary gaps.
+            target_margin = 5 * node_v_size / node_size_multiplier
+            source_margin = 5 * node_u_size / node_size_multiplier
 
             if self.has_edge(v, u):
                 nx.draw_networkx_edges(self, pos, edgelist=[(u, v)], width=width, connectionstyle='arc3,rad=0.3',
@@ -1069,9 +1086,10 @@ class HariGraph(nx.DiGraph):
                 data[node] = (node_opinion, mean_neighbor_opinion)
         return data
 
-    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, scale_with_tanh=False, **kwargs):
+    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True,
+                                   extent=None, title=None, cmax=None, scale_with_tanh=False, **kwargs):
         """
-        Draws a hexbin plot with nodes' opinion values on the x-axis 
+        Draws a hexbin plot with nodes' opinion values on the x-axis
         and the mean opinion value of their neighbors on the y-axis.
 
         Parameters:
@@ -1080,7 +1098,7 @@ class HariGraph(nx.DiGraph):
             save (str): Filepath to save the plot. If None, the plot is not saved.
             show (bool): Whether to display the plot. Default is True.
             extent (list): List specifying the range for the plot. If None, it's calculated from the data.
-                        If the list has 2 values, they are used to create a square extent. 
+                        If the list has 2 values, they are used to create a square extent.
                         If the list has 4 values, they are used directly.
             cmax (float or None): Maximum limit for the colorbar. If None, it's calculated from the data.
             scale_with_tanh (bool): If True, scales x and y values with tanh function. Default is False.
@@ -1137,7 +1155,7 @@ class HariGraph(nx.DiGraph):
 
     @property
     def labels(self):
-        """Returns a list of labels for all nodes in the graph. 
+        """Returns a list of labels for all nodes in the graph.
         If a node doesn't have a label, its ID will be used as the default label."""
         return [self.nodes[node]['label'] for node in self.nodes]
 
@@ -1147,7 +1165,8 @@ class HariGraph(nx.DiGraph):
         Returns a dictionary with the sizes of the nodes.
         Key is the node ID, and opinion is the size of the node.
         """
-        return {node: self.nodes[node].get('size', len(self.nodes[node].get('label', [0, ]))) for node in self.nodes}
+        return {node: self.nodes[node].get('size', len(
+            self.nodes[node].get('label', [0, ]))) for node in self.nodes}
 
     @property
     def importance(self):
@@ -1207,7 +1226,7 @@ class HariGraph(nx.DiGraph):
     def node_values(self):
         """
         Returns a nested dictionary with the properties of the nodes.
-        The first key is the property name, and the value is another dictionary 
+        The first key is the property name, and the value is another dictionary
         with node IDs as keys and the corresponding property values as values.
         """
         properties_dict = {}

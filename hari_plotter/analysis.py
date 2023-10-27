@@ -14,7 +14,8 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 
-def set_paper_style(width_fraction=1.0, font_size=10, style='seaborn-whitegrid'):
+def set_paper_style(width_fraction=1.0, font_size=10,
+                    style='seaborn-whitegrid'):
     """
     Set style for academic papers.
 
@@ -33,7 +34,7 @@ def set_paper_style(width_fraction=1.0, font_size=10, style='seaborn-whitegrid')
     # Set the figure size
     fig_width = single_column_width * width_fraction
     plt.rcParams['figure.figsize'] = (
-        fig_width, fig_width * 3/4)  # 4:3 aspect ratio
+        fig_width, fig_width * 3 / 4)  # 4:3 aspect ratio
 
     # Set font size and line width
     plt.rcParams['font.size'] = font_size
@@ -143,7 +144,8 @@ def optimal_clusters(x_array, y_array, min_distance=1e-2):
     return clusters
 
 
-def plot_neighbor_mean_opinion(x_values, y_values, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, xlabel='Node Opinion', ylabel='Mean Neighbor Opinion',  **kwargs):
+def plot_neighbor_mean_opinion(x_values, y_values, fig=None, ax=None, save=None, show=True, extent=None,
+                               title=None, cmax=None, xlabel='Node Opinion', ylabel='Mean Neighbor Opinion', **kwargs):
     """
     Draws a hexbin plot of node opinions versus mean neighbor opinions.
 
@@ -202,7 +204,8 @@ def plot_neighbor_mean_opinion(x_values, y_values, fig=None, ax=None, save=None,
     return fig, ax
 
 
-def plot_2d_distributions(x_values, y_values, save=None, show=True, extent=None, title=None, cmax=None, xlabel='Node Opinion', ylabel='Mean Neighbor Opinion', paper_style=None, **kwargs):
+def plot_2d_distributions(x_values, y_values, save=None, show=True, extent=None, title=None,
+                          cmax=None, xlabel='Node Opinion', ylabel='Mean Neighbor Opinion', paper_style=None, **kwargs):
     """
     Plot 2D hexbin alongside 1D KDE distributions for x and y data.
 

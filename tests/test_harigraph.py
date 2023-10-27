@@ -48,7 +48,8 @@ class TestHariGraph:
             1, "Number of nodes should decrease by one after merging."
 
     def test_draw(self):
-        # This method can be tested by visually inspecting the drawn graph or by checking if it raises any exceptions during execution.
+        # This method can be tested by visually inspecting the drawn graph or
+        # by checking if it raises any exceptions during execution.
         try:
             self.graph.draw(show=False)
         except Exception as e:
@@ -82,7 +83,8 @@ class TestHariGraph:
         assert graph.number_of_nodes() == n1 + \
             n2, f"Graph should have {n1 + n2} nodes."
 
-        # Assert that the graph has the 'opinion' attribute for every node and edge
+        # Assert that the graph has the 'opinion' attribute for every node and
+        # edge
         for _, data in graph.nodes(data=True):
             assert 'opinion' in data, "Every node should have a 'opinion' attribute."
 
@@ -224,7 +226,8 @@ class TestHariGraph:
         opinions_list_correct_length = [0.1] * len(self.graph.nodes)
         try:
             self.graph.opinions = opinions_list_correct_length
-            for node, expected_opinion in zip(self.graph.nodes, opinions_list_correct_length):
+            for node, expected_opinion in zip(
+                    self.graph.nodes, opinions_list_correct_length):
                 assert self.graph.opinions[node] == pytest.approx(
                     expected_opinion), f"Node {node} should have an opinion of {expected_opinion}"
         except Exception as e:

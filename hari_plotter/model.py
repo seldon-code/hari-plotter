@@ -12,7 +12,8 @@ class Model(ABC):
     def __new__(cls, model_type, params):
         if cls == Model:  # Checking if the class being instantiated is the base class
             if model_type in cls._registry:
-                return super(Model, cls._registry[model_type]).__new__(cls._registry[model_type])
+                return super(Model, cls._registry[model_type]).__new__(
+                    cls._registry[model_type])
             else:
                 raise ValueError(f"Unknown model type: {model_type}")
         return super(Model, cls).__new__(cls)
