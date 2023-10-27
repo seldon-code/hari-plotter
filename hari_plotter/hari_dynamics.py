@@ -196,7 +196,7 @@ class HariDynamics:
 
         mapping = target_lazy_graph.get_cluster_mapping()
 
-        print(f'{mapping = }')
+        print(f'{mapping=}')
 
         self.merge_nodes_based_on_mapping(
             mapping, skip_indices=skip_indices.union({index}))
