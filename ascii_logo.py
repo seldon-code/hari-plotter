@@ -14,7 +14,7 @@ def print_logo(text=False, width=60):
         file = Path(os.path.dirname(__file__)) / "res/logo_text.png"
 
     with Image.open(file) as image:
-        new_size = [int(width), int(width/image.size[0] * image.size[1])]
+        new_size = [int(width), int(width / image.size[0] * image.size[1])]
         image = image.resize(new_size, Image.Resampling.BICUBIC)
         pixels = Pixels.from_image(image)
 

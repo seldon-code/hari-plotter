@@ -17,14 +17,32 @@ jobs:
       with:
         python-version: 3.x
 
+    - name: Print Python version
+      run: python --version
+
     - name: Install autopep8
       run: pip install autopep8
+
+    - name: Print autopep8 version
+      run: autopep8 --version
 
     - name: Check code formatting
       run: |
         FILES=$(find . -name "*.py")
-        autopep8 --diff $FILES | tee format.diff
-        if [[ -s format.diff ]]; then
-            echo "Code is not formatted properly"
+        echo "Files being checked:"
+        echo "$FILES"
+        echo "-----------------------------"
+        FORMAT_ISSUES=0
+        for file in $FILES; do
+            DIFF=$(autopep8 --diff $file)
+            if [[ ! -z "$DIFF" ]]; then
+                echo "Formatting issue detected in: $file"
+                echo "$DIFF"
+                echo "-----------------------------"
+                FORMAT_ISSUES=1
+            fi
+        done
+        if [[ $FORMAT_ISSUES -eq 1 ]]; then
+            echo "Code is not formatted properly in one or more files."
             exit 1
         fi

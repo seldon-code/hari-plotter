@@ -1,0 +1,13 @@
+[simulation]
+model = "DeGroot"
+rng_seed = 42
+
+[model]
+max_iterations = 100
+
+[DeGroot]
+convergence = 1e-6
+
+[network]
+number_of_agents = 300
+connections_per_agent = 10
