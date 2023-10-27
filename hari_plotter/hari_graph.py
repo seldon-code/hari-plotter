@@ -1069,7 +1069,7 @@ class HariGraph(nx.DiGraph):
                 data[node] = (node_opinion, mean_neighbor_opinion)
         return data
 
-    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, **kwargs):
+    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True, extent=None, title=None, cmax=None, scale_with_tanh=False, **kwargs):
         """
         Draws a hexbin plot with nodes' opinion values on the x-axis 
         and the mean opinion value of their neighbors on the y-axis.
@@ -1083,6 +1083,7 @@ class HariGraph(nx.DiGraph):
                         If the list has 2 values, they are used to create a square extent. 
                         If the list has 4 values, they are used directly.
             cmax (float or None): Maximum limit for the colorbar. If None, it's calculated from the data.
+            scale_with_tanh (bool): If True, scales x and y values with tanh function. Default is False.
             **kwargs: Additional keyword arguments passed to plt.hexbin.
         """
         x_values, y_values = self.get_opinion_neighbor_mean_opinion_pairs()
@@ -1091,6 +1092,11 @@ class HariGraph(nx.DiGraph):
         if not (x_values and y_values) or len(x_values) != len(y_values):
             print("Invalid data received. Cannot plot.")
             return
+
+        # Scale x and y values using tanh if scale_with_tanh is True
+        if scale_with_tanh:
+            x_values = np.tanh(x_values)
+            y_values = np.tanh(y_values)
 
         if fig is None or ax is None:
             fig, ax = plt.subplots()
@@ -1106,12 +1112,12 @@ class HariGraph(nx.DiGraph):
             return
 
         # Create a background filled with the `0` value of the colormap
-        ax.imshow([[0, 0], [0, 0]], cmap='inferno', interpolation='nearest',
-                  aspect='auto', extent=extent)
+        ax.imshow([[0, 0], [0, 0]], cmap='inferno',
+                  interpolation='nearest', aspect='auto', extent=extent)
 
         # Create the hexbin plot
-        hb = ax.hexbin(x_values, y_values, gridsize=50,
-                       cmap='inferno', bins='log', extent=extent, vmax=cmax, **kwargs)
+        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap='inferno',
+                       bins='log', extent=extent, vmax=cmax, **kwargs)
         cb = fig.colorbar(hb, ax=ax)
         cb.set_label('Log(Number of points in bin)')
 
