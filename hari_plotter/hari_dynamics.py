@@ -10,6 +10,7 @@ from .lazy_hari_graph import LazyHariGraph
 class HariDynamics:
     def __init__(self):
         self.lazy_hari_graphs = []  # Initialize an empty list to hold LazyHariGraph objects
+        self.groups = []  # New list to hold grouped indices
 
     @classmethod
     def read_network(cls, network_files, opinion_files):
@@ -32,7 +33,7 @@ class HariDynamics:
             network_files = [network_files]
 
         if len(network_files) == 1:
-            network_files = network_files*len(opinion_files)
+            network_files = network_files * len(opinion_files)
 
         if len(network_files) != len(opinion_files):
             raise ValueError(
@@ -40,14 +41,16 @@ class HariDynamics:
 
         # Create an instance of HariDynamics
         dynamics_instance = cls()
+        dynamics_instance.groups = []  # Initialize groups list
 
-        for network_file, opinion_file in zip(network_files, opinion_files):
+        for idx, (network_file, opinion_file) in enumerate(zip(network_files, opinion_files)):
             # Append LazyHariGraph objects to the list, with the class method and parameters needed
             # to create the actual HariGraph instances when they are required.
             dynamics_instance.lazy_hari_graphs.append(
                 LazyHariGraph(HariGraph.read_network,
                               network_file, opinion_file)
             )
+            dynamics_instance.groups.append([idx])
 
         return dynamics_instance
 
@@ -83,6 +86,44 @@ class HariDynamics:
         raise AttributeError(
             f"'HariDynamics' object and its 'HariGraph' instances have no attribute '{name}'")
 
+    def group(self, num_intervals, interval_size=1, offset=0):
+        """
+        Groups indices of LazyHariGraphs objects based on provided intervals, interval size, and an offset. 
+        Indices might show up multiple times or might never show up, depending on the parameters.
+
+        Parameters:
+            num_intervals (int): The number of intervals.
+            interval_size (int): The size of each interval.
+            offset (int): Starting offset for the grouping.
+        """
+        self.groups.clear()  # Clear the previous grouping
+
+        total_length = len(self.lazy_hari_graphs)
+
+        # Calculate the stride between each interval's starting index so they are evenly spread
+        if num_intervals == 1:
+            stride = 0
+        else:
+            stride = (total_length - offset -
+                      interval_size) // (num_intervals - 1)
+
+        for i in range(num_intervals):
+            start_index = offset + i * stride
+            end_index = start_index + interval_size
+
+            # Append the range of indices as a sublist, but ensure they stay within the valid range
+            self.groups.append(
+                list(range(start_index, min(end_index, total_length))))
+
+    def get_grouped_graphs(self):
+        """
+        Retrieves grouped LazyHariGraph objects based on the indices in self.groups.
+
+        Returns:
+            List[List[LazyHariGraph]]: List of lists where each sublist contains LazyHariGraph objects.
+        """
+        return [[self.lazy_hari_graphs[i] for i in group_indices] for group_indices in self.groups]
+
     def merge_nodes_based_on_mapping(self, mapping, skip_indices=None):
         """
         Merge nodes in each LazyHariGraph based on the provided mapping.
@@ -90,11 +131,18 @@ class HariDynamics:
 
         Parameters:
             mapping (Dict[int, int]): A dictionary representing how nodes should be merged.
-            skip_indices (List[int], optional): A list of indices representing which LazyHariGraph instances 
-                                                to skip. Defaults to None (no graph is skipped).
+            skip_indices (Union[List[int], str]): Either a list of indices representing which LazyHariGraph instances 
+                                                to skip or a string 'NotInGroups' to skip graphs not in groups.
+                                                Defaults to None (no graph is skipped).
         """
-        if skip_indices is None:
-            skip_indices = []
+        if skip_indices == 'NotInGroups':
+            all_indices = set(range(len(self.lazy_hari_graphs)))
+            in_group_indices = {idx for group in self.groups for idx in group}
+            skip_indices = all_indices - in_group_indices
+        elif skip_indices is None:
+            skip_indices = set()
+        else:
+            skip_indices = set(skip_indices)
 
         for i, lazy_graph in enumerate(self.lazy_hari_graphs):
             if i in skip_indices:
@@ -105,14 +153,26 @@ class HariDynamics:
 
             lazy_graph.merge_clusters(mapping)
 
-    def merge_nodes_based_on_index(self, index):
+    def merge_nodes_based_on_index(self, index, skip_indices=None):
         """
         Merges nodes in each LazyHariGraph based on the cluster mapping of the graph at the provided index.
         The graph at the provided index is skipped during merging.
 
         Parameters:
             index (int): The index of the LazyHariGraph whose cluster mapping should be used for merging nodes.
+            skip_indices (Union[List[int], str, None]): Either a list of indices representing which LazyHariGraph instances 
+                                                        to skip, a string 'NotInGroups' to skip graphs not in groups, 
+                                                        or None to not skip any. Defaults to None.
         """
+        if skip_indices == 'NotInGroups':
+            all_indices = set(range(len(self.lazy_hari_graphs)))
+            in_group_indices = {idx for group in self.groups for idx in group}
+            skip_indices = all_indices - in_group_indices
+        elif skip_indices is None:
+            skip_indices = set()
+        else:
+            skip_indices = set(skip_indices)
+
         if index < 0 or index >= len(self.lazy_hari_graphs):
             raise IndexError(
                 "Index out of range of available LazyHariGraph objects.")
@@ -127,7 +187,8 @@ class HariDynamics:
 
         print(f'{mapping = }')
 
-        self.merge_nodes_based_on_mapping(mapping, skip_indices=[index])
+        self.merge_nodes_based_on_mapping(
+            mapping, skip_indices=skip_indices.union({index}))
 
     def plot_opinions(self, reference_index=0, show=True, save=False, minimum_cluster_size=1, colormap='coolwarm'):
         """
@@ -164,16 +225,20 @@ class HariDynamics:
         The method begins by ensuring the consistency of node_values across all graphs. 
         It then extracts the common keys of nodes from the first graph and verifies that 
         these keys are consistent across the opinions, min_opinions, and max_opinions of all graphs.
+        Only the first graph from each group is plotted.
 
         For nodes that meet the minimum_cluster_size criteria, it plots their opinions over time. 
         A semitransparent region is plotted between the minimum and maximum values of those opinions, 
         allowing for a visualization of the possible variation or uncertainty in the opinions. 
         Each node is colored based on the value of its opinion in the graph at reference_index, 
         mapped to the provided colormap.
-
         """
+
         assert all(isinstance(graph.node_values, dict)
                    for graph in self.lazy_hari_graphs), "All graph node_values must be dictionaries"
+
+        # Extracting indices of the first image of each group
+        indices_to_plot = [group[0] for group in self.groups]
 
         # Extracting the common keys from the first graph opinions
         nodes_set = set(self.lazy_hari_graphs[0].nodes)
@@ -188,33 +253,30 @@ class HariDynamics:
             assert set(graph_node_values['max_opinion'].keys(
             )) == nodes_set, "All graph max_opinions must have the same keys"
 
-        print(f'{nodes_set = }')
-
-        new_nodes_set = [
-            key for key in nodes_set if self.lazy_hari_graphs[0].nodes[key].get("size", 1) >= minimum_cluster_size]
-
-        print(f'{new_nodes_set = }')
+        new_nodes_set = [key for key in nodes_set if self.lazy_hari_graphs[0].nodes[key].get(
+            "size", 1) >= minimum_cluster_size]
 
         # Find the opinion furthest from 0.5 among all opinions of all nodes in all graphs
-
         vmax = max(
             abs(graph.nodes[key]['opinion'])
-            for graph in self.lazy_hari_graphs
+            for i in indices_to_plot
             for key in new_nodes_set
+            for graph in [self.lazy_hari_graphs[i]]
         )
 
         fig, ax = plt.subplots(figsize=(10, 6))
-        x = list(range(len(self.lazy_hari_graphs)))
+        x = indices_to_plot
 
         for key in new_nodes_set:
-            # Extract node_values once for each graph in self.lazy_hari_graphs
-            node_values_list = [g.node_values for g in self.lazy_hari_graphs]
+            # Extract node_values only from graphs with indices in indices_to_plot
+            node_values_list = [
+                self.lazy_hari_graphs[i].node_values for i in indices_to_plot]
             y = [nv['opinion'][key] for nv in node_values_list]
             min_y = [nv['min_opinion'][key] for nv in node_values_list]
             max_y = [nv['max_opinion'][key] for nv in node_values_list]
 
             # Extract the reference color from the graph at reference_index and map it to the adjusted colormap range
-            ref_opinion = node_values_list[reference_index]['opinion'][key]
+            ref_opinion = self.lazy_hari_graphs[reference_index].node_values['opinion'][key]
             color = plt.get_cmap(colormap)((ref_opinion+vmax) / (2*vmax))
 
             # Plotting the semitransparent region between min and max opinions
@@ -223,10 +285,10 @@ class HariDynamics:
             # Plotting the line for the opinions
             ax.plot(x, y, color=color, label=f'Node {key}')
 
-            ax.set_title(f"Node Values Over Time")
-            ax.set_xlabel("Time")
-            ax.set_ylabel("Value")
-            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        ax.set_title(f"Node Values Over Time")
+        ax.set_xlabel("Time")
+        ax.set_ylabel("Value")
+        ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
         plt.tight_layout()
 
@@ -244,7 +306,8 @@ class HariDynamics:
     def draw_dynamic_graphs(self, reference_index: int = 0, save: Optional[Union[str, List[str]]] = None,
                             show_timestamp: bool = False, **kwargs):
         """
-        Draws the graphs at each time step, using the positions of the nodes as determined by the graph at the reference_index.
+        Draws the first graph of each group, using the positions of the nodes as determined by the graph 
+        at the reference_index.
 
         :param reference_index: int, optional
             Index of the graph whose node positions will be used as a reference for drawing all other graphs.
@@ -257,44 +320,45 @@ class HariDynamics:
             Default is None.
 
         :param show_timestamp: bool, optional
-            If True, the index of each graph is displayed as a timestamp in the bottom right corner of the plot.
-            Default is False.
+            If True, the index of each graph (of the group's first graph) is displayed as a timestamp in the 
+            bottom right corner of the plot. Default is False.
 
         :param kwargs: keyword arguments
             Additional settings that will be provided to the draw method of each graph.
 
         :return: None
-
         """
+
         # Get the reference graph and its node positions
         pos = self.lazy_hari_graphs[reference_index].position_nodes()
+
+        # Extracting indices of the first image of each group
+        indices_to_plot = [group[0] for group in self.groups]
 
         # Check the save parameter and prepare the save_filepaths list
         if isinstance(save, str):
             os.makedirs(save, exist_ok=True)
             save_filepaths = [os.path.join(
-                save, f'{i}.png') for i in range(len(self.lazy_hari_graphs))]
+                save, f'{i}.png') for i in indices_to_plot]
         elif isinstance(save, list):
             assert len(save) == len(
-                self.lazy_hari_graphs), "The length of 'save' list must be equal to the number of graphs."
+                indices_to_plot), "The length of 'save' list must be equal to the number of group's first graphs."
             save_filepaths = save
         else:
-            save_filepaths = [None] * len(self.lazy_hari_graphs)
+            save_filepaths = [None] * len(indices_to_plot)
 
         # Draw each graph with the reference positions
-        for i, (graph, save_filepath) in enumerate(zip(self.lazy_hari_graphs, save_filepaths)):
+        for i, save_filepath in zip(indices_to_plot, save_filepaths):
+            graph = self.lazy_hari_graphs[i]
             fig, ax = plt.subplots(figsize=(10, 7))
             bottom_right_text = f't = {i}' if show_timestamp else None
             graph.draw(pos=pos, save_filepath=save_filepath, fig=fig,
                        ax=ax, bottom_right_text=bottom_right_text, **kwargs)
             plt.close()
 
-    def plot_neighbor_mean_opinion(self,
-                                   save: Optional[Union[str,
-                                                        List[str]]] = None,
-                                   show_timestamp: bool = False, cmax=None, uninit=False, num_images=None, **kwargs):
+    def plot_neighbor_mean_opinion(self, save: Optional[Union[str, List[str]]] = None, show_timestamp: bool = False, cmax=None, uninit=False, num_images=None, **kwargs):
         """
-        Plots the neighbor mean opinion for each graph in lazy_hari_graphs.
+        Plots the neighbor mean opinion for the first graph of each group in lazy_hari_graphs.
 
         :param save: str, list of str, or None, optional
             If str, treated as a directory and each plot is saved with a filename '{i}.png'.
@@ -316,28 +380,30 @@ class HariDynamics:
 
         :return: None
         """
-        total_graphs = len(self.lazy_hari_graphs)
 
-        # Determine the indices of graphs to plot
-        if num_images is None or num_images >= total_graphs:
-            indices = list(range(total_graphs))
-        else:
-            step = total_graphs / num_images
-            indices = [int(i*step) for i in range(num_images)]
+        # Extracting indices of the first image of each group
+        indices_to_plot = [group[0] for group in self.groups]
+
+        # If num_images is defined and less than the number of groups, select evenly spaced indices
+        if num_images is not None and num_images < len(indices_to_plot):
+            step = len(indices_to_plot) / num_images
+            indices_to_plot = [
+                indices_to_plot[int(i*step)] for i in range(num_images)]
 
         # Adjust the save_filepaths logic based on the selected indices
         if isinstance(save, str):
             os.makedirs(save, exist_ok=True)
-            save_filepaths = [os.path.join(save, f'{i}.png') for i in indices]
+            save_filepaths = [os.path.join(
+                save, f'{i}.png') for i in indices_to_plot]
         elif isinstance(save, list):
             assert len(save) >= len(
-                indices), "The length of 'save' list must be at least the number of selected images."
-            save_filepaths = [save[i] for i in indices]
+                indices_to_plot), "The length of 'save' list must be at least the number of selected images."
+            save_filepaths = [save[i] for i in indices_to_plot]
         else:
-            save_filepaths = [None] * len(indices)
+            save_filepaths = [None] * len(indices_to_plot)
 
         # Plot neighbor_mean_opinion for selected graphs
-        for idx, save_filepath in zip(indices, save_filepaths):
+        for idx, save_filepath in zip(indices_to_plot, save_filepaths):
             graph = self.lazy_hari_graphs[idx]
             fig, ax = plt.subplots(figsize=(10, 7))
 
