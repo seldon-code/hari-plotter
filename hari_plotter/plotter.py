@@ -270,26 +270,49 @@ class Plotter:
                 saver.save(fig)
 
     def plot_opinion_histogram(self, mode='show', save_dir: str = None,
-                               gif_path: str = None, show_time: bool = False, name='opinion_histogram'):
+                               gif_path: str = None, show_time: bool = False, name='opinion_histogram',
+                               scale='linear'):
         """
         Visualizes the histogram of opinions in the graphs using a histogram.
+
+        Parameters:
+        - scale (str): The scale for the x-axis ('linear' or 'tanh').
         """
+
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
             for data in self.interface.mean_node_values():
                 fig, ax = plt.subplots(figsize=(10, 7))
 
-                sns.histplot(data=data['opinions'],
-                             edgecolor='black', kde=True, ax=ax)
+                if scale == 'tanh':
+                    # Apply the arctanh transformation to the data
+                    transformed_opinions = np.tanh(data['opinions'])
+
+                    # Plot the transformed data
+                    sns.histplot(data=transformed_opinions,
+                                 edgecolor='black', kde=True, ax=ax)
+
+                    # Adjust the tick labels to show the original tanh scale
+                    max_value = np.tanh(np.max(np.abs(data['opinions'])))
+                    print(f'{max_value = }')
+                    tickslabels = np.round(np.arctanh(
+                        np.linspace(-max_value, max_value, 11)), 1)
+                    ticks = np.tanh(tickslabels)
+                    ax.set_xticks(ticks)
+                    ax.set_xticklabels(tickslabels)
+                else:
+                    sns.histplot(data=data['opinions'],
+                                 edgecolor='black', kde=True, ax=ax)
 
                 ax.set_title('Opinion Distribution')
                 ax.set_xlabel('Opinion Value')
                 ax.set_ylabel('Number of Nodes')
                 if show_time:
                     ax.set_title(f't = {data["time"]}')
+
                 saver.save(fig)
 
     def plot_opinions(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
-                      reference_index=-1, minimum_cluster_size=1, colormap='coolwarm', name='opinions_dynamics', width_threshold=1):
+                      reference_index=-1, minimum_cluster_size=1, colormap='coolwarm', name='opinions_dynamics', width_threshold=1, scale='linear', show_legend=True):
         """
         Visualizes the opinions of nodes over time using a line graph and a semitransparent region
         that spans between the minimum and maximum values of those opinions.
@@ -385,28 +408,57 @@ class Plotter:
 
             # Assuming you still have ax as your plotting axis
             for key, data in all_nodes_data.items():
-                y = data['opinions']
-                min_y = data['min_opinions']
-                max_y = data['max_opinions']
+                if scale == 'tanh':
+                    vmax_tanh = np.tanh(vmax)
+                    y = np.tanh(data['opinions'])
+                    min_y = np.tanh(data['min_opinions'])
+                    max_y = np.tanh(data['max_opinions'])
 
-                ref_opinion = y[reference_index]
-                color = plt.get_cmap(colormap)(
-                    (ref_opinion + vmax) / (2 * vmax))
+                    ref_opinion = np.tanh(y[reference_index])
+                    color = plt.get_cmap(colormap)(
+                        (ref_opinion + vmax_tanh) / (2 * vmax_tanh))
 
-                # Check if the width difference exceeds the threshold anywhere
-                widths = [m - n for m, n in zip(max_y, min_y)]
-                if any(w > absolute_width_threshold for w in widths):
-                    # Plotting the semitransparent region between min and max
-                    # opinions
-                    ax.fill_between(time_array, min_y, max_y,
-                                    color=color, alpha=0.2)
+                    # Check if the width difference exceeds the threshold anywhere
+                    widths = [m - n for m, n in zip(max_y, min_y)]
+                    if any(w > absolute_width_threshold for w in widths):
+                        # Plotting the semitransparent region between min and max
+                        # opinions
+                        ax.fill_between(time_array, min_y, max_y,
+                                        color=color, alpha=0.2)
 
-                # Plotting the line for the opinions
-                ax.plot(time_array, y, color=color, label=f'Node {key}')
+                    # Plotting the line for the opinions
+                    ax.plot(time_array, y, color=color, label=f'Node {key}')
+
+                    # Adjust the tick labels to show the original tanh scale
+                    tickslabels = np.round(np.arctanh(
+                        np.linspace(-vmax_tanh, vmax_tanh, 11)), 1)
+                    ticks = np.tanh(tickslabels)
+                    ax.set_yticks(ticks)
+                    ax.set_yticklabels(tickslabels)
+                else:
+                    y = data['opinions']
+                    min_y = data['min_opinions']
+                    max_y = data['max_opinions']
+
+                    ref_opinion = y[reference_index]
+                    color = plt.get_cmap(colormap)(
+                        (ref_opinion + vmax) / (2 * vmax))
+
+                    # Check if the width difference exceeds the threshold anywhere
+                    widths = [m - n for m, n in zip(max_y, min_y)]
+                    if any(w > absolute_width_threshold for w in widths):
+                        # Plotting the semitransparent region between min and max
+                        # opinions
+                        ax.fill_between(time_array, min_y, max_y,
+                                        color=color, alpha=0.2)
+
+                    # Plotting the line for the opinions
+                    ax.plot(time_array, y, color=color, label=f'Node {key}')
 
             ax.set_title(f"Opinions Over Time")
             ax.set_xlabel("Time")
             ax.set_ylabel("Opinion")
-            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+            if show_legend:
+                ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
             saver.save(fig)

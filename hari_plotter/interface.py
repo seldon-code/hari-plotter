@@ -7,6 +7,8 @@ from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
 from .simulation import Simulation
 
+from typing import List, Optional, Union
+
 
 class Interface(ABC):
     REQUIRED_TYPE = None
@@ -48,6 +50,53 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
+    def _calculate_mean_node_values(self, group: List) -> dict:
+        nodes = []
+        opinions = []
+        sizes = []
+        max_opinions = []  # Store the maximum value of max_opinion for each node
+        min_opinions = []  # Store the minimum value of min_opinion for each node
+
+        # Dictionary to hold cumulative values for each node
+        node_opinions = {}
+        node_sizes = {}
+        node_max_opinions = {}
+        node_min_opinions = {}
+
+        for image in group:
+            node_values = self.get_node_values(image)
+
+            for node, value in node_values['opinion'].items():
+                node_opinions.setdefault(node, []).append(value)
+                node_sizes.setdefault(node, []).append(
+                    node_values['size'][node])
+
+                # Check and store max_opinion values
+                if 'max_opinion' in node_values:
+                    node_max_opinions.setdefault(node, []).append(
+                        node_values['max_opinion'][node])
+
+                # Check and store min_opinion values
+                if 'min_opinion' in node_values:
+                    node_min_opinions.setdefault(node, []).append(
+                        node_values['min_opinion'][node])
+
+        # Calculate mean opinion, size, and max/min opinion values for each node
+        for node, opinion_values in node_opinions.items():
+            nodes.append(node)
+            opinions.append(np.mean(opinion_values))
+            sizes.append(np.mean(node_sizes[node]))
+            max_opinions.append(max(node_max_opinions.get(node, [None])))
+            min_opinions.append(min(node_min_opinions.get(node, [None])))
+
+        return {
+            'nodes': nodes,
+            'opinions': opinions,
+            'sizes': sizes,
+            'max_opinions': max_opinions,
+            'min_opinions': min_opinions
+        }
+
     @abstractmethod
     def mean_node_values(self):
         raise NotImplementedError(
@@ -66,13 +115,14 @@ class HariGraphInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def opinions(self):
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def get_node_values(self, image) -> dict:
+        return self.data.node_values
 
-    def neighbors_opinions(self):
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def mean_node_values(self) -> Iterator[dict]:
+        data = self._calculate_mean_node_values(
+            [None])  # No group for single image
+        data['time'] = 0
+        yield data
 
 
 class HariDynamicsInterface(Interface):
@@ -88,74 +138,14 @@ class HariDynamicsInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
+    def get_node_values(self, image) -> dict:
+        return self.data[image].node_values
+
     def mean_node_values(self) -> Iterator[dict]:
         for group in self.data.groups:
-            nodes = []
-            opinions = []
-            sizes = []
-            max_opinions = []  # To store the maximum value of max_opinion for each node
-            min_opinions = []  # To store the minimum value of min_opinion for each node
-
-            # Dictionary to hold cumulative values for each node
-            node_opinions = {}
-            node_sizes = {}
-            node_max_opinions = {}
-            node_min_opinions = {}
-
-            for image in group:
-                node_values = self.data[image].node_values
-
-                for node, value in node_values['opinion'].items():
-                    if node not in node_opinions:
-                        node_opinions[node] = []
-                    node_opinions[node].append(value)
-
-                    if node not in node_sizes:
-                        node_sizes[node] = []
-                    node_sizes[node].append(node_values['size'][node])
-
-                    # Check and store max_opinion values
-                    if 'max_opinion' in node_values:
-                        if node not in node_max_opinions:
-                            node_max_opinions[node] = []
-                        node_max_opinions[node].append(
-                            node_values['max_opinion'][node])
-
-                    # Check and store min_opinion values
-                    if 'min_opinion' in node_values:
-                        if node not in node_min_opinions:
-                            node_min_opinions[node] = []
-                        node_min_opinions[node].append(
-                            node_values['min_opinion'][node])
-
-            # Calculate mean opinion, size and max/min opinion values for each
-            # node
-            for node, opinion_values in node_opinions.items():
-                nodes.append(node)
-                opinions.append(np.mean(opinion_values))
-                sizes.append(np.mean(node_sizes[node]))
-
-                # Add max_opinion or None
-                if node_max_opinions:
-                    max_opinions.append(max(node_max_opinions[node]))
-                else:
-                    max_opinions.append(None)
-
-                # Add min_opinion or None
-                if node_min_opinions:
-                    min_opinions.append(min(node_min_opinions[node]))
-                else:
-                    min_opinions.append(None)
-
-            time = group[-1]
-            yield {
-                'nodes': nodes,
-                'opinions': opinions,
-                'sizes': sizes,
-                'max_opinions': max_opinions,
-                'min_opinions': min_opinions,
-                'time': time
-            }
+            data = self._calculate_mean_node_values(group)
+            data['time'] = group[-1]
+            yield data
 
     def node_values(self) -> Iterator[dict]:
         for group in self.data.groups:
@@ -197,10 +187,11 @@ class SimulationInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def opinions(self):
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def get_node_values(self, image) -> dict:
+        return self.data.dynamics[image].node_values
 
-    def neighbors_opinions(self):
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def mean_node_values(self) -> Iterator[dict]:
+        for group in self.data.dynamics.groups:
+            data = self._calculate_mean_node_values(group)
+            data['time'] = group[-1] * self.data.model.params.get("dt", 1)
+            yield data
