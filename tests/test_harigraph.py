@@ -47,15 +47,6 @@ class TestHariGraph:
         assert new_number_of_nodes == old_number_of_nodes - \
             1, "Number of nodes should decrease by one after merging."
 
-    def test_draw(self):
-        # This method can be tested by visually inspecting the drawn graph or
-        # by checking if it raises any exceptions during execution.
-        try:
-            self.graph.draw(show=False)
-        except Exception as e:
-            pytest.fail(
-                f"Draw method should not raise any exceptions. Raised: {str(e)}")
-
     def test_str(self):
         # Test the __str__ method
         assert str(

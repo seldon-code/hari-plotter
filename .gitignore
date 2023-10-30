@@ -161,3 +161,5 @@ cython_debug/
 poetry.lock
 check_formatting.sh
 format.diff
+
+.vscode/

@@ -11,13 +11,15 @@ class TestHariDynamics:
 
     def test_initialize(self):
         self.HD.mean_opinion
-        assert all(H.is_initialized() for H in self.HD)
+        assert all(H.is_initialized for H in self.HD)
 
-    def test_draw_dynamic_graphs(self):
-        self.HD.draw_dynamic_graphs(show=False, show_timestamp=True)
+    def test_getitem(self):
+        self.HD[-1].mean_opinion
+        assert self.HD[-1].is_initialized
 
-    def test_plot_opinions(self):
-        self.HD.plot_opinions(reference_index=0, show=False)
+    def test_group(self):
+        self.HD.group(2, 2)
 
-    def test_plot_neighbor_mean_opinion(self):
-        self.HD.plot_neighbor_mean_opinion(show=False, show_timestamp=True)
+    def test_mapping(self):
+        self.HD[0].merge_by_intervals([0.])
+        self.HD.merge_nodes_by_index(0)

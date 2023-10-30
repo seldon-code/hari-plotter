@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
-from .distibutions import generate_mixture_of_gaussians
+from .distributions import generate_mixture_of_gaussians
 
 
 class HariGraph(nx.DiGraph):
@@ -140,17 +140,17 @@ class HariGraph(nx.DiGraph):
                 # Split using either space or comma as delimiter
                 parts = re.split(r'[ ,]+', line.strip())
                 idx_agent = int(parts[0])
-                n_neighbours = int(parts[1])
-                indices_neighbours = map(int, parts[2:2 + n_neighbours])
-                weights = map(float, parts[2 + n_neighbours:])
+                n_neighbors = int(parts[1])
+                indices_neighbors = map(int, parts[2:2 + n_neighbors])
+                weights = map(float, parts[2 + n_neighbors:])
 
                 # Add nodes with initial opinion 0, opinion will be updated
                 # from opinion_file
                 G.add_node(idx_agent, opinion=0)
 
                 # Add edges with weights
-                for neighbour, weight in zip(indices_neighbours, weights):
-                    G.add_edge(neighbour, idx_agent, influence=weight)
+                for neighbor, weight in zip(indices_neighbors, weights):
+                    G.add_edge(neighbor, idx_agent, influence=weight)
 
         # Read opinion file and update node opinions in the G
         with open(opinion_file, 'r') as f:
@@ -187,7 +187,7 @@ class HariGraph(nx.DiGraph):
         with open(network_file, 'w') as f:
             # Write header
             f.write(
-                f"# idx_agent{delimiter}n_neighbours_in{delimiter}indices_neighbours_in[...]{delimiter}weights_in[...]\n")
+                f"# idx_agent{delimiter}n_neighbors_in{delimiter}indices_neighbors_in[...]{delimiter}weights_in[...]\n")
             for node in self.nodes:
                 # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
@@ -605,7 +605,7 @@ class HariGraph(nx.DiGraph):
             j (int): The identifier for the second node to merge.
         """
 
-        # Get opinions and others paramenters using the
+        # Get opinions and others parameters using the
         # 'node_parameter_gatherer' method
         parameters = self.node_parameter_gatherer(
             [self.nodes[i], self.nodes[j]])
@@ -733,7 +733,6 @@ class HariGraph(nx.DiGraph):
                 if lower_bound <= data['opinion'] < upper_bound:
                     cluster.append(node)
             if len(cluster) > 0:
-                print(f'{cluster=}')
                 clusters.append(set(cluster))
 
         # Merge the clusters
@@ -863,197 +862,6 @@ class HariGraph(nx.DiGraph):
             and the opinions are the corresponding (x, y) coordinates.
         """
         return nx.spring_layout(self, seed=seed)
-
-    def draw(self, pos=None, node_info_mode='none', use_node_color=True,
-             use_edge_thickness=True, show_edge_influences=False,
-             node_size_multiplier=200,
-             arrowhead_length=0.2, arrowhead_width=0.2,
-             min_line_width=0.1, max_line_width=3.0,
-             seed=None, save_filepath=None, show=True,
-             fig=None, ax=None, bottom_right_text=None):
-        """
-        Visualizes the graph with various customization options.
-
-        :param pos: dict, optional
-            Position of nodes as a dictionary of coordinates. If not provided, the spring layout is used to position nodes.
-
-        :param node_info_mode: str, optional
-            Determines the information to display on the nodes.
-            Options: 'none', 'opinions', 'ids', 'labels', 'size'. Default is 'none'.
-
-        :param use_node_color: bool, optional
-            If True, nodes are colored based on their opinions using a colormap. Default is True.
-
-        :param use_edge_thickness: bool, optional
-            If True, the thickness of the edges is determined by their influences, scaled between min_line_width and max_line_width. Default is True.
-
-        :param show_edge_influences: bool, optional
-            If True, displays the influences of the edges on the plot. Default is False.
-
-        :param node_size_multiplier: int, optional
-            Multiplier for node sizes, affecting the visualization scale. Default is 200.
-
-        :param arrowhead_length: float, optional
-            Length of the arrowhead for directed edges. Default is 0.2.
-
-        :param arrowhead_width: float, optional
-            Width of the arrowhead for directed edges. Default is 0.2.
-
-        :param min_line_width: float, optional
-            Minimum line width for edges. Default is 0.1.
-
-        :param max_line_width: float, optional
-            Maximum line width for edges. Default is 3.0.
-
-        :param seed: int, optional
-            Seed for the spring layout. Affects the randomness in the positioning of the nodes. Default is None.
-
-        :param save_filepath: str, optional
-            If provided, saves the plot to the specified filepath. Default is None.
-
-        :param show: bool, optional
-            If True, displays the plot immediately. Default is True.
-
-        :param fig: matplotlib.figure.Figure, optional
-            Matplotlib Figure object. If None, a new figure is created. Default is None.
-
-        :param ax: matplotlib.axes._axes.Axes, optional
-            Matplotlib Axes object. If None, a new axis is created. Default is None.
-
-        :param bottom_right_text: str, optional
-            Text to display in the bottom right corner of the plot. Default is None.
-
-        :return: tuple
-            A tuple containing the Matplotlib Figure and Axes objects.
-        """
-        if fig is None or ax is None:
-            fig, ax = plt.subplots(figsize=(10, 7))
-
-        if pos is None:
-            pos = self.position_nodes(seed=seed)
-
-        # Get the node and edge attributes
-        node_attributes = nx.get_node_attributes(self, 'opinion')
-        edge_attributes = nx.get_edge_attributes(self, 'influence')
-
-        # Prepare Node Labels
-        node_labels = {}
-        match node_info_mode:
-            case 'opinions':
-                node_labels = {node: f"{opinion:.2f}" for node,
-                               opinion in node_attributes.items()}
-            case 'ids':
-                node_labels = {node: f"{node}" for node in self.nodes}
-            case 'labels':
-                for node in self.nodes:
-                    label = self.nodes[node].get('label', None)
-                    if label is not None:
-                        node_labels[node] = ','.join(map(str, label))
-                    else:  # If label is not defined, show id instead
-                        node_labels[node] = str(node)
-            case 'size':
-                for node in self.nodes:
-                    label_len = len(self.nodes[node].get('label', [node]))
-                    node_labels[node] = str(label_len)
-
-        # Prepare Node Colors
-        if use_node_color:
-            node_colors = [cm.bwr(opinion)
-                           for opinion in node_attributes.values()]
-        else:
-            node_colors = 'lightblue'
-
-        # Prepare Edge Widths
-        if use_edge_thickness:
-
-            # Gather edge weights
-            edge_weights = list(edge_attributes.values())
-
-            # Scale edge weights non-linearly
-            # or np.log1p(edge_weights) for logarithmic scaling
-            scaled_weights = np.sqrt(edge_weights)
-
-            # Normalize scaled weights to range [min_line_width,
-            # max_line_width]
-            max_scaled_weight = max(scaled_weights)
-            min_scaled_weight = min(scaled_weights)
-
-            edge_widths = [
-                min_line_width + (max_line_width - min_line_width) * (weight -
-                                                                      min_scaled_weight) / (max_scaled_weight - min_scaled_weight)
-                for weight in scaled_weights
-            ]
-
-        else:
-            # Default line width applied to all edges
-            edge_widths = [1.0] * self.number_of_edges()
-
-        # Prepare Edge Labels
-        edge_labels = None
-        if show_edge_influences:
-            edge_labels = {(u, v): f"{influence:.2f}" for (u, v),
-                           influence in edge_attributes.items()}
-
-        # Calculate Node Sizes
-        node_sizes = []
-        for node in self.nodes:
-            label_len = len(self.nodes[node].get('label', [node]))
-            size = node_size_multiplier * \
-                math.sqrt(label_len)  # Nonlinear scaling
-            node_sizes.append(size)
-
-        # Draw Nodes and Edges
-        nx.draw_networkx_nodes(
-            self, pos, node_color=node_colors, node_size=node_sizes, ax=ax)
-
-        for (u, v), width in zip(self.edges(), edge_widths):
-            # Here, node_v_size and node_u_size represent the sizes (or the
-            # "radii") of the nodes.
-            node_v_size = node_sizes[list(self.nodes).index(v)]
-            node_u_size = node_sizes[list(self.nodes).index(u)]
-
-            # Adjust the margins based on node sizes to avoid collision with
-            # arrowheads and to avoid unnecessary gaps.
-            target_margin = 5 * node_v_size / node_size_multiplier
-            source_margin = 5 * node_u_size / node_size_multiplier
-
-            if self.has_edge(v, u):
-                nx.draw_networkx_edges(self, pos, edgelist=[(u, v)], width=width, connectionstyle='arc3,rad=0.3',
-                                       arrowstyle=f'->,head_length={arrowhead_length},head_width={arrowhead_width}', min_target_margin=target_margin, min_source_margin=source_margin)
-            else:
-                nx.draw_networkx_edges(self, pos, edgelist=[(
-                    u, v)], width=width, arrowstyle=f'-|>,head_length={arrowhead_length},head_width={arrowhead_width}', min_target_margin=target_margin, min_source_margin=source_margin)
-
-        # Draw Labels
-        nx.draw_networkx_labels(self, pos, labels=node_labels)
-        if edge_labels:
-            nx.draw_networkx_edge_labels(self, pos, edge_labels=edge_labels)
-
-        # Add text in the bottom right corner if provided
-        if bottom_right_text:
-            ax.text(1, 0, bottom_right_text, horizontalalignment='right',
-                    verticalalignment='bottom', transform=ax.transAxes)
-
-        # Save the plot if save_filepath is provided
-        if save_filepath:
-            plt.savefig(save_filepath)
-
-        # Show the plot if show is True
-        if show:
-            plt.show()
-        return fig, ax
-
-    def plot_opinion_distribution(self):
-        """
-        Visualizes the distribution of opinions in the graph using a histogram.
-        """
-        # Plot the histogram
-        plt.hist(self.opinions, bins=50, edgecolor='black', alpha=0.75)
-        plt.title('Opinion Distribution')
-        plt.xlabel('Opinion Value')
-        plt.ylabel('Number of Nodes')
-        plt.grid(axis='y', alpha=0.75)
-        plt.show()
 
     def get_opinion_neighbor_mean_opinion_pairs(self):
         # Extract opinion values for all nodes
