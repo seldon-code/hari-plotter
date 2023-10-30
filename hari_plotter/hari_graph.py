@@ -539,6 +539,43 @@ class HariGraph(nx.DiGraph):
         Gathers default parameters for a node that is a result of merging given nodes.
 
         :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
+        :return: Dict, a dictionary with calculated 'inner_opinions', 'size', and 'label'.
+        """
+        if not nodes:
+            raise ValueError("The input list of nodes must not be empty.")
+
+        size = sum(node.get('size', len(
+            node.get('label', [0, ]))) for node in nodes)
+
+        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
+        inner_opinions = {}
+
+        for node in nodes:
+            node_label = node.get('label', None)
+            if node_label is not None:
+                # Check if node has 'inner_opinions', if not, create one
+                if 'inner_opinions' in node:
+                    inner_opinions.update(node['inner_opinions'])
+                else:
+                    if len(node_label) != 1:
+                        warnings.warn(
+                            f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
+                    for i in node_label:
+                        inner_opinions[i] = node['opinion']
+
+        return {
+            'size': size,
+            'opinion': sum(node.get('size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
+            'label': [id for node in nodes for id in node['label']],
+            'inner_opinions': inner_opinions
+        }
+
+    @staticmethod
+    def min_max_node_parameter_gatherer(nodes):
+        """
+        Gathers default parameters for a node that is a result of merging given nodes.
+
+        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
         :return: Dict, a dictionary with calculated 'max_opinion' and 'min_opinion'.
         """
         if not nodes:
@@ -862,6 +899,20 @@ class HariGraph(nx.DiGraph):
             and the opinions are the corresponding (x, y) coordinates.
         """
         return nx.spring_layout(self, seed=seed)
+
+    @property
+    def neighbor_mean_opinion(self):
+        data = {}
+        opinions = nx.get_node_attributes(self, 'opinion')
+        for node in self.nodes():
+            node_opinion = opinions[node]
+            neighbors = list(self.neighbors(node))
+            if neighbors:  # Ensure the node has neighbors
+                mean_neighbor_opinion = sum(
+                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
+                data[node] = mean_neighbor_opinion
+
+        return data
 
     def get_opinion_neighbor_mean_opinion_pairs(self):
         # Extract opinion values for all nodes

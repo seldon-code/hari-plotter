@@ -75,11 +75,23 @@ class Interface(ABC):
                 if 'max_opinion' in node_values:
                     node_max_opinions.setdefault(node, []).append(
                         node_values['max_opinion'][node])
+                elif 'inner_opinions' in node_values and node in node_values['inner_opinions']:
+                    max_inner_opinion = max(
+                        node_values['inner_opinions'][node].values(), default=None)
+                    if max_inner_opinion is not None:
+                        node_max_opinions.setdefault(
+                            node, []).append(max_inner_opinion)
 
                 # Check and store min_opinion values
                 if 'min_opinion' in node_values:
                     node_min_opinions.setdefault(node, []).append(
                         node_values['min_opinion'][node])
+                elif 'inner_opinions' in node_values and node in node_values['inner_opinions']:
+                    min_inner_opinion = min(
+                        node_values['inner_opinions'][node].values(), default=None)
+                    if min_inner_opinion is not None:
+                        node_min_opinions.setdefault(
+                            node, []).append(min_inner_opinion)
 
         # Calculate mean opinion, size, and max/min opinion values for each node
         for node, opinion_values in node_opinions.items():
