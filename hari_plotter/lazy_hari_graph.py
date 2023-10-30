@@ -52,6 +52,10 @@ class LazyHariGraph:
         real_mapping = self._hari_graph.get_cluster_mapping()
         return self._mapping != real_mapping
 
+    def get_graph(self):
+        self._initialize()
+        return self._hari_graph
+
     def __getattr__(self, name):
         self._initialize()
         return getattr(self._hari_graph, name)
