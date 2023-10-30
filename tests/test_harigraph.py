@@ -85,7 +85,7 @@ class TestHariGraph:
         assert graph.check_all_paths_exist(), "All paths should exist in the graph."
 
     def test_cluster_size(self):
-        cluster_size = self.graph.cluster_size
+        cluster_size = self.graph.gatherer.cluster_size()
         assert isinstance(
             cluster_size, dict), "cluster_size should return a dictionary."
 
@@ -95,8 +95,8 @@ class TestHariGraph:
                 label), f"Size of node {node} is incorrect."
 
     def test_importance(self):
-        importance = self.graph.importance
-        cluster_size = self.graph.cluster_size
+        importance = self.graph.gatherer.importance()
+        cluster_size = self.graph.gatherer.cluster_size()
         assert isinstance(
             importance, dict), "importance should return a dictionary."
 
@@ -155,12 +155,11 @@ class TestHariGraph:
 
     def test_min_max_opinions(self):
         self.graph.add_parameters_to_nodes()
-        opinions = self.graph.node_values
-        min_opinions = opinions['min_opinion']
-        max_opinions = opinions['max_opinion']
+
+        min_opinions = self.graph.gatherer.gather('min_opinion')
+        max_opinions = self.graph.gatherer.gather('max_opinion')
         assert isinstance(
             min_opinions, dict), "min_opinions should return a dictionary."
-
         assert isinstance(
             max_opinions, dict), "max_opinions should return a dictionary."
         assert np.all(np.array(list(min_opinions.values())) >= 0) and np.all(

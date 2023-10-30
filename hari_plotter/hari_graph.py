@@ -79,6 +79,42 @@ class NodeGatherer(ABC):
 
 class DefaultNodeGatherer(NodeGatherer):
 
+    def merge(self, nodes):
+        """
+        Gathers default parameters for a node that is a result of merging given nodes.
+
+        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
+        :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
+        """
+        if not nodes:
+            raise ValueError("The input list of nodes must not be empty.")
+
+        size = sum(node.get('cluster_size', len(
+            node.get('label', [0, ]))) for node in nodes)
+
+        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
+        inner_opinions = {}
+
+        for node in nodes:
+            node_label = node.get('label', None)
+            if node_label is not None:
+                # Check if node has 'inner_opinions', if not, create one
+                if 'inner_opinions' in node:
+                    inner_opinions.update(node['inner_opinions'])
+                else:
+                    if len(node_label) != 1:
+                        warnings.warn(
+                            f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
+                    for i in node_label:
+                        inner_opinions[i] = node['opinion']
+
+        return {
+            'cluster_size': size,
+            'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
+            'label': [id for node in nodes for id in node['label']],
+            'inner_opinions': inner_opinions
+        }
+
     @NodeGatherer.parameter("opinions")
     def opinions(self) -> dict:
         """
@@ -103,7 +139,7 @@ class DefaultNodeGatherer(NodeGatherer):
         Key is the node ID, and value is the ratio of the sum of influences of the node to the size of the node.
         """
         importance_dict = {}
-        size_dict = self.G.cluster_size
+        size_dict = self.cluster_size()
 
         for node in self.G.nodes:
             influences_sum = sum(data['influence']
@@ -149,41 +185,21 @@ class DefaultNodeGatherer(NodeGatherer):
         """
         return {node: self.G.nodes[node].get('inner_opinions', {idx: self.G.nodes[node]['opinion'] for idx in self.G.nodes[node]['label']}) for node in self.G.nodes}
 
-    def merge(self, nodes):
+    @NodeGatherer.parameter('max_opinion')
+    def max_opinion(self) -> dict:
         """
-        Gathers default parameters for a node that is a result of merging given nodes.
-
-        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-        :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
+        Returns a dictionary with the max_opinions of the nodes.
+        Key is the node ID, and value is max_opinion.
         """
-        if not nodes:
-            raise ValueError("The input list of nodes must not be empty.")
+        return {node: max((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
 
-        size = sum(node.get('cluster_size', len(
-            node.get('label', [0, ]))) for node in nodes)
-
-        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
-        inner_opinions = {}
-
-        for node in nodes:
-            node_label = node.get('label', None)
-            if node_label is not None:
-                # Check if node has 'inner_opinions', if not, create one
-                if 'inner_opinions' in node:
-                    inner_opinions.update(node['inner_opinions'])
-                else:
-                    if len(node_label) != 1:
-                        warnings.warn(
-                            f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
-                    for i in node_label:
-                        inner_opinions[i] = node['opinion']
-
-        return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-            'label': [id for node in nodes for id in node['label']],
-            'inner_opinions': inner_opinions
-        }
+    @NodeGatherer.parameter('min_opinion')
+    def min_opinion(self) -> dict:
+        """
+        Returns a dictionary with the min_opinions of the nodes.
+        Key is the node ID, and value is min_opinion.
+        """
+        return {node: min((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
 
 
 class HariGraph(nx.DiGraph):
@@ -641,7 +657,7 @@ class HariGraph(nx.DiGraph):
         # Add a new node to the graph with the calculated opinion, label, and
         # other unpacked parameters
         new_node = max(max(self.nodes), max(
-            item for sublist in self.labels.values() for item in sublist)) + 1
+            item for sublist in self.gatherer.labels().values() for item in sublist)) + 1
         self.add_node(new_node, **parameters)
 
         # Reconnect edges
@@ -812,7 +828,7 @@ class HariGraph(nx.DiGraph):
             id_mapping = {}
             clusters_list = clusters
             new_id_start = max(max(self.nodes), max(
-                item for sublist in self.labels.values() for item in sublist)) + 1
+                item for sublist in self.gatherer.labels().values() for item in sublist)) + 1
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:
@@ -1080,84 +1096,38 @@ class HariGraph(nx.DiGraph):
         """
         return nx.spring_layout(self, seed=seed)
 
-    @property
-    def neighbor_mean_opinion(self):
-        data = {}
-        opinions = nx.get_node_attributes(self, 'opinion')
-        for node in self.nodes():
-            node_opinion = opinions[node]
-            neighbors = list(self.neighbors(node))
-            if neighbors:  # Ensure the node has neighbors
-                mean_neighbor_opinion = sum(
-                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                data[node] = mean_neighbor_opinion
+    # def get_opinion_neighbor_mean_opinion_pairs(self):
+    #     # Extract opinion values for all nodes
+    #     opinions = nx.get_node_attributes(self, 'opinion')
 
-        return data
+    #     x_values = []  # Node's opinion
+    #     y_values = []  # Mean opinion of neighbors
 
-    def get_opinion_neighbor_mean_opinion_pairs(self):
-        # Extract opinion values for all nodes
-        opinions = nx.get_node_attributes(self, 'opinion')
+    #     for node in self.nodes():
+    #         node_opinion = opinions[node]
+    #         neighbors = list(self.neighbors(node))
+    #         if neighbors:  # Ensure the node has neighbors
+    #             mean_neighbor_opinion = sum(
+    #                 opinions[neighbor] for neighbor in neighbors) / len(neighbors)
+    #             x_values.append(node_opinion)
+    #             y_values.append(mean_neighbor_opinion)
+    #     return x_values, y_values
 
-        x_values = []  # Node's opinion
-        y_values = []  # Mean opinion of neighbors
+    # def get_opinion_neighbor_mean_opinion_pairs_dict(self):
+    #     # Extract opinion values for all nodes
+    #     opinions = nx.get_node_attributes(self, 'opinion')
 
-        for node in self.nodes():
-            node_opinion = opinions[node]
-            neighbors = list(self.neighbors(node))
-            if neighbors:  # Ensure the node has neighbors
-                mean_neighbor_opinion = sum(
-                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                x_values.append(node_opinion)
-                y_values.append(mean_neighbor_opinion)
-        return x_values, y_values
+    #     mean_neighbor_opinion_dict = {}
 
-    def get_opinion_neighbor_mean_opinion_pairs_dict(self):
-        # Extract opinion values for all nodes
-        opinions = nx.get_node_attributes(self, 'opinion')
-
-        mean_neighbor_opinion_dict = {}
-
-        for node in self.nodes():
-            node_opinion = opinions[node]
-            neighbors = list(self.neighbors(node))
-            if neighbors:  # Ensure the node has neighbors
-                mean_neighbor_opinion = sum(
-                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                mean_neighbor_opinion_dict[node] = (
-                    node_opinion, mean_neighbor_opinion)
-        return mean_neighbor_opinion_dict
-
-    @property
-    def labels(self):
-        """Returns a list of labels for all nodes in the graph.
-        If a node doesn't have a label, its ID will be used as the default label."""
-        return {node: self.nodes[node]['label'] for node in self.nodes}
-
-    @property
-    def cluster_size(self):
-        """
-        Returns a dictionary with the sizes of the nodes.
-        Key is the node ID, and opinion is the size of the node.
-        """
-        return {node: self.nodes[node].get('cluster_size', len(
-            self.nodes[node].get('label', [0, ]))) for node in self.nodes}
-
-    @property
-    def importance(self):
-        """
-        Returns a dictionary with the importance of the nodes.
-        Key is the node ID, and value is the ratio of the sum of influences of the node to the size of the node.
-        """
-        importance_dict = {}
-        size_dict = self.cluster_size
-
-        for node in self.nodes:
-            influences_sum = sum(data['influence']
-                                 for _, _, data in self.edges(node, data=True))
-            importance_dict[node] = influences_sum / \
-                size_dict[node] if size_dict[node] != 0 else 0
-
-        return importance_dict
+    #     for node in self.nodes():
+    #         node_opinion = opinions[node]
+    #         neighbors = list(self.neighbors(node))
+    #         if neighbors:  # Ensure the node has neighbors
+    #             mean_neighbor_opinion = sum(
+    #                 opinions[neighbor] for neighbor in neighbors) / len(neighbors)
+    #             mean_neighbor_opinion_dict[node] = (
+    #                 node_opinion, mean_neighbor_opinion)
+    #     return mean_neighbor_opinion_dict
 
     @property
     def opinions(self):
@@ -1195,21 +1165,6 @@ class HariGraph(nx.DiGraph):
         else:
             raise TypeError(
                 "Invalid type for opinions. Expected int, float, list, or dict.")
-
-    @property
-    def node_values(self):
-        """
-        Returns a nested dictionary with the properties of the nodes.
-        The first key is the property name, and the value is another dictionary
-        with node IDs as keys and the corresponding property values as values.
-        """
-        properties_dict = {}
-        for node, node_data in self.nodes(data=True):
-            for property_name, property_value in node_data.items():
-                if property_name not in properties_dict:
-                    properties_dict[property_name] = {}
-                properties_dict[property_name][node] = property_value
-        return properties_dict
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"
