@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import json
 import math
 import os
@@ -20,6 +22,8 @@ class HariGraph(nx.DiGraph):
     HariGraph extends the DiGraph class of Networkx to offer additional functionality.
     It ensures that each node has a label and provides methods to create, save, and load graphs.
     """
+
+    # ---- Initialization Methods ----
 
     def __init__(self, incoming_graph_data=None, **attr):
         super().__init__(incoming_graph_data, **attr)
@@ -408,24 +412,15 @@ class HariGraph(nx.DiGraph):
 
         return G
 
-    def copy(self):
+    def copy(self) -> HariGraph:
         G_copy = super().copy(as_view=False)
         G_copy = HariGraph(G_copy) if not isinstance(
             G_copy, HariGraph) else G_copy
         G_copy.similarity_function = self.similarity_function
+        G_copy.node_parameter_gatherer = self.node_parameter_gatherer
         return G_copy
 
-    def check_all_paths_exist(self):
-        """
-        Checks if there exists a path between every pair of nodes in the HariGraph instance.
-
-        :return: True if a path exists between every pair of nodes, False otherwise.
-        """
-        for source, target in permutations(self.nodes, 2):
-            if not nx.has_path(self, source, target):
-                # print(f"No path exists from {source} to {target}")
-                return False
-        return True
+    # ---- Clusterization Methods ----
 
     def dynamics_step(self, t):
         """
@@ -452,6 +447,277 @@ class HariGraph(nx.DiGraph):
         # Update the opinions in the graph with the calculated updated opinions
         for i, vi in updated_opinions.items():
             self.nodes[i]['opinion'] = vi
+
+    def merge_nodes(self, i, j):
+        """
+        Merges two nodes in the graph into a new node.
+
+        The new node's opinion is a weighted average of the opinions of
+        the merged nodes, and its label is the concatenation of the labels
+        of the merged nodes. The edges are reconnected to the new node,
+        and the old nodes are removed.
+
+        Parameters:
+            i (int): The identifier for the first node to merge.
+            j (int): The identifier for the second node to merge.
+        """
+
+        # Get opinions and others parameters using the
+        # 'node_parameter_gatherer' method
+        parameters = self.node_parameter_gatherer(
+            [self.nodes[i], self.nodes[j]])
+
+        # Add a new node to the graph with the calculated opinion, label, and
+        # other unpacked parameters
+        new_node = max(max(self.nodes), max(
+            item for sublist in self.labels.values() for item in sublist)) + 1
+        self.add_node(new_node, **parameters)
+
+        # Reconnect edges
+        for u, v, data in list(self.edges(data=True)):
+            if u == i or u == j:
+                if v != i and v != j:  # Avoid connecting the new node to itself
+                    influence = self[u][v]['influence']
+                    if self.has_edge(new_node, v):
+                        # Sum the influences if both original nodes were
+                        # connected to the same node
+                        self[new_node][v]['influence'] += influence
+                    else:
+                        self.add_edge(new_node, v, influence=influence)
+                if self.has_edge(
+                        u, v):  # Check if the edge exists before removing it
+                    self.remove_edge(u, v)
+            if v == i or v == j:
+                if u != i and u != j:  # Avoid connecting the new node to itself
+                    influence = self[u][v]['influence']
+                    if self.has_edge(u, new_node):
+                        # Sum the influences if both original nodes were
+                        # connected to the same node
+                        self[u][new_node]['influence'] += influence
+                    else:
+                        self.add_edge(u, new_node, influence=influence)
+                if self.has_edge(
+                        u, v):  # Check if the edge exists before removing it
+                    self.remove_edge(u, v)
+
+        # Remove the old nodes
+        self.remove_node(i)
+        self.remove_node(j)
+
+    def find_clusters(self, max_opinion_difference=0.1, min_influence=0.1):
+        """
+        Finds clusters of nodes in the graph where the difference in the nodes' opinions
+        is less than max_opinion_difference, and the influence of i on j is higher than
+        min_influence * size(i).
+
+        Parameters:
+            max_opinion_difference (float): Maximum allowed difference in the opinions of nodes to form a cluster.
+            min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.
+
+        Returns:
+            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.
+        """
+        clusters = []
+        visited_nodes = set()
+
+        for i in self.nodes:
+            if i in visited_nodes:
+                continue
+
+            cluster = [i]
+            visited_nodes.add(i)
+
+            # Use a list as a simple queue for Breadth-First Search (BFS)
+            queue = [i]
+
+            while queue:
+                node = queue.pop(0)  # Dequeue a node
+
+                for neighbor in set(self.successors(node)).union(
+                        self.predecessors(node)):
+                    if neighbor in visited_nodes:
+                        continue  # Skip already visited nodes
+
+                    vi = self.nodes[node]['opinion']
+                    vj = self.nodes[neighbor]['opinion']
+                    size_i = len(self.nodes[node].get('label', [node]))
+
+                    if self.has_edge(node, neighbor):
+                        influence_ij = self[node][neighbor]['influence']
+                    else:
+                        influence_ij = 0
+
+                    if self.has_edge(neighbor, node):
+                        influence_ji = self[neighbor][node]['influence']
+                    else:
+                        influence_ji = 0
+
+                    # Check conditions for being in the same cluster
+                    if (abs(vi - vj) <= max_opinion_difference and
+                            (influence_ij >= min_influence * size_i or
+                             influence_ji >= min_influence * size_i)):
+                        cluster.append(neighbor)  # Add to the current cluster
+                        visited_nodes.add(neighbor)
+                        queue.append(neighbor)  # Enqueue for BFS
+
+            # Add found cluster to the list of clusters
+            clusters.append(cluster)
+
+        return clusters
+
+    def merge_by_intervals(self, intervals):
+        """
+        Merges nodes into clusters based on the intervals defined by the input list of opinions.
+
+        Parameters:
+            intervals (List[float]): A sorted list of opinions representing the boundaries of the intervals.
+        """
+        if not intervals:
+            raise ValueError("Intervals list cannot be empty")
+
+        # Sort the intervals to ensure they are in ascending order
+        intervals = sorted(intervals)
+        clusters = []
+        # Define the intervals
+        intervals = [-np.inf] + intervals + [np.inf]
+        for i in range(len(intervals) - 1):
+            cluster = []
+            lower_bound = intervals[i]
+            upper_bound = intervals[i + 1]
+
+            # Iterate over all nodes and assign them to the appropriate cluster
+            for node, data in self.nodes(data=True):
+                if lower_bound <= data['opinion'] < upper_bound:
+                    cluster.append(node)
+            if len(cluster) > 0:
+                clusters.append(set(cluster))
+
+        # Merge the clusters
+        if clusters:
+            self.merge_clusters(clusters)
+
+    def get_cluster_mapping(self):
+        """
+        Generates a mapping of current clusters in the graph.
+
+        The method returns a dictionary where the key is the ID of a current node
+        and the opinion is a set containing the IDs of the original nodes that were merged
+        to form that node.
+
+        :return: A dictionary representing the current clusters in the graph.
+        """
+        cluster_mapping = {}
+        for node in self.nodes:
+            label = self.nodes[node].get('label', [node])
+            cluster_mapping[node] = set(label)
+        return cluster_mapping
+
+    def merge_clusters(self, clusters):
+        """
+        Merges clusters of nodes in the graph into new nodes.
+
+        For each cluster, a new node is created whose opinion is the weighted
+        average of the opinions of the nodes in the cluster, with the weights
+        being the lengths of the labels of the nodes. The new node's label
+        is the concatenation of the labels of the nodes in the cluster.
+        The edges are reconnected to the new nodes, and the old nodes are removed.
+
+        Parameters:
+            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
+                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
+                                    to new node IDs.
+        """
+        # Determine whether clusters are provided as a list or a dictionary
+        if isinstance(clusters, dict):
+            # Filter out trivial mappings (like {4: {4}})
+            clusters = {k: v for k, v in clusters.items()
+                        if k not in v or len(v) > 1}
+            id_mapping = {old_id: new_id for new_id,
+                          old_ids_set in clusters.items() for old_id in old_ids_set}
+            new_ids = set(id_mapping.values())
+            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
+            ) if mapped_id == new_id) for new_id in new_ids]
+        elif isinstance(clusters, list):
+            id_mapping = {}
+            clusters_list = clusters
+            new_id_start = max(max(self.nodes), max(
+                item for sublist in self.labels.values() for item in sublist)) + 1
+            for i, cluster in enumerate(clusters):
+                new_id = new_id_start + i
+                for node_id in cluster:
+                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id}"\
+                        "already exists in the graph or is being merged multiple times."
+                    id_mapping[node_id] = new_id
+        else:
+            raise ValueError(
+                "clusters must be a list of sets or a dictionary.")
+
+        for i, cluster in enumerate(clusters_list):
+            new_id = id_mapping[next(iter(cluster))]
+            parameters = self.node_parameter_gatherer(
+                [self.nodes[node_id] for node_id in cluster])
+            self.add_node(new_id, **parameters)
+
+        for old_node_id, new_id in id_mapping.items():
+            for successor in list(self.successors(old_node_id)):
+                mapped_successor = id_mapping.get(successor, successor)
+                if mapped_successor != new_id:
+                    self.add_edge(new_id, mapped_successor,
+                                  influence=self[old_node_id][successor]['influence'])
+
+            for predecessor in list(self.predecessors(old_node_id)):
+                mapped_predecessor = id_mapping.get(predecessor, predecessor)
+                if mapped_predecessor != new_id:
+                    self.add_edge(mapped_predecessor, new_id,
+                                  influence=self[predecessor][old_node_id]['influence'])
+
+            self.remove_node(old_node_id)
+
+    def simplify_graph_one_iteration(self):
+        """
+        Simplifies the graph by one iteration.
+
+        In each iteration, it finds the pair of nodes with the maximum similarity
+        and merges them. If labels are not initialized, it initializes them.
+        If there is only one node left, no further simplification is possible.
+
+        Returns:
+            HariGraph: The simplified graph.
+        """
+        self.generate_labels()
+
+        if self.number_of_nodes() <= 1:
+            warnings.warn(
+                "Only one node left, no further simplification possible.")
+            return self
+
+        # Find the pair of nodes with the maximum similarity
+        max_similarity = -1
+        pair = None
+        for i, j in combinations(self.nodes, 2):
+            similarity = self.compute_similarity(i, j)
+            if similarity > max_similarity:
+                max_similarity = similarity
+                pair = (i, j)
+
+        # Merge the nodes with the maximum similarity
+        if pair:
+            i, j = pair
+            self = self.merge_nodes(i, j)
+
+    # ---- Data Processing Methods ----
+
+    def check_all_paths_exist(self):
+        """
+        Checks if there exists a path between every pair of nodes in the HariGraph instance.
+
+        :return: True if a path exists between every pair of nodes, False otherwise.
+        """
+        for source, target in permutations(self.nodes, 2):
+            if not nx.has_path(self, source, target):
+                # print(f"No path exists from {source} to {target}")
+                return False
+        return True
 
     @property
     def mean_opinion(self):
@@ -628,263 +894,6 @@ class HariGraph(nx.DiGraph):
         return func(vi, vj, size_i, size_j,
                     edge_influence, reverse_edge_influence)
 
-    def merge_nodes(self, i, j):
-        """
-        Merges two nodes in the graph into a new node.
-
-        The new node's opinion is a weighted average of the opinions of
-        the merged nodes, and its label is the concatenation of the labels
-        of the merged nodes. The edges are reconnected to the new node,
-        and the old nodes are removed.
-
-        Parameters:
-            i (int): The identifier for the first node to merge.
-            j (int): The identifier for the second node to merge.
-        """
-
-        # Get opinions and others parameters using the
-        # 'node_parameter_gatherer' method
-        parameters = self.node_parameter_gatherer(
-            [self.nodes[i], self.nodes[j]])
-
-        # Add a new node to the graph with the calculated opinion, label, and
-        # other unpacked parameters
-        new_node = max(max(self.nodes), max(
-            item for sublist in self.labels for item in sublist)) + 1
-        self.add_node(new_node, **parameters)
-
-        # Reconnect edges
-        for u, v, data in list(self.edges(data=True)):
-            if u == i or u == j:
-                if v != i and v != j:  # Avoid connecting the new node to itself
-                    influence = self[u][v]['influence']
-                    if self.has_edge(new_node, v):
-                        # Sum the influences if both original nodes were
-                        # connected to the same node
-                        self[new_node][v]['influence'] += influence
-                    else:
-                        self.add_edge(new_node, v, influence=influence)
-                if self.has_edge(
-                        u, v):  # Check if the edge exists before removing it
-                    self.remove_edge(u, v)
-            if v == i or v == j:
-                if u != i and u != j:  # Avoid connecting the new node to itself
-                    influence = self[u][v]['influence']
-                    if self.has_edge(u, new_node):
-                        # Sum the influences if both original nodes were
-                        # connected to the same node
-                        self[u][new_node]['influence'] += influence
-                    else:
-                        self.add_edge(u, new_node, influence=influence)
-                if self.has_edge(
-                        u, v):  # Check if the edge exists before removing it
-                    self.remove_edge(u, v)
-
-        # Remove the old nodes
-        self.remove_node(i)
-        self.remove_node(j)
-
-    def find_clusters(self, max_opinion_difference=0.1, min_influence=0.1):
-        """
-        Finds clusters of nodes in the graph where the difference in the nodes' opinions
-        is less than max_opinion_difference, and the influence of i on j is higher than
-        min_influence * size(i).
-
-        Parameters:
-            max_opinion_difference (float): Maximum allowed difference in the opinions of nodes to form a cluster.
-            min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.
-
-        Returns:
-            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.
-        """
-        clusters = []
-        visited_nodes = set()
-
-        for i in self.nodes:
-            if i in visited_nodes:
-                continue
-
-            cluster = [i]
-            visited_nodes.add(i)
-
-            # Use a list as a simple queue for Breadth-First Search (BFS)
-            queue = [i]
-
-            while queue:
-                node = queue.pop(0)  # Dequeue a node
-
-                for neighbor in set(self.successors(node)).union(
-                        self.predecessors(node)):
-                    if neighbor in visited_nodes:
-                        continue  # Skip already visited nodes
-
-                    vi = self.nodes[node]['opinion']
-                    vj = self.nodes[neighbor]['opinion']
-                    size_i = len(self.nodes[node].get('label', [node]))
-
-                    if self.has_edge(node, neighbor):
-                        influence_ij = self[node][neighbor]['influence']
-                    else:
-                        influence_ij = 0
-
-                    if self.has_edge(neighbor, node):
-                        influence_ji = self[neighbor][node]['influence']
-                    else:
-                        influence_ji = 0
-
-                    # Check conditions for being in the same cluster
-                    if (abs(vi - vj) <= max_opinion_difference and
-                            (influence_ij >= min_influence * size_i or
-                             influence_ji >= min_influence * size_i)):
-                        cluster.append(neighbor)  # Add to the current cluster
-                        visited_nodes.add(neighbor)
-                        queue.append(neighbor)  # Enqueue for BFS
-
-            # Add found cluster to the list of clusters
-            clusters.append(cluster)
-
-        return clusters
-
-    def merge_by_intervals(self, intervals):
-        """
-        Merges nodes into clusters based on the intervals defined by the input list of opinions.
-
-        Parameters:
-            intervals (List[float]): A sorted list of opinions representing the boundaries of the intervals.
-        """
-        if not intervals:
-            raise ValueError("Intervals list cannot be empty")
-
-        # Sort the intervals to ensure they are in ascending order
-        intervals = sorted(intervals)
-        clusters = []
-        # Define the intervals
-        intervals = [-np.inf] + intervals + [np.inf]
-        for i in range(len(intervals) - 1):
-            cluster = []
-            lower_bound = intervals[i]
-            upper_bound = intervals[i + 1]
-
-            # Iterate over all nodes and assign them to the appropriate cluster
-            for node, data in self.nodes(data=True):
-                if lower_bound <= data['opinion'] < upper_bound:
-                    cluster.append(node)
-            if len(cluster) > 0:
-                clusters.append(set(cluster))
-
-        # Merge the clusters
-        if clusters:
-            self.merge_clusters(clusters)
-
-    def get_cluster_mapping(self):
-        """
-        Generates a mapping of current clusters in the graph.
-
-        The method returns a dictionary where the key is the ID of a current node
-        and the opinion is a set containing the IDs of the original nodes that were merged
-        to form that node.
-
-        :return: A dictionary representing the current clusters in the graph.
-        """
-        cluster_mapping = {}
-        for node in self.nodes:
-            label = self.nodes[node].get('label', [node])
-            cluster_mapping[node] = set(label)
-        return cluster_mapping
-
-    def merge_clusters(self, clusters):
-        """
-        Merges clusters of nodes in the graph into new nodes.
-
-        For each cluster, a new node is created whose opinion is the weighted
-        average of the opinions of the nodes in the cluster, with the weights
-        being the lengths of the labels of the nodes. The new node's label
-        is the concatenation of the labels of the nodes in the cluster.
-        The edges are reconnected to the new nodes, and the old nodes are removed.
-
-        Parameters:
-            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
-                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
-                                    to new node IDs.
-        """
-        # Determine whether clusters are provided as a list or a dictionary
-        if isinstance(clusters, dict):
-            # Filter out trivial mappings (like {4: {4}})
-            clusters = {k: v for k, v in clusters.items()
-                        if k not in v or len(v) > 1}
-            id_mapping = {old_id: new_id for new_id,
-                          old_ids_set in clusters.items() for old_id in old_ids_set}
-            new_ids = set(id_mapping.values())
-            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
-            ) if mapped_id == new_id) for new_id in new_ids]
-        elif isinstance(clusters, list):
-            id_mapping = {}
-            clusters_list = clusters
-            new_id_start = max(max(self.nodes), max(
-                item for sublist in self.labels for item in sublist)) + 1
-            for i, cluster in enumerate(clusters):
-                new_id = new_id_start + i
-                for node_id in cluster:
-                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id}"\
-                        "already exists in the graph or is being merged multiple times."
-                    id_mapping[node_id] = new_id
-        else:
-            raise ValueError(
-                "clusters must be a list of sets or a dictionary.")
-
-        for i, cluster in enumerate(clusters_list):
-            new_id = id_mapping[next(iter(cluster))]
-            parameters = self.node_parameter_gatherer(
-                [self.nodes[node_id] for node_id in cluster])
-            self.add_node(new_id, **parameters)
-
-        for old_node_id, new_id in id_mapping.items():
-            for successor in list(self.successors(old_node_id)):
-                mapped_successor = id_mapping.get(successor, successor)
-                if mapped_successor != new_id:
-                    self.add_edge(new_id, mapped_successor,
-                                  influence=self[old_node_id][successor]['influence'])
-
-            for predecessor in list(self.predecessors(old_node_id)):
-                mapped_predecessor = id_mapping.get(predecessor, predecessor)
-                if mapped_predecessor != new_id:
-                    self.add_edge(mapped_predecessor, new_id,
-                                  influence=self[predecessor][old_node_id]['influence'])
-
-            self.remove_node(old_node_id)
-
-    def simplify_graph_one_iteration(self):
-        """
-        Simplifies the graph by one iteration.
-
-        In each iteration, it finds the pair of nodes with the maximum similarity
-        and merges them. If labels are not initialized, it initializes them.
-        If there is only one node left, no further simplification is possible.
-
-        Returns:
-            HariGraph: The simplified graph.
-        """
-        self.generate_labels()
-
-        if self.number_of_nodes() <= 1:
-            warnings.warn(
-                "Only one node left, no further simplification possible.")
-            return self
-
-        # Find the pair of nodes with the maximum similarity
-        max_similarity = -1
-        pair = None
-        for i, j in combinations(self.nodes, 2):
-            similarity = self.compute_similarity(i, j)
-            if similarity > max_similarity:
-                max_similarity = similarity
-                pair = (i, j)
-
-        # Merge the nodes with the maximum similarity
-        if pair:
-            i, j = pair
-            self = self.merge_nodes(i, j)
-
     def position_nodes(self, seed=None):
         """
         Determines the positions of the nodes in the graph using the spring layout algorithm.
@@ -935,7 +944,7 @@ class HariGraph(nx.DiGraph):
         # Extract opinion values for all nodes
         opinions = nx.get_node_attributes(self, 'opinion')
 
-        data = {}
+        mean_neighbor_opinion_dict = {}
 
         for node in self.nodes():
             node_opinion = opinions[node]
@@ -943,81 +952,15 @@ class HariGraph(nx.DiGraph):
             if neighbors:  # Ensure the node has neighbors
                 mean_neighbor_opinion = sum(
                     opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                data[node] = (node_opinion, mean_neighbor_opinion)
-        return data
-
-    def plot_neighbor_mean_opinion(self, fig=None, ax=None, save=None, show=True,
-                                   extent=None, title=None, cmax=None, scale_with_tanh=False, **kwargs):
-        """
-        Draws a hexbin plot with nodes' opinion values on the x-axis
-        and the mean opinion value of their neighbors on the y-axis.
-
-        Parameters:
-            fig (matplotlib.figure.Figure): Pre-existing figure object. If None, a new figure is created.
-            ax (matplotlib.axes._axes.Axes): Pre-existing axes object. If None, new axes are created.
-            save (str): Filepath to save the plot. If None, the plot is not saved.
-            show (bool): Whether to display the plot. Default is True.
-            extent (list): List specifying the range for the plot. If None, it's calculated from the data.
-                        If the list has 2 values, they are used to create a square extent.
-                        If the list has 4 values, they are used directly.
-            cmax (float or None): Maximum limit for the colorbar. If None, it's calculated from the data.
-            scale_with_tanh (bool): If True, scales x and y values with tanh function. Default is False.
-            **kwargs: Additional keyword arguments passed to plt.hexbin.
-        """
-        x_values, y_values = self.get_opinion_neighbor_mean_opinion_pairs()
-
-        # Ensure the data returned is valid
-        if not (x_values and y_values) or len(x_values) != len(y_values):
-            print("Invalid data received. Cannot plot.")
-            return
-
-        # Scale x and y values using tanh if scale_with_tanh is True
-        if scale_with_tanh:
-            x_values = np.tanh(x_values)
-            y_values = np.tanh(y_values)
-
-        if fig is None or ax is None:
-            fig, ax = plt.subplots()
-
-        # Handle extent parameter
-        if extent is None:
-            extent = [min(x_values), max(x_values),
-                      min(y_values), max(y_values)]
-        elif len(extent) == 2:
-            extent = [extent[0], extent[1], extent[0], extent[1]]
-        elif len(extent) != 4:
-            print("Invalid extent value. Please provide None, 2 values, or 4 values.")
-            return
-
-        # Create a background filled with the `0` value of the colormap
-        ax.imshow([[0, 0], [0, 0]], cmap='inferno',
-                  interpolation='nearest', aspect='auto', extent=extent)
-
-        # Create the hexbin plot
-        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap='inferno',
-                       bins='log', extent=extent, vmax=cmax, **kwargs)
-        cb = fig.colorbar(hb, ax=ax)
-        cb.set_label('Log(Number of points in bin)')
-
-        ax.set_title(title or 'Node Opinion vs. Mean Neighbor Opinion')
-        ax.set_xlabel('Node Opinion')
-        ax.set_ylabel('Mean Neighbor Opinion')
-
-        # Save the plot if save_filepath is provided
-        if save:
-            plt.savefig(save)
-
-        # Show the plot if show is True
-        if show:
-            plt.show()
-
-        return fig, ax
+                mean_neighbor_opinion_dict[node] = (
+                    node_opinion, mean_neighbor_opinion)
+        return mean_neighbor_opinion_dict
 
     @property
     def labels(self):
         """Returns a list of labels for all nodes in the graph.
         If a node doesn't have a label, its ID will be used as the default label."""
-        return [self.nodes[node]['label'] for node in self.nodes]
+        return {node: self.nodes[node]['label'] for node in self.nodes}
 
     @property
     def cluster_size(self):
