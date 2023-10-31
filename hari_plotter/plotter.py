@@ -243,23 +243,49 @@ class Plotter:
         """
         x_values = np.array(x_values)
         y_values = np.array(y_values)
+        # Find indices where neither x_values nor y_values are NaN
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+
+        # Filter the values using these indices
         x_values = x_values[valid_indices]
         y_values = y_values[valid_indices]
-
         if scale == 'tanh':
+            # max_value = np.max(np.abs(list(x_values)+list(y_values)))
+            # mean_value = np.mean(np.abs(list(x_values)+list(y_values)))
+
+            # scaling_factor = 1/mean_value
+            # x_values = np.tanh(scaling_factor*x_values)
+            # y_values = np.tanh(scaling_factor*y_values)
+
             x_values = np.tanh(x_values)
             y_values = np.tanh(y_values)
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap, interpolation='nearest',
-                      aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
+
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                      interpolation='nearest', aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
+
             hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           extent=extent or [-1, 1, -1, 1], vmax=cmax)
+                           bins='log', extent=[-1, 1, -1, 1], vmax=cmax)
+
             Plotter.tanh_axis_labels(ax=ax, axis='both')
+
         else:
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap, interpolation='nearest',
-                      aspect='auto', extent=extent)
+            if extent is None:
+                extent = [np.nanmin(x_values), np.nanmax(x_values),
+                          np.nanmin(y_values), np.nanmax(y_values)]
+            elif len(extent) == 2:
+                extent = [extent[0], extent[1], extent[0], extent[1]]
+            elif len(extent) != 4:
+                print(
+                    "Invalid extent value. Please provide None, 2 values, or 4 values.")
+                return
+
+            # Create a background filled with the `0` value of the colormap
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                      interpolation='nearest', aspect='auto', extent=extent)
+            # Create the hexbin plot
+
             hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           extent=extent, vmax=cmax)
+                           bins='log', extent=extent, vmax=cmax)
         if show_colorbar:
             plt.colorbar(hb, ax=ax)
 
