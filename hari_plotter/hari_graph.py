@@ -115,8 +115,8 @@ class DefaultNodeGatherer(NodeGatherer):
             'inner_opinions': inner_opinions
         }
 
-    @NodeGatherer.parameter("opinions")
-    def opinions(self) -> dict:
+    @NodeGatherer.parameter("opinion")
+    def opinion(self) -> dict:
         """
         Returns a dictionary with the opinions of the nodes.
         Key is the node ID, and opinion is the opinion of the node.
@@ -149,8 +149,8 @@ class DefaultNodeGatherer(NodeGatherer):
 
         return importance_dict
 
-    @NodeGatherer.parameter("labels")
-    def labels(self) -> dict:
+    @NodeGatherer.parameter("label")
+    def label(self) -> dict:
         """Returns a list of labels for all nodes in the graph.
         If a node doesn't have a label, its ID will be used as the default label."""
         return {node: self.G.nodes[node]['label'] for node in self.G.nodes}
@@ -166,6 +166,8 @@ class DefaultNodeGatherer(NodeGatherer):
                 mean_neighbor_opinion = sum(
                     opinions[neighbor] for neighbor in neighbors) / len(neighbors)
                 data[node] = mean_neighbor_opinion
+            else:
+                data[node] = np.nan
 
         return data
 
@@ -430,9 +432,11 @@ class HariGraph(nx.DiGraph):
 
         :param filename: The name of the file to write to.
         """
+        params_to_save = ['opinion', 'cluster_size',
+                          'activity', 'inner_opinions']
         graph_dict = {
             "nodes": [
-                {"id": n, **{prop: self.node_values[prop][n] for prop in self.node_values}} for n in self.nodes()
+                {"id": n, **{prop: self.gatherer.gather(prop)[n] for prop in params_to_save}} for n in self.nodes()
             ],
             "edges": [{"source": u, "target": v, "influence": self[u][v]["influence"]} for u, v in self.edges()]
         }
@@ -657,7 +661,7 @@ class HariGraph(nx.DiGraph):
         # Add a new node to the graph with the calculated opinion, label, and
         # other unpacked parameters
         new_node = max(max(self.nodes), max(
-            item for sublist in self.gatherer.labels().values() for item in sublist)) + 1
+            item for sublist in self.gatherer.label().values() for item in sublist)) + 1
         self.add_node(new_node, **parameters)
 
         # Reconnect edges
@@ -828,7 +832,7 @@ class HariGraph(nx.DiGraph):
             id_mapping = {}
             clusters_list = clusters
             new_id_start = max(max(self.nodes), max(
-                item for sublist in self.gatherer.labels().values() for item in sublist)) + 1
+                item for sublist in self.gatherer.label().values() for item in sublist)) + 1
             for i, cluster in enumerate(clusters):
                 new_id = new_id_start + i
                 for node_id in cluster:

@@ -121,7 +121,7 @@ class Plotter:
             - 'opinions': Display node opinions.
             - 'ids': Display node IDs.
             - 'labels': Display node labels.
-            - 'size': Display size of the node based on labels.
+            - 'cluster_size': Display size of the node based on labels.
 
         use_node_color : bool, optional (default=True)
             Whether to use colors for nodes based on their attributes.
@@ -173,7 +173,7 @@ class Plotter:
                 # Prepare Node Labels
                 node_labels = {}
                 match node_info_mode:
-                    case 'opinions':
+                    case 'opinion':
                         node_labels = {node: f"{opinion:.2f}" for node,
                                        opinion in node_attributes.items()}
                     case 'ids':
@@ -185,7 +185,7 @@ class Plotter:
                                 node_labels[node] = ','.join(map(str, label))
                             else:  # If label is not defined, show id instead
                                 node_labels[node] = str(node)
-                    case 'size':
+                    case 'cluster_size':
                         for node in image.nodes:
                             label_len = len(
                                 image.nodes[node].get('label', [node]))
@@ -269,6 +269,58 @@ class Plotter:
 
                 saver.save(fig)
 
+    @staticmethod
+    def tanh_axis_labels(ax, axis):
+
+        tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
+        ticks = np.tanh(tickslabels)
+
+        tickslabels = [r'-$\infty$' if label == -np.inf else r'$\infty$' if label ==
+                       np.inf else label if abs(label) <= 1.5 else None for label in tickslabels]
+
+        minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
+        minor_ticks = np.tanh(minor_tickslabels)
+
+        if axis == 'x' or axis == 'both':
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(tickslabels)
+            ax.set_xticks(minor_ticks, minor=True)
+            ax.set_xticklabels([], minor=True)
+            ax.set_xlim([-1, 1])
+        if axis == 'y' or axis == 'both':
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(tickslabels)
+            minor_ticks = np.tanh(minor_tickslabels)
+            ax.set_yticks(minor_ticks, minor=True)
+            ax.set_yticklabels([], minor=True)
+            ax.set_ylim([-1, 1])
+
+    @staticmethod
+    def plot_histogram(ax, values, scale='linear', rotated=False):
+        """
+        Plot a histogram on the given ax with the provided values data.
+
+        Parameters:
+        - ax : Axes object where the histogram will be plotted.
+        - values : list or numpy array containing opinion values.
+        - scale (str): The scale for the x-axis ('linear' or 'tanh').
+        """
+        if scale == 'tanh':
+            transformed_values = np.tanh(values)
+            if rotated:
+                sns.histplot(y=transformed_values,
+                             edgecolor='black', kde=True, ax=ax)
+                Plotter.tanh_axis_labels(ax=ax, axis='y')
+            else:
+                sns.histplot(data=transformed_values,
+                             edgecolor='black', kde=True, ax=ax)
+                Plotter.tanh_axis_labels(ax=ax, axis='x')
+        else:
+            if rotated:
+                sns.histplot(y=values, edgecolor='black', kde=True, ax=ax)
+            else:
+                sns.histplot(data=values, edgecolor='black', kde=True, ax=ax)
+
     def plot_opinion_histogram(self, mode='show', save_dir: str = None,
                                gif_path: str = None, show_time: bool = False, name='opinion_histogram',
                                scale='linear'):
@@ -280,34 +332,24 @@ class Plotter:
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for data in self.interface.mean_node_values():
+            for group_data in self.interface.mean_node_values(['opinion']):
                 fig, ax = plt.subplots(figsize=(10, 7))
 
-                if scale == 'tanh':
-                    # Apply the arctanh transformation to the data
-                    transformed_opinions = np.tanh(data['opinions'])
-
-                    # Plot the transformed data
-                    sns.histplot(data=transformed_opinions,
-                                 edgecolor='black', kde=True, ax=ax)
-
-                    # Adjust the tick labels to show the original tanh scale
-                    max_value = np.tanh(np.max(np.abs(data['opinions'])))
-                    print(f'{max_value = }')
-                    tickslabels = np.round(np.arctanh(
-                        np.linspace(-max_value, max_value, 11)), 1)
-                    ticks = np.tanh(tickslabels)
-                    ax.set_xticks(ticks)
-                    ax.set_xticklabels(tickslabels)
-                else:
-                    sns.histplot(data=data['opinions'],
-                                 edgecolor='black', kde=True, ax=ax)
+                Plotter.plot_histogram(
+                    ax, group_data['data']['opinion'], scale=scale)
 
                 ax.set_title('Opinion Distribution')
                 ax.set_xlabel('Opinion Value')
                 ax.set_ylabel('Number of Nodes')
+                group_data["time"] = group_data["time"]
+
                 if show_time:
-                    ax.set_title(f't = {data["time"]}')
+                    if isinstance(group_data["time"], float):
+                        formatted_time = "{:.2f}".format(group_data["time"])
+                    else:
+                        formatted_time = str(group_data["time"])
+
+                    ax.set_title(f't = {formatted_time}')
 
                 saver.save(fig)
 
@@ -359,28 +401,28 @@ class Plotter:
         all_nodes_data = {}
         time_array = []
 
-        for group_data in self.interface.mean_node_values():
+        for group_data in self.interface.mean_node_values(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
             time_array.append(group_data['time'])
 
             for node, opinion, size, max_opinion, min_opinion in zip(
-                    group_data['nodes'], group_data['opinions'], group_data['sizes'], group_data['max_opinions'], group_data['min_opinions']):
+                    group_data['data']['node'], group_data['data']['opinion'], group_data['data']['cluster_size'], group_data['data']['max_opinion'], group_data['data']['min_opinion']):
                 if node not in all_nodes_data:
 
                     all_nodes_data[node] = {
-                        'opinions': [],
-                        'sizes': [],
-                        'max_opinions': [],
-                        'min_opinions': []
+                        'opinion': [],
+                        'cluster_size': [],
+                        'max_opinion': [],
+                        'min_opinion': []
                     }
 
-                all_nodes_data[node]['opinions'].append(opinion)
-                all_nodes_data[node]['sizes'].append(size)
-                all_nodes_data[node]['max_opinions'].append(max_opinion)
-                all_nodes_data[node]['min_opinions'].append(min_opinion)
+                all_nodes_data[node]['opinion'].append(opinion)
+                all_nodes_data[node]['cluster_size'].append(size)
+                all_nodes_data[node]['max_opinion'].append(max_opinion)
+                all_nodes_data[node]['min_opinion'].append(min_opinion)
 
         # Filter nodes where the size is always below the threshold
         nodes_to_remove = [node for node, data in all_nodes_data.items() if all(
-            size < minimum_cluster_size for size in data['sizes'])]
+            size < minimum_cluster_size for size in data['cluster_size'])]
 
         # Remove those nodes from all_nodes_data
         for node in nodes_to_remove:
@@ -391,8 +433,8 @@ class Plotter:
         highest_opinion = float('-inf')
 
         for node, data in all_nodes_data.items():
-            current_min = min(data['opinions'])
-            current_max = max(data['opinions'])
+            current_min = min(data['opinion'])
+            current_max = max(data['opinion'])
 
             # Update the global smallest and highest values if needed
             if current_min < smallest_opinion:
@@ -406,13 +448,12 @@ class Plotter:
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
             fig, ax = plt.subplots(figsize=(10, 7))
 
-            # Assuming you still have ax as your plotting axis
             for key, data in all_nodes_data.items():
                 if scale == 'tanh':
                     vmax_tanh = np.tanh(vmax)
-                    y = np.tanh(data['opinions'])
-                    min_y = np.tanh(data['min_opinions'])
-                    max_y = np.tanh(data['max_opinions'])
+                    y = np.tanh(data['opinion'])
+                    min_y = np.tanh(data['min_opinion'])
+                    max_y = np.tanh(data['max_opinion'])
 
                     ref_opinion = np.tanh(y[reference_index])
                     color = plt.get_cmap(colormap)(
@@ -429,16 +470,11 @@ class Plotter:
                     # Plotting the line for the opinions
                     ax.plot(time_array, y, color=color, label=f'Node {key}')
 
-                    # Adjust the tick labels to show the original tanh scale
-                    tickslabels = np.round(np.arctanh(
-                        np.linspace(-vmax_tanh, vmax_tanh, 11)), 1)
-                    ticks = np.tanh(tickslabels)
-                    ax.set_yticks(ticks)
-                    ax.set_yticklabels(tickslabels)
+                    Plotter.tanh_axis_labels(ax=ax, axis='y')
                 else:
-                    y = data['opinions']
-                    min_y = data['min_opinions']
-                    max_y = data['max_opinions']
+                    y = data['opinion']
+                    min_y = data['min_opinion']
+                    max_y = data['max_opinion']
 
                     ref_opinion = y[reference_index]
                     color = plt.get_cmap(colormap)(
@@ -461,4 +497,165 @@ class Plotter:
             if show_legend:
                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
 
+            ax.set_xlim([min(time_array), max(time_array)])
+
             saver.save(fig)
+
+    @staticmethod
+    def plot_hexbin(ax, x_values, y_values, extent=None, colormap='inferno', cmax=None, scale='linear'):
+        x_values = np.array(x_values)
+        y_values = np.array(y_values)
+        # Find indices where neither x_values nor y_values are NaN
+        valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+
+        # Filter the values using these indices
+        x_values = x_values[valid_indices]
+        y_values = y_values[valid_indices]
+        if scale == 'tanh':
+            # max_value = np.max(np.abs(list(x_values)+list(y_values)))
+            # mean_value = np.mean(np.abs(list(x_values)+list(y_values)))
+
+            # scaling_factor = 1/mean_value
+            # x_values = np.tanh(scaling_factor*x_values)
+            # y_values = np.tanh(scaling_factor*y_values)
+
+            x_values = np.tanh(x_values)
+            y_values = np.tanh(y_values)
+
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                      interpolation='nearest', aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
+
+            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                           bins='log', extent=[-1, 1, -1, 1], vmax=cmax)
+
+            Plotter.tanh_axis_labels(ax=ax, axis='both')
+
+        else:
+            if extent is None:
+                extent = [np.nanmin(x_values), np.nanmax(x_values),
+                          np.nanmin(y_values), np.nanmax(y_values)]
+            elif len(extent) == 2:
+                extent = [extent[0], extent[1], extent[0], extent[1]]
+            elif len(extent) != 4:
+                print(
+                    "Invalid extent value. Please provide None, 2 values, or 4 values.")
+                return
+
+            # Create a background filled with the `0` value of the colormap
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                      interpolation='nearest', aspect='auto', extent=extent)
+            # Create the hexbin plot
+
+            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                           bins='log', extent=extent, vmax=cmax)
+
+        # cb = ax.figure.colorbar(hb, ax=ax)
+        # cb.set_label('Log(Number of points in bin)')
+
+    def plot_neighbor_mean_opinion(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
+                                   extent=None, cmax=None, colormap='inferno',
+                                   scale='linear', name='neighbor_opinion'):
+        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+            for group_data in self.interface.node_values(['opinion', 'neighbor_mean_opinion']):
+
+                x_values = []
+                y_values = []
+                for node, node_data in group_data['data'].items():
+                    x_values.extend(node_data['opinion'])
+                    y_values.extend(node_data['neighbor_mean_opinion'])
+
+                fig, ax = plt.subplots(figsize=(10, 7))
+                Plotter.plot_hexbin(ax=ax, x_values=x_values, y_values=y_values, extent=extent,
+                                    colormap=colormap, cmax=cmax, scale=scale)
+
+                if show_time:
+                    if isinstance(group_data["time"], float):
+                        formatted_time = "{:.2f}".format(group_data["time"])
+                    else:
+                        formatted_time = str(group_data["time"])
+
+                    ax.set_title(f't = {formatted_time}')
+
+                ax.set_xlabel('Node Opinion')
+                ax.set_ylabel('Mean Neighbor Opinion')
+
+                saver.save(fig)
+
+    def plot_neighbor_mean_opinion_extended(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
+                                            extent=None, cmax=None, colormap='inferno',
+                                            scale='linear', name='neighbor_opinion'):
+        """
+        Plot 2D hexbin alongside 1D KDE distributions for x and y data.
+
+        Parameters:
+        - x_values, y_values : array-like
+            Data points for x and y axes.
+        - save : str, optional
+            Filepath to save the plot.
+        - show : bool, optional (default=True)
+            Whether to display the plot.
+        - extent : list, optional
+            Range for the plot.
+        - title : str, optional
+            Plot title.
+        - cmax : float, optional
+            Maximum limit for the colorbar.
+        - xlabel, ylabel : str, optional
+            Labels for x and y axes.
+        - **kwargs : Additional arguments for plt.hexbin.
+
+        Returns:
+        - fig, axs : Updated figure and axis objects.
+        """
+
+        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+            for group_data in self.interface.node_values(['opinion', 'neighbor_mean_opinion']):
+
+                x_values = []
+                y_values = []
+                for node, node_data in group_data['data'].items():
+                    x_values.extend(node_data['opinion'])
+                    y_values.extend(node_data['neighbor_mean_opinion'])
+
+                fig, axs = plt.subplots(2, 2, figsize=(10, 10), gridspec_kw={
+                                        'width_ratios': [4, 1], 'height_ratios': [1, 4]})
+
+                if scale == 'tanh':
+                    Plotter.plot_hexbin(
+                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale)
+                    Plotter.plot_histogram(values=y_values,
+                                           ax=axs[0, 0], scale=scale)
+                    Plotter.plot_histogram(
+                        values=x_values, ax=axs[1, 1], rotated=True, scale=scale)
+                else:
+                    Plotter.plot_hexbin(
+                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax)
+                    Plotter.plot_histogram(values=y_values,
+                                           ax=axs[0, 0])
+                    Plotter.plot_histogram(
+                        values=x_values, ax=axs[1, 1], rotated=True)
+
+                axs[0, 0].set_xlim(axs[1, 0].get_xlim())
+                axs[0, 0].set_xticks([])
+
+                axs[1, 1].set_ylim(axs[1, 0].get_ylim())
+                axs[1, 1].set_yticks([])
+
+                axs[0, 1].set_xticks([])
+                axs[0, 1].set_yticks([])
+                for spine in axs[0, 1].spines.values():
+                    spine.set_visible(False)
+
+                if show_time:
+                    if isinstance(group_data["time"], float):
+                        formatted_time = "{:.2f}".format(
+                            group_data["time"])
+                    else:
+                        formatted_time = str(group_data["time"])
+
+                    axs[0, 0].set_title(f't = {formatted_time}')
+
+                axs[1, 0].set_xlabel('Node Opinion')
+                axs[1, 0].set_ylabel('Mean Neighbor Opinion')
+
+                saver.save(fig)

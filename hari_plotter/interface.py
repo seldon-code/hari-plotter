@@ -1,13 +1,12 @@
-from abc import ABC, abstractmethod, abstractmethod
-from typing import Iterator
+from abc import ABC, abstractmethod
+from collections import defaultdict
+from typing import Iterator, List, Optional, Union
 
 import numpy as np
 
 from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
 from .simulation import Simulation
-
-from typing import List, Optional, Union
 
 
 class Interface(ABC):
@@ -50,67 +49,68 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def _calculate_mean_node_values(self, group: List) -> dict:
-        nodes = []
-        opinions = []
-        sizes = []
-        max_opinions = []  # Store the maximum value of max_opinion for each node
-        min_opinions = []  # Store the minimum value of min_opinion for each node
+    def _calculate_mean_node_values(self, group: List, params: List[str]) -> dict:
+        # Dictionary to hold cumulative values for each node and each parameter
+        node_values_accumulator = defaultdict(lambda: defaultdict(list))
+        results = defaultdict(list)
 
-        # Dictionary to hold cumulative values for each node
-        node_opinions = {}
-        node_sizes = {}
-        node_max_opinions = {}
-        node_min_opinions = {}
-
+        # Process each image in the group
         for image in group:
-            node_values = self.get_node_values(image)
+            node_values = self.get_node_values(image, params)
 
-            for node, value in node_values['opinion'].items():
-                node_opinions.setdefault(node, []).append(value)
-                node_sizes.setdefault(node, []).append(
-                    node_values['size'][node])
+            # Accumulate the parameter values for each node
+            for node, parameters in node_values.items():
+                for param, value in parameters.items():
+                    node_values_accumulator[node][param].append(value)
 
-                # Check and store max_opinion values
-                if 'max_opinion' in node_values:
-                    node_max_opinions.setdefault(node, []).append(
-                        node_values['max_opinion'][node])
-                elif 'inner_opinions' in node_values and node in node_values['inner_opinions']:
-                    max_inner_opinion = max(
-                        node_values['inner_opinions'][node].values(), default=None)
-                    if max_inner_opinion is not None:
-                        node_max_opinions.setdefault(
-                            node, []).append(max_inner_opinion)
+        # Calculate results for each node and parameter
+        for node, parameters in node_values_accumulator.items():
+            results['node'].append(node)
+            for param, values in parameters.items():
+                if param.startswith("max_"):
+                    # Compute max value for parameters starting with 'max_'
+                    results[param].append(max(values))
+                elif param.startswith("min_"):
+                    # Compute min value for parameters starting with 'min_'
+                    results[param].append(min(values))
+                else:
+                    # Compute mean value for other parameters
+                    results[param].append(np.mean(values))
 
-                # Check and store min_opinion values
-                if 'min_opinion' in node_values:
-                    node_min_opinions.setdefault(node, []).append(
-                        node_values['min_opinion'][node])
-                elif 'inner_opinions' in node_values and node in node_values['inner_opinions']:
-                    min_inner_opinion = min(
-                        node_values['inner_opinions'][node].values(), default=None)
-                    if min_inner_opinion is not None:
-                        node_min_opinions.setdefault(
-                            node, []).append(min_inner_opinion)
+        return results
 
-        # Calculate mean opinion, size, and max/min opinion values for each node
-        for node, opinion_values in node_opinions.items():
-            nodes.append(node)
-            opinions.append(np.mean(opinion_values))
-            sizes.append(np.mean(node_sizes[node]))
-            max_opinions.append(max(node_max_opinions.get(node, [None])))
-            min_opinions.append(min(node_min_opinions.get(node, [None])))
+    def _calculate_node_values(self, group: List, params: List[str]) -> dict:
+        # Dictionary to hold values for each node and each parameter
+        node_values_accumulator = defaultdict(lambda: defaultdict(list))
+        results = defaultdict(lambda: defaultdict(list))
 
-        return {
-            'nodes': nodes,
-            'opinions': opinions,
-            'sizes': sizes,
-            'max_opinions': max_opinions,
-            'min_opinions': min_opinions
-        }
+        # Process each image in the group
+        for image in group:
+            node_values = self.get_node_values(image, params)
+
+            # print(f'{len(node_values.keys()) = }')
+            # print(f'{node_values[0].keys() = }')
+            # print(f'{node_values[0]["neighbor_mean_opinion"] = }')
+
+            # Accumulate the parameter values for each node
+            for node, parameters in node_values.items():
+                for param, value in parameters.items():
+                    node_values_accumulator[node][param].append(value)
+
+        # Transfer values from the accumulator to the results
+        for node, parameters in node_values_accumulator.items():
+            for param, values in parameters.items():
+                results[node][param] = values
+
+        return results
 
     @abstractmethod
-    def mean_node_values(self):
+    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
+    @abstractmethod
+    def node_values(self, params: List[str]) -> Iterator[dict]:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
@@ -127,12 +127,18 @@ class HariGraphInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def get_node_values(self, image) -> dict:
-        return self.data.node_values
+    def get_node_values(self, image, params: List[str]) -> dict:
+        return self.data.gatherer.gather(params)
 
-    def mean_node_values(self) -> Iterator[dict]:
-        data = self._calculate_mean_node_values(
-            [None])  # No group for single image
+    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+        data = {'data': self._calculate_mean_node_values(
+            [None])}  # No group for single image
+        data['time'] = 0
+        yield data
+
+    def node_values(self, params: List[str]) -> Iterator[dict]:
+        data = {'data': self._calculate_node_values(
+            [None])}  # No group for single image
         data['time'] = 0
         yield data
 
@@ -150,40 +156,20 @@ class HariDynamicsInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def get_node_values(self, image) -> dict:
-        return self.data[image].node_values
+    def get_node_values(self, image, params: List[str]) -> dict:
+        return self.data[image].gatherer.gather(params)
 
-    def mean_node_values(self) -> Iterator[dict]:
+    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
         for group in self.data.groups:
-            data = self._calculate_mean_node_values(group)
+            data = {'data': self._calculate_mean_node_values(group, params)}
             data['time'] = group[-1]
             yield data
 
-    def node_values(self) -> Iterator[dict]:
+    def node_values(self, params: List[str]) -> Iterator[dict]:
         for group in self.data.groups:
-            nodes = []
-            opinions = []
-            sizes = self.data[image].cluster_size.values()
-            for image in group:
-                for node, opinion in self.data[image].opinions.items():
-                    nodes.append({'image_number': image, 'node': node})
-                    opinions.append(opinion)
-            time = group[-1]
-            yield {'nodes': nodes, 'opinions': np.array(opinions), 'sizes': sizes, 'time': time}
-
-    def opinion_neighbor_mean_opinion_pairs(self) -> Iterator[dict]:
-        for group in self.data.groups:
-            nodes = []
-            opinions = []
-            neighbor_mean_opinions = []
-            for image in group:
-                for node, (opinion, neighbor_mean_opinion) in self.data[image].get_opinion_neighbor_mean_opinion_pairs_dict(
-                ).items():
-                    nodes.append({'image_number': image, 'node': node})
-                    opinions.append(opinion)
-                    neighbor_mean_opinions.append(neighbor_mean_opinion)
-            time = group[-1]
-            yield {'nodes': nodes, 'opinions': np.array(opinions), 'neighbor_mean_opinions': np.array(opinions), 'time': time}
+            data = {'data': self._calculate_node_values(group, params)}
+            data['time'] = group[-1]
+            yield data
 
 
 class SimulationInterface(Interface):
@@ -199,11 +185,17 @@ class SimulationInterface(Interface):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def get_node_values(self, image) -> dict:
-        return self.data.dynamics[image].node_values
+    def get_node_values(self, image, params: List[str]) -> dict:
+        return self.data.dynamics[image].gatherer.gather(params)
 
-    def mean_node_values(self) -> Iterator[dict]:
+    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
         for group in self.data.dynamics.groups:
-            data = self._calculate_mean_node_values(group)
+            data = {'data': self._calculate_mean_node_values(group, params)}
+            data['time'] = group[-1] * self.data.model.params.get("dt", 1)
+            yield data
+
+    def node_values(self, params: List[str]) -> Iterator[dict]:
+        for group in self.data.dynamics.groups:
+            data = {'data': self._calculate_node_values(group, params)}
             data['time'] = group[-1] * self.data.model.params.get("dt", 1)
             yield data
