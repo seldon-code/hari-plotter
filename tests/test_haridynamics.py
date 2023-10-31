@@ -1,5 +1,6 @@
-from hari_plotter import HariDynamics
 import numpy as np
+
+from hari_plotter import HariDynamics
 
 
 class TestHariDynamics:

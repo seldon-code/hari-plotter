@@ -1,18 +1,15 @@
 from __future__ import annotations
 
 import json
-import math
 import os
 import random
 import re
 import warnings
-from abc import ABC, abstractmethod, abstractproperty
-from collections import Counter, defaultdict
+from abc import ABC, abstractmethod
+from collections import defaultdict
 from itertools import combinations, permutations
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Set, Union
 
-import matplotlib.cm as cm
-import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
 
@@ -20,6 +17,14 @@ from .distributions import generate_mixture_of_gaussians
 
 
 class NodeGatherer(ABC):
+    """
+    Abstract base class representing a node gatherer. It provides a framework for extracting specific attributes
+    or parameters of nodes within a graph.
+
+    Attributes:
+        _methods (dict): Dictionary mapping property names to the associated method.
+        G (nx.Graph): The graph containing the nodes.
+    """
     _methods = {}
 
     def __init__(self, G):
@@ -28,6 +33,19 @@ class NodeGatherer(ABC):
 
     @classmethod
     def parameter(cls, property_name):
+        """
+        Class method decorator to register methods that provide various properties of nodes.
+
+        Parameters:
+        -----------
+        property_name : str
+            The name of the property that the method provides.
+
+        Raises:
+        -------
+        ValueError: 
+            If the property name is already defined.
+        """
         def decorator(method):
             if property_name in cls._methods:
                 raise ValueError(
@@ -38,17 +56,26 @@ class NodeGatherer(ABC):
 
     @property
     def methods(self) -> list:
+        """Returns a list of property names that have been registered."""
         return list(self._methods.keys())
 
-    def gather(self, param: Union[str, List[str]]):
+    def gather(self, param: Union[str, List[str]]) -> dict:
         """
-        Note that output is different if the param is str and List!
-        output of 'param' and ['param'] is different!
+        Extracts the desired parameter(s) for all nodes in the graph.
 
-        If str - dict with nodes as keys and parameter values as values
-        {node: parameter value}
-        If List - dict with nodes as keys and dict with parameters as keys and parameter values as values as values
-        {node: {parameter: parameter value}}
+        Parameters:
+            param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
+
+        Returns:
+            dict: A dictionary containing the extracted parameters. The structure depends on the type of `param`.
+        Note:
+            Note that output is different if the param is str and List!
+            output of 'param' and ['param'] is different!
+
+            If str - dict with nodes as keys and parameter values as values
+            {node: parameter value}
+            If List - dict with nodes as keys and dict with parameters as keys and parameter values as values as values
+            {node: {parameter: parameter value}}
         """
         if isinstance(param, str):
             method = self._methods[param]
@@ -65,26 +92,39 @@ class NodeGatherer(ABC):
 
         return dict(result)
 
-    def gather_everything(self):
+    def gather_everything(self) -> dict:
         return self.gather(self._methods.keys())
 
     @abstractmethod
-    def merge(self, nodes):
+    def merge(self, nodes: (List[dict])) -> dict:
         """
-            returns the parameters of the node that is created by merging the nodes
+        Abstract method to gather properties or parameters for a merged node based on input nodes.
+
+        Parameters:
+            nodes (List[dict]): A list of nodes to merge.
+
+        Returns:
+            dict: Dictionary with merged node attributes.
         """
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
 
 class DefaultNodeGatherer(NodeGatherer):
+    """
+    Default implementation of the NodeGatherer. This class provides methods to extract default parameters from nodes
+    within a graph.
+    """
 
-    def merge(self, nodes):
+    def merge(self, nodes: List[dict]) -> dict:
         """
-        Gathers default parameters for a node that is a result of merging given nodes.
+        Merges given nodes and computes combined attributes such as 'inner_opinions', 'cluster_size', and 'label'.
 
-        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-        :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
+        Parameters:
+            nodes (List[dict]): A list of node dictionaries, each containing node attributes.
+
+        Returns:
+            dict: A dictionary with merged node attributes.
         """
         if not nodes:
             raise ValueError("The input list of nodes must not be empty.")
@@ -117,27 +157,18 @@ class DefaultNodeGatherer(NodeGatherer):
 
     @NodeGatherer.parameter("opinion")
     def opinion(self) -> dict:
-        """
-        Returns a dictionary with the opinions of the nodes.
-        Key is the node ID, and opinion is the opinion of the node.
-        """
+        """Returns a dictionary mapping node IDs to their respective opinions."""
         return self.G.opinions
 
     @NodeGatherer.parameter("cluster_size")
     def cluster_size(self) -> dict:
-        """
-        Returns a dictionary with the sizes of the nodes.
-        Key is the node ID, and opinion is the size of the node.
-        """
+        """Returns a dictionary mapping node IDs to their cluster sizes."""
         return {node: self.G.nodes[node].get('cluster_size', len(
             self.G.nodes[node].get('label', [0, ]))) for node in self.G.nodes}
 
     @NodeGatherer.parameter("importance")
     def importance(self) -> dict:
-        """
-        Returns a dictionary with the importance of the nodes.
-        Key is the node ID, and value is the ratio of the sum of influences of the node to the size of the node.
-        """
+        """Returns a dictionary mapping node IDs to their importance based on influence and size."""
         importance_dict = {}
         size_dict = self.cluster_size()
 
@@ -151,18 +182,18 @@ class DefaultNodeGatherer(NodeGatherer):
 
     @NodeGatherer.parameter("label")
     def label(self) -> dict:
-        """Returns a list of labels for all nodes in the graph.
-        If a node doesn't have a label, its ID will be used as the default label."""
+        """Returns a dictionary mapping node IDs to their labels or node IDs if label is missing."""
         return {node: self.G.nodes[node]['label'] for node in self.G.nodes}
 
     @NodeGatherer.parameter("neighbor_mean_opinion")
     def neighbor_mean_opinion(self) -> dict:
+        """Returns a dictionary mapping node IDs to the mean opinion of their neighbors."""
         data = {}
         opinions = self.G.opinions
         for node in self.G.nodes():
             node_opinion = opinions[node]
             neighbors = list(self.G.neighbors(node))
-            if neighbors:  # Ensure the node has neighbors
+            if neighbors:
                 mean_neighbor_opinion = sum(
                     opinions[neighbor] for neighbor in neighbors) / len(neighbors)
                 data[node] = mean_neighbor_opinion
@@ -173,34 +204,22 @@ class DefaultNodeGatherer(NodeGatherer):
 
     @NodeGatherer.parameter('activity')
     def activity(self) -> dict:
-        """
-        Returns a dictionary with the activities of the nodes.
-        Key is the node ID, and value is activity.
-        """
+        """Returns a dictionary mapping node IDs to their activity levels."""
         return {node: self.G.nodes[node].get('activity', np.nan) for node in self.G.nodes}
 
     @NodeGatherer.parameter('inner_opinions')
     def inner_opinions(self) -> dict:
-        """
-        Returns a dictionary with the activities of the nodes.
-        Key is the node ID, and value is activity.
-        """
+        """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
         return {node: self.G.nodes[node].get('inner_opinions', {idx: self.G.nodes[node]['opinion'] for idx in self.G.nodes[node]['label']}) for node in self.G.nodes}
 
     @NodeGatherer.parameter('max_opinion')
     def max_opinion(self) -> dict:
-        """
-        Returns a dictionary with the max_opinions of the nodes.
-        Key is the node ID, and value is max_opinion.
-        """
+        """Returns a dictionary mapping node IDs to the maximum opinion value among their inner opinions."""
         return {node: max((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
 
     @NodeGatherer.parameter('min_opinion')
     def min_opinion(self) -> dict:
-        """
-        Returns a dictionary with the min_opinions of the nodes.
-        Key is the node ID, and value is min_opinion.
-        """
+        """Returns a dictionary mapping node IDs to the minimum opinion value among their inner opinions."""
         return {node: min((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
 
 
@@ -220,7 +239,10 @@ class HariGraph(nx.DiGraph):
         self.gatherer = DefaultNodeGatherer(self)
 
     def generate_labels(self):
-        """Generates labels for the nodes if they don't exist."""
+        """
+        Generates labels for the nodes if they don't exist.
+        Ensures that each node in the graph has a unique label. If a node lacks a label, its ID will be used.
+        """
         if not self.nodes:
             return
         if 'label' not in self.nodes[next(iter(self.nodes))]:
@@ -229,10 +251,11 @@ class HariGraph(nx.DiGraph):
 
     def add_parameters_to_nodes(self, node_ids=None):
         """
-        Adds parameters to specified nodes using the node_parameter_gatherer method.
-        If node_ids is None, parameters are added to all nodes in the graph.
+        Appends or updates node attributes based on predefined criteria.
 
-        :param node_ids: List[int], a list of identifiers for the nodes to which parameters will be added.
+        Parameters:
+            node_ids (Optional[List[int]]): List of node IDs to which parameters will be added. 
+                If None, all nodes will be considered.
         """
         if node_ids is None:
             node_ids = list(self.nodes)
@@ -274,7 +297,7 @@ class HariGraph(nx.DiGraph):
             random_influence = random.uniform(lower_bound, upper_bound)
             self[u][v]['influence'] = random_influence
 
-    def is_degroot_converging(self, tolerance=1e-2):
+    def is_degroot_converging(self, tolerance=1e-2) -> bool:
         for node in self.nodes():
             incoming_edges = [(neighbor, node)
                               for neighbor in self.predecessors(node)]
@@ -311,7 +334,7 @@ class HariGraph(nx.DiGraph):
                 self[u][v]['influence'] /= total_influence
 
     @classmethod
-    def read_network(cls, network_file, opinion_file):
+    def read_network(cls, network_file: str, opinion_file: str) -> HariGraph:
         """
         Class method to create an instance of HariGraph from the provided files.
 
@@ -366,7 +389,7 @@ class HariGraph(nx.DiGraph):
 
         return G
 
-    def write_network(self, network_file, opinion_file, delimiter=','):
+    def write_network(self, network_file: str, opinion_file: str, delimiter=','):
         '''
         Save the network structure and node opinions to separate files.
         Attention! This save loses the information about the labels.
@@ -398,11 +421,11 @@ class HariGraph(nx.DiGraph):
                 f.write(f"{node}{delimiter}{data['opinion']}\n")
 
     @classmethod
-    def read_json(cls, filename):
+    def read_json(cls, filename: str) -> HariGraph:
         """
         Reads a HariGraph from a JSON file.
 
-        :param filename: The name of the file to read from.
+        :param filename (str): The name of the file to read from.
         :return: A new HariGraph instance.
         """
         if not os.path.exists(filename):
@@ -426,11 +449,11 @@ class HariGraph(nx.DiGraph):
 
         return G
 
-    def write_json(self, filename):
+    def write_json(self, filename: str):
         """
         Saves the HariGraph to a JSON file.
 
-        :param filename: The name of the file to write to.
+        :param filename (str): The name of the file to write to.
         """
         params_to_save = ['opinion', 'cluster_size',
                           'activity', 'inner_opinions']
@@ -445,11 +468,11 @@ class HariGraph(nx.DiGraph):
             json.dump(graph_dict, file)
 
     @classmethod
-    def guaranteed_connected(cls, n):
+    def guaranteed_connected(cls, n: int) -> HariGraph:
         """
         Creates a guaranteed connected HariGraph instance with n nodes.
 
-        :param n: Number of nodes.
+        :param n (int): Number of nodes.
         :return: A new HariGraph instance.
         """
         if n < 2:
@@ -478,12 +501,12 @@ class HariGraph(nx.DiGraph):
         return G
 
     @classmethod
-    def by_deletion(cls, n, factor):
+    def by_deletion(cls, n: int, factor: float) -> HariGraph:
         """
         Creates a HariGraph instance by deleting some of the edges of a fully connected graph.
 
-        :param n: Number of nodes.
-        :param factor: Factor representing how many edges to keep.
+        :param n (int): Number of nodes.
+        :param factor (float): Factor representing how many edges to keep.
         :return: A new HariGraph instance.
         """
         if not 0 <= 1 - factor <= 1:
@@ -510,7 +533,7 @@ class HariGraph(nx.DiGraph):
 
     @classmethod
     def strongly_connected_components(
-            cls, cluster_sizes, inter_cluster_edges, mean_opinion=0.5, seed=None):
+            cls, cluster_sizes: List[int], inter_cluster_edges: int, mean_opinion: float = 0.5, seed: int = None) -> HariGraph:
         """
         Creates a HariGraph instance with multiple strongly connected components.
 
@@ -613,7 +636,7 @@ class HariGraph(nx.DiGraph):
 
     # ---- Clusterization Methods ----
 
-    def dynamics_step(self, t):
+    def dynamics_step(self, t: float):
         """
         Updates the opinion of each node in the HariGraph instance based on the opinions of its predecessors.
 
@@ -639,7 +662,7 @@ class HariGraph(nx.DiGraph):
         for i, vi in updated_opinions.items():
             self.nodes[i]['opinion'] = vi
 
-    def merge_nodes(self, i, j):
+    def merge_nodes(self, i: int, j: int):
         """
         Merges two nodes in the graph into a new node.
 
@@ -695,7 +718,7 @@ class HariGraph(nx.DiGraph):
         self.remove_node(i)
         self.remove_node(j)
 
-    def find_clusters(self, max_opinion_difference=0.1, min_influence=0.1):
+    def find_clusters(self, max_opinion_difference: float = 0.1, min_influence: float = 0.1):
         """
         Finds clusters of nodes in the graph where the difference in the nodes' opinions
         is less than max_opinion_difference, and the influence of i on j is higher than
@@ -756,7 +779,7 @@ class HariGraph(nx.DiGraph):
 
         return clusters
 
-    def merge_by_intervals(self, intervals):
+    def merge_by_intervals(self, intervals: List[float]):
         """
         Merges nodes into clusters based on the intervals defined by the input list of opinions.
 
@@ -787,7 +810,7 @@ class HariGraph(nx.DiGraph):
         if clusters:
             self.merge_clusters(clusters)
 
-    def get_cluster_mapping(self):
+    def get_cluster_mapping(self) -> Dict[int, Set[int]]:
         """
         Generates a mapping of current clusters in the graph.
 
@@ -803,7 +826,7 @@ class HariGraph(nx.DiGraph):
             cluster_mapping[node] = set(label)
         return cluster_mapping
 
-    def merge_clusters(self, clusters):
+    def merge_clusters(self, clusters: Union[List[Set[int]], Dict[int, int]]):
         """
         Merges clusters of nodes in the graph into new nodes.
 
@@ -898,7 +921,7 @@ class HariGraph(nx.DiGraph):
 
     # ---- Data Processing Methods ----
 
-    def check_all_paths_exist(self):
+    def check_all_paths_exist(self) -> bool:
         """
         Checks if there exists a path between every pair of nodes in the HariGraph instance.
 
@@ -911,7 +934,7 @@ class HariGraph(nx.DiGraph):
         return True
 
     @property
-    def mean_opinion(self):
+    def mean_opinion(self) -> float:
         """
         Calculates the weighted mean opinion of the nodes in the graph.
 
@@ -943,8 +966,8 @@ class HariGraph(nx.DiGraph):
         return total_opinion / total_weight
 
     @staticmethod
-    def default_similarity_function(vi, vj, size_i, size_j, edge_influence, reverse_edge_influence,
-                                    opinion_coef=1., extreme_coef=0.1, influence_coef=1., size_coef=10.):
+    def default_similarity_function(vi: float, vj: float, size_i: int, size_j: int, edge_influence: float, reverse_edge_influence: float,
+                                    opinion_coef: float = 1., extreme_coef: float = 0.1, influence_coef: float = 1., size_coef: float = 10.) -> float:
         """
         The default function used to calculate the similarity between two nodes.
 

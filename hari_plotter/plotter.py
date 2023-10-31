@@ -2,7 +2,7 @@ import math
 import os
 import shutil
 import tempfile
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 
 import imageio
 import matplotlib
@@ -10,18 +10,30 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import seaborn as sns
 
 from .interface import Interface
 
-import seaborn as sns
-
 
 class PlotSaver:
-    def __init__(self, mode='show', save_path=None, gif_path=None):
+    """
+    A utility class to handle the saving and display of plots.
+
+    It provides functionality to save individual plots, display them,
+    and even create GIFs from a sequence of plots.
+    """
+
+    def __init__(self, mode: Union[str, List[str]] = 'show',
+                 save_path: Optional[str] = None,
+                 gif_path: Optional[str] = None) -> None:
         """
-        :param mode: a list or a single string, e.g. ['show', 'save'] or 'gif'
-        :param save_path: path to save individual plots (used if 'save' is in mode)
-        :param gif_path: path to save gif (used if 'gif' is in mode)
+        Initialize the PlotSaver instance.
+
+        Args:
+            mode (Union[str, List[str]]): The mode(s) in which to operate. 
+                It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
+            save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode).
+            gif_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
         """
         # Ensure mode is a list even if a single mode string is provided
         self.mode = mode if isinstance(mode, list) else [mode]
@@ -31,23 +43,44 @@ class PlotSaver:
         self.temp_dir = None
 
     @staticmethod
-    def is_inside_jupyter():
+    def is_inside_jupyter() -> bool:
+        """
+        Determine if the current environment is Jupyter Notebook.
+
+        Returns:
+            bool: True if inside Jupyter Notebook, False otherwise.
+        """
         try:
             get_ipython
             return True
         except NameError:
             return False
 
-    def __enter__(self):
+    def __enter__(self) -> 'PlotSaver':
+        """
+        Entry point for the context manager.
+
+        Returns:
+            PlotSaver: The current instance of the PlotSaver.
+        """
         return self
 
-    def save(self, fig):
+    def save(self, fig: matplotlib.figure.Figure) -> None:
+        """
+        Save and/or display the provided figure based on the specified mode.
+
+        Args:
+            fig (matplotlib.figure.Figure): The figure to be saved or displayed.
+        """
         plt.tight_layout()
+
+        # Save the figure if 'save' mode is active and save_path is provided
         if 'save' in self.mode and self.save_path:
             path = self.save_path.format(len(self.saved_images))
             fig.savefig(path)
             self.saved_images.append(path)
-        elif 'gif' in self.mode and not self.save_path:  # Only gif mode selected
+        # If only 'gif' mode is selected, save figure to a temp directory
+        elif 'gif' in self.mode and not self.save_path:
             if not self.temp_dir:
                 self.temp_dir = tempfile.mkdtemp()
             temp_path = os.path.join(
@@ -55,9 +88,10 @@ class PlotSaver:
             fig.savefig(temp_path)
             self.saved_images.append(temp_path)
 
+        # Show the figure if 'show' mode is active
         if 'show' in self.mode:
             if self.is_inside_jupyter():
-                # In Jupyter, just let the figure be displayed automatically
+                # In Jupyter, let the figure be displayed automatically
                 display(fig)
             else:
                 # Outside Jupyter, use fig.show() to display the figure
@@ -66,7 +100,16 @@ class PlotSaver:
         # Close the figure after processing
         plt.close(fig)
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[object]) -> None:
+        """
+        Exit point for the context manager.
+
+        Args:
+            exc_type (Optional[type]): The exception type if raised inside the context.
+            exc_val (Optional[Exception]): The exception instance if raised inside the context.
+            exc_tb (Optional[object]): The traceback if an exception was raised inside the context.
+        """
+        # If 'gif' mode is active and gif_path is provided, create a GIF from the saved images
         if 'gif' in self.mode and self.gif_path and self.saved_images:
             with imageio.get_writer(self.gif_path, mode='I') as writer:
                 for img_path in self.saved_images:
@@ -80,83 +123,220 @@ class PlotSaver:
 
 class Plotter:
     def __init__(self, interface: Interface):
-        self.interface: Interface = interface
-
-    @classmethod
-    def create_plotter(cls, data):
-        interface = Interface.create_interface(data)
-        return cls(interface)
-
-    def draw(self, mode='show', save_dir: str = None, gif_path: str = None,
-             pos=None, node_info_mode='none', use_node_color=True,
-             use_edge_thickness=True, show_edge_influences=False,
-             node_size_multiplier=200,
-             arrowhead_length=0.2, arrowhead_width=0.2,
-             min_line_width=0.1, max_line_width=3.0,
-             seed=None,
-             show_time: bool = False,
-             name='graph'):
         """
-        Draws a graphical representation of the graphs of the given interface. The positions
-        of the nodes are determined by the graph at the reference_index.
+        Initialize the Plotter object with the given Interface instance.
 
         Parameters:
         -----------
+        interface : Interface
+            Interface instance to be used for plotting.
+        """
+        self.interface: Interface = interface
 
-        mode : str, optional (default='show')
-            The mode of displaying the graph. If 'show', the graphs are displayed. Other modes may be supported
-            depending on the context.
+    @classmethod
+    def create_plotter(cls, data) -> 'Plotter':
+        """
+        Class method to create a Plotter instance given data.
 
-        save_dir : str, optional
-            The directory where the drawn graphs will be saved. If specified, each graph is saved with a filename '{i}.png'.
+        Parameters:
+        -----------
+        data : Any
+            Data used to create the Interface instance.
 
-        gif_path : str, optional
-            Path to save the animation as a gif, if desired.
+        Returns:
+        --------
+        Plotter
+            Initialized Plotter object.
+        """
+        interface = Interface.create_interface(data)
+        return cls(interface)
 
-        pos : dict, optional
-            Position of nodes as a dictionary of coordinates. If not provided, the spring layout is used to position nodes.
+    @staticmethod
+    def tanh_axis_labels(ax, axis: str):
+        """
+        Adjust axis labels for tanh scaling.
 
-        node_info_mode : str, optional (default='none')
-            Mode to determine which node information to display. Options include:
-            - 'opinions': Display node opinions.
-            - 'ids': Display node IDs.
-            - 'labels': Display node labels.
-            - 'cluster_size': Display size of the node based on labels.
+        Parameters:
+        -----------
+        ax : Axes
+            The Axes object to which the label adjustments should be applied.
+        axis : str
+            Which axis to adjust. Choices: 'x', 'y', or 'both'.
+        """
+        tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
+        ticks = np.tanh(tickslabels)
 
-        use_node_color : bool, optional (default=True)
-            Whether to use colors for nodes based on their attributes.
+        tickslabels = [r'-$\infty$' if label == -np.inf else r'$\infty$' if label == np.inf else label if abs(
+            label) <= 1.5 else None for label in tickslabels]
 
-        use_edge_thickness : bool, optional (default=True)
-            Whether to use edge thickness based on their influence attributes.
+        minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
+        minor_ticks = np.tanh(minor_tickslabels)
 
-        show_edge_influences : bool, optional (default=False)
-            If True, displays the influence values on the edges.
+        if axis in ['x', 'both']:
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(tickslabels)
+            ax.set_xticks(minor_ticks, minor=True)
+            ax.set_xticklabels([], minor=True)
+            ax.set_xlim([-1, 1])
 
-        node_size_multiplier : int, optional (default=200)
-            Multiplier for node sizes to enhance visibility.
+        if axis in ['y', 'both']:
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(tickslabels)
+            ax.set_yticks(minor_ticks, minor=True)
+            ax.set_yticklabels([], minor=True)
+            ax.set_ylim([-1, 1])
 
-        arrowhead_length : float, optional (default=0.2)
-            Length of the arrowhead.
+    @staticmethod
+    def plot_histogram(ax, values: List[float], scale: str = 'linear', rotated: bool = False):
+        """
+        Plot a histogram on the given ax with the provided values data.
 
-        arrowhead_width : float, optional (default=0.2)
-            Width of the arrowhead.
+        Parameters:
+        -----------
+        ax : Axes
+            Axes object where the histogram will be plotted.
+        values : list[float]
+            List containing opinion values.
+        scale : str, optional
+            The scale for the x-axis. Options: 'linear' or 'tanh'.
+        rotated : bool, optional
+            If True, the histogram is rotated to be horizontal.
+        """
+        if scale == 'tanh':
+            transformed_values = np.tanh(values)
+            if rotated:
+                sns.histplot(y=transformed_values,
+                             edgecolor='black', kde=True, ax=ax)
+                Plotter.tanh_axis_labels(ax=ax, axis='y')
+            else:
+                sns.histplot(data=transformed_values,
+                             edgecolor='black', kde=True, ax=ax)
+                Plotter.tanh_axis_labels(ax=ax, axis='x')
+        else:
+            if rotated:
+                sns.histplot(y=values, edgecolor='black', kde=True, ax=ax)
+            else:
+                sns.histplot(data=values, edgecolor='black', kde=True, ax=ax)
 
-        min_line_width : float, optional (default=0.1)
-            Minimum line width for edges.
+    @staticmethod
+    def plot_hexbin(ax, x_values: List[float], y_values: List[float], extent: Optional[List[float]] = None, colormap: str = 'inferno', cmax: Optional[float] = None, scale: str = 'linear', show_colorbar: bool = False):
+        """
+        Plot a hexbin on the given ax with the provided x and y values.
 
-        max_line_width : float, optional (default=3.0)
-            Maximum line width for edges.
+        Parameters:
+        -----------
+        ax : Axes
+            Axes object where the hexbin will be plotted.
+        x_values : list[float]
+            List containing x-values.
+        y_values : list[float]
+            List containing y-values.
+        extent : list[float], optional
+            The bounding box in data coordinates that the hexbin should fill.
+        colormap : str, optional
+            The colormap to be used for hexbin coloring.
+        cmax : float, optional
+            The maximum number of counts in a hexbin for colormap scaling.
+        scale : str, optional
+            The scale for the x and y values. Options: 'linear' or 'tanh'.
+        show_colorbar : bool, optional
+        """
+        x_values = np.array(x_values)
+        y_values = np.array(y_values)
+        valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+        x_values = x_values[valid_indices]
+        y_values = y_values[valid_indices]
 
-        seed : int or None, optional
+        if scale == 'tanh':
+            x_values = np.tanh(x_values)
+            y_values = np.tanh(y_values)
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap, interpolation='nearest',
+                      aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
+            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                           extent=extent or [-1, 1, -1, 1], vmax=cmax)
+            Plotter.tanh_axis_labels(ax=ax, axis='both')
+        else:
+            ax.imshow([[0, 0], [0, 0]], cmap=colormap, interpolation='nearest',
+                      aspect='auto', extent=extent)
+            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                           extent=extent, vmax=cmax)
+        if show_colorbar:
+            plt.colorbar(hb, ax=ax)
+
+    def draw(self,
+             mode: str = 'show',
+             save_dir: Optional[str] = None,
+             gif_path: Optional[str] = None,
+             pos: Optional[Dict[Union[int, str], tuple]] = None,
+             node_info_mode: str = 'none',
+             use_node_color: bool = True,
+             use_edge_thickness: bool = True,
+             show_edge_influences: bool = False,
+             node_size_multiplier: int = 200,
+             arrowhead_length: float = 0.2,
+             arrowhead_width: float = 0.2,
+             min_line_width: float = 0.1,
+             max_line_width: float = 3.0,
+             seed: Optional[int] = None,
+             show_time: bool = False,
+             name: str = 'graph') -> None:
+        """
+        Draws a graphical representation of the graphs in the interface. Node positions are determined 
+        by the graph at the reference index.
+
+        Parameters:
+        -----------
+        mode : str
+            How to display the graph. If 'show', graphs are displayed directly. The default is 'show'.
+
+        save_dir : Optional[str]
+            Directory to save drawn graphs. If provided, each graph is saved as '{i}.png'.
+
+        gif_path : Optional[str]
+            Path to save animation as gif, if needed.
+
+        pos : Optional[Dict[Union[int, str], tuple]]
+            Dictionary of node positions as coordinates. If not provided, spring layout positions nodes.
+
+        node_info_mode : str
+            Determines node information display. Options: 'opinions', 'ids', 'labels', 'cluster_size'. Default is 'none'.
+
+        use_node_color : bool
+            If True, colors nodes based on attributes. Default is True.
+
+        use_edge_thickness : bool
+            If True, edge thickness varies based on influence attributes. Default is True.
+
+        show_edge_influences : bool
+            If True, shows influence values on edges. Default is False.
+
+        node_size_multiplier : int
+            Multiplier for node size to enhance visibility. Default is 200.
+
+        arrowhead_length : float
+            Arrowhead length. Default is 0.2.
+
+        arrowhead_width : float
+            Arrowhead width. Default is 0.2.
+
+        min_line_width : float
+            Minimum line width for edges. Default is 0.1.
+
+        max_line_width : float
+            Maximum line width for edges. Default is 3.0.
+
+        seed : Optional[int]
             Seed for reproducibility in node positioning.
 
-        show_time : bool, optional (default=False)
-            If True, the timestamp of each graph is displayed in the bottom right corner of the plot.
+        show_time : bool
+            If True, displays timestamp of each graph in the plot's bottom-right corner. Default is False.
+
+        name : str
+            Prefix for saved filenames. Default is 'graph'.
 
         Returns:
         --------
         None
-
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
@@ -269,66 +449,39 @@ class Plotter:
 
                 saver.save(fig)
 
-    @staticmethod
-    def tanh_axis_labels(ax, axis):
-
-        tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
-        ticks = np.tanh(tickslabels)
-
-        tickslabels = [r'-$\infty$' if label == -np.inf else r'$\infty$' if label ==
-                       np.inf else label if abs(label) <= 1.5 else None for label in tickslabels]
-
-        minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
-        minor_ticks = np.tanh(minor_tickslabels)
-
-        if axis == 'x' or axis == 'both':
-            ax.set_xticks(ticks)
-            ax.set_xticklabels(tickslabels)
-            ax.set_xticks(minor_ticks, minor=True)
-            ax.set_xticklabels([], minor=True)
-            ax.set_xlim([-1, 1])
-        if axis == 'y' or axis == 'both':
-            ax.set_yticks(ticks)
-            ax.set_yticklabels(tickslabels)
-            minor_ticks = np.tanh(minor_tickslabels)
-            ax.set_yticks(minor_ticks, minor=True)
-            ax.set_yticklabels([], minor=True)
-            ax.set_ylim([-1, 1])
-
-    @staticmethod
-    def plot_histogram(ax, values, scale='linear', rotated=False):
+    def plot_opinion_histogram(self,
+                               mode: str = 'show',
+                               save_dir: Optional[str] = None,
+                               gif_path: Optional[str] = None,
+                               show_time: bool = False,
+                               name: str = 'opinion_histogram',
+                               scale: str = 'linear') -> None:
         """
-        Plot a histogram on the given ax with the provided values data.
+        Plots the histogram of opinions in the graphs.
 
         Parameters:
-        - ax : Axes object where the histogram will be plotted.
-        - values : list or numpy array containing opinion values.
-        - scale (str): The scale for the x-axis ('linear' or 'tanh').
-        """
-        if scale == 'tanh':
-            transformed_values = np.tanh(values)
-            if rotated:
-                sns.histplot(y=transformed_values,
-                             edgecolor='black', kde=True, ax=ax)
-                Plotter.tanh_axis_labels(ax=ax, axis='y')
-            else:
-                sns.histplot(data=transformed_values,
-                             edgecolor='black', kde=True, ax=ax)
-                Plotter.tanh_axis_labels(ax=ax, axis='x')
-        else:
-            if rotated:
-                sns.histplot(y=values, edgecolor='black', kde=True, ax=ax)
-            else:
-                sns.histplot(data=values, edgecolor='black', kde=True, ax=ax)
+        -----------
+        mode : str
+            How to display the histogram. If 'show', it's displayed directly. Default is 'show'.
 
-    def plot_opinion_histogram(self, mode='show', save_dir: str = None,
-                               gif_path: str = None, show_time: bool = False, name='opinion_histogram',
-                               scale='linear'):
-        """
-        Visualizes the histogram of opinions in the graphs using a histogram.
+        save_dir : Optional[str]
+            Directory to save the histogram. If provided, the histogram is saved as '{i}.png'.
 
-        Parameters:
-        - scale (str): The scale for the x-axis ('linear' or 'tanh').
+        gif_path : Optional[str]
+            Path to save animation as gif, if needed.
+
+        show_time : bool
+            If True, includes the time in the histogram's title. Default is False.
+
+        name : str
+            Prefix for saved filenames. Default is 'opinion_histogram'.
+
+        scale : str
+            The x-axis scale. Can be 'linear' or 'tanh'. Default is 'linear'.
+
+        Returns:
+        --------
+        None
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
@@ -353,51 +506,32 @@ class Plotter:
 
                 saver.save(fig)
 
-    def plot_opinions(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
-                      reference_index=-1, minimum_cluster_size=1, colormap='coolwarm', name='opinions_dynamics', width_threshold=1, scale='linear', show_legend=True):
+    def plot_opinions(self,
+                      mode: str = 'show',
+                      save_dir: Optional[str] = None,
+                      gif_path: Optional[str] = None,
+                      reference_index: int = -1,
+                      minimum_cluster_size: int = 1,
+                      colormap: str = 'coolwarm',
+                      name: str = 'opinions_dynamics',
+                      width_threshold: float = 1,
+                      scale: str = 'linear',
+                      show_legend: bool = True):
         """
-        Visualizes the opinions of nodes over time using a line graph and a semitransparent region
-        that spans between the minimum and maximum values of those opinions.
+        Plot the opinions of nodes over time.
 
         Parameters:
-        -----------
-        reference_index : int, optional
-            Index for the graph which will be used as a reference for coloring the nodes. Default is -1.
-
-        show : bool, optional
-            Whether or not to display the plot immediately after generating it. Default is True.
-
-        save : bool or str, optional
-            If given a string (filename), the plot will be saved to the specified filename.
-            If False, the plot will not be saved. Default is False.
-
-        minimum_cluster_size : int, optional
-            Minimum cluster size for a node to be considered in the plot.
-            Nodes with sizes less than this value will be excluded. Default is 1.
-
-        colormap : str, optional
-            Name of the colormap to use for coloring the nodes. Default is 'coolwarm'.
-
-        Raises:
-        -------
-        AssertionError
-            If the node_values of all graphs are not dictionaries or if opinions, min_opinions,
-            and max_opinions in each graph don't have the same set of keys.
-
-        Description:
-        ------------
-        The method begins by ensuring the consistency of node_values across all graphs.
-        It then extracts the common keys of nodes from the first graph and verifies that
-        these keys are consistent across the opinions, min_opinions, and max_opinions of all graphs.
-        Only the first graph from each group is plotted.
-
-        For nodes that meet the minimum_cluster_size criteria, it plots their opinions over time.
-        A semitransparent region is plotted between the minimum and maximum values of those opinions,
-        allowing for a visualization of the possible variation or uncertainty in the opinions.
-        Each node is colored based on the value of its opinion in the graph at reference_index,
-        mapped to the provided colormap.
+        - mode (str): Mode of the plot. Default is 'show'.
+        - save_dir (str, optional): Directory to save the plot. Default is None.
+        - gif_path (str, optional): Path to save the gif. Default is None.
+        - reference_index (int): Index to refer for plotting. Default is -1.
+        - minimum_cluster_size (int): Minimum size of the cluster for plotting. Default is 1.
+        - colormap (str): Colormap for the plot. Default is 'coolwarm'.
+        - name (str): Name of the plot. Default is 'opinions_dynamics'.
+        - width_threshold (float): Threshold for the width of the plot. Default is 1.
+        - scale (str): Scale for the plot values. Default is 'linear'.
+        - show_legend (bool): Whether to show the legend. Default is True.
         """
-
         all_nodes_data = {}
         time_array = []
 
@@ -501,60 +635,30 @@ class Plotter:
 
             saver.save(fig)
 
-    @staticmethod
-    def plot_hexbin(ax, x_values, y_values, extent=None, colormap='inferno', cmax=None, scale='linear'):
-        x_values = np.array(x_values)
-        y_values = np.array(y_values)
-        # Find indices where neither x_values nor y_values are NaN
-        valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+    def plot_neighbor_mean_opinion(self,
+                                   mode: str = 'show',
+                                   save_dir: Optional[str] = None,
+                                   gif_path: Optional[str] = None,
+                                   show_time: bool = False,
+                                   extent: Optional[Union[list, tuple]] = None,
+                                   cmax: Optional[float] = None,
+                                   colormap: str = 'inferno',
+                                   scale: str = 'linear',
+                                   name: str = 'neighbor_opinion'):
+        """
+        Plot the mean opinion of the neighbors of nodes.
 
-        # Filter the values using these indices
-        x_values = x_values[valid_indices]
-        y_values = y_values[valid_indices]
-        if scale == 'tanh':
-            # max_value = np.max(np.abs(list(x_values)+list(y_values)))
-            # mean_value = np.mean(np.abs(list(x_values)+list(y_values)))
-
-            # scaling_factor = 1/mean_value
-            # x_values = np.tanh(scaling_factor*x_values)
-            # y_values = np.tanh(scaling_factor*y_values)
-
-            x_values = np.tanh(x_values)
-            y_values = np.tanh(y_values)
-
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
-                      interpolation='nearest', aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
-
-            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           bins='log', extent=[-1, 1, -1, 1], vmax=cmax)
-
-            Plotter.tanh_axis_labels(ax=ax, axis='both')
-
-        else:
-            if extent is None:
-                extent = [np.nanmin(x_values), np.nanmax(x_values),
-                          np.nanmin(y_values), np.nanmax(y_values)]
-            elif len(extent) == 2:
-                extent = [extent[0], extent[1], extent[0], extent[1]]
-            elif len(extent) != 4:
-                print(
-                    "Invalid extent value. Please provide None, 2 values, or 4 values.")
-                return
-
-            # Create a background filled with the `0` value of the colormap
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
-                      interpolation='nearest', aspect='auto', extent=extent)
-            # Create the hexbin plot
-
-            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           bins='log', extent=extent, vmax=cmax)
-
-        # cb = ax.figure.colorbar(hb, ax=ax)
-        # cb.set_label('Log(Number of points in bin)')
-
-    def plot_neighbor_mean_opinion(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
-                                   extent=None, cmax=None, colormap='inferno',
-                                   scale='linear', name='neighbor_opinion'):
+        Parameters:
+        - mode (str): Mode of the plot. Default is 'show'.
+        - save_dir (str, optional): Directory to save the plot. Default is None.
+        - gif_path (str, optional): Path to save the gif. Default is None.
+        - show_time (bool): Whether to show time in the plot. Default is False.
+        - extent (list/tuple, optional): Range of the plot. Default is None.
+        - cmax (float, optional): Maximum value for the color scale. Default is None.
+        - colormap (str): Colormap for the plot. Default is 'inferno'.
+        - scale (str): Scale for the plot values. Default is 'linear'.
+        - name (str): Name of the plot. Default is 'neighbor_opinion'.
+        """
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
             for group_data in self.interface.node_values(['opinion', 'neighbor_mean_opinion']):
 
@@ -581,31 +685,30 @@ class Plotter:
 
                 saver.save(fig)
 
-    def plot_neighbor_mean_opinion_extended(self, mode='show', save_dir: str = None, gif_path: str = None, show_time: bool = False,
-                                            extent=None, cmax=None, colormap='inferno',
-                                            scale='linear', name='neighbor_opinion'):
+    def plot_neighbor_mean_opinion_extended(self,
+                                            mode: str = 'show',
+                                            save_dir: Optional[str] = None,
+                                            gif_path: Optional[str] = None,
+                                            show_time: bool = False,
+                                            extent: Optional[Union[list,
+                                                                   tuple]] = None,
+                                            cmax: Optional[float] = None,
+                                            colormap: str = 'inferno',
+                                            scale: str = 'linear',
+                                            name: str = 'neighbor_opinion'):
         """
-        Plot 2D hexbin alongside 1D KDE distributions for x and y data.
+        Extended plot of the mean opinion of the neighbors of nodes.
 
         Parameters:
-        - x_values, y_values : array-like
-            Data points for x and y axes.
-        - save : str, optional
-            Filepath to save the plot.
-        - show : bool, optional (default=True)
-            Whether to display the plot.
-        - extent : list, optional
-            Range for the plot.
-        - title : str, optional
-            Plot title.
-        - cmax : float, optional
-            Maximum limit for the colorbar.
-        - xlabel, ylabel : str, optional
-            Labels for x and y axes.
-        - **kwargs : Additional arguments for plt.hexbin.
-
-        Returns:
-        - fig, axs : Updated figure and axis objects.
+        - mode (str): Mode of the plot. Default is 'show'.
+        - save_dir (str, optional): Directory to save the plot. Default is None.
+        - gif_path (str, optional): Path to save the gif. Default is None.
+        - show_time (bool): Whether to show time in the plot. Default is False.
+        - extent (list/tuple, optional): Range of the plot. Default is None.
+        - cmax (float, optional): Maximum value for the color scale. Default is None.
+        - colormap (str): Colormap for the plot. Default is 'inferno'.
+        - scale (str): Scale for the plot values. Default is 'linear'.
+        - name (str): Name of the plot. Default is 'neighbor_opinion'.
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:

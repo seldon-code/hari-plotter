@@ -14,37 +14,6 @@ from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
 
-def set_paper_style(width_fraction=1.0, font_size=10,
-                    style='seaborn-whitegrid'):
-    """
-    Set style for academic papers.
-
-    Parameters:
-    - width_fraction: Fraction of the paper width (e.g., 0.25, 0.5, 1.0)
-    - font_size: Size of the font to be used in plots
-    - style: Style preset from matplotlib
-    """
-
-    # Assuming a single-column width of 6 inches for the paper
-    single_column_width = 6
-
-    # Set the style
-    plt.style.use(style)
-
-    # Set the figure size
-    fig_width = single_column_width * width_fraction
-    plt.rcParams['figure.figsize'] = (
-        fig_width, fig_width * 3 / 4)  # 4:3 aspect ratio
-
-    # Set font size and line width
-    plt.rcParams['font.size'] = font_size
-    plt.rcParams['axes.labelsize'] = font_size
-    plt.rcParams['axes.titlesize'] = font_size
-    plt.rcParams['xtick.labelsize'] = font_size
-    plt.rcParams['ytick.labelsize'] = font_size
-    plt.rcParams['lines.linewidth'] = 1.5
-
-
 def is_single_cluster(x_array, y_array):
     """
     Check if the given data represents a single cluster.
