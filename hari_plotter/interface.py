@@ -241,7 +241,7 @@ class HariGraphInterface(Interface):
             dict: A dictionary containing mean node values and the time stamp.
         """
         data = {'data': self._calculate_mean_node_values(
-            [None])}  # No group for single image
+            [None], params)}  # No group for single image
         data['time'] = 0
         yield data
 
@@ -256,7 +256,7 @@ class HariGraphInterface(Interface):
             dict: A dictionary containing node values and the time stamp.
         """
         data = {'data': self._calculate_node_values(
-            [None])}  # No group for single image
+            [None], params)}  # No group for single image
         data['time'] = 0
         yield data
 
