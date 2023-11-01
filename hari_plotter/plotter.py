@@ -123,7 +123,14 @@ class PlotSaver:
 
 class Plotter:
     _parameter_dict = {'opinion': 'Node Opinion',
-                       'cluster_size': 'Cluster size'}
+                       'cluster_size': 'Cluster size',
+                       'importance': 'Node Importance',
+                       'label': 'Node Label',
+                       'neighbor_mean_opinion': 'Node Neighbor Mean Opinion',
+                       'activity': 'Node Activity',
+                       'inner_opinions': 'Node Inner Opinions',
+                       'max_opinion': 'Node Max Opinion',
+                       'min_opinion': 'Node Min Opinion'}
 
     def __init__(self, interface: Interface):
         """
@@ -770,14 +777,14 @@ class Plotter:
 
                 if scale == 'tanh':
                     Plotter.plot_hexbin(
-                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale)
+                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale, colormap=colormap)
                     Plotter.plot_histogram(values=y_values,
                                            ax=axs[0, 0], scale=scale)
                     Plotter.plot_histogram(
                         values=x_values, ax=axs[1, 1], rotated=True, scale=scale)
                 else:
                     Plotter.plot_hexbin(
-                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax)
+                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, colormap=colormap)
                     Plotter.plot_histogram(values=y_values,
                                            ax=axs[0, 0])
                     Plotter.plot_histogram(
