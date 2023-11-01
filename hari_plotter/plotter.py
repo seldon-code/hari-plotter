@@ -495,18 +495,20 @@ class Plotter:
 
                 saver.save(fig)
 
-    def plot_opinion_histogram(self,
-                               mode: str = 'show',
-                               save_dir: Optional[str] = None,
-                               gif_path: Optional[str] = None,
-                               show_time: bool = False,
-                               name: str = 'opinion_histogram',
-                               scale: str = 'linear') -> None:
+    def plot_1D_distribution(self, x_parameter: str,
+                             mode: str = 'show',
+                             save_dir: Optional[str] = None,
+                             gif_path: Optional[str] = None,
+                             show_time: bool = False,
+                             name: str = 'opinion_histogram',
+                             scale: str = 'linear') -> None:
         """
-        Plots the histogram of opinions in the graphs.
+        Plots the histogram of x_parameter in the graphs.
 
         Parameters:
         -----------
+        x_parameter : str
+            Parameter to show on x axis
         mode : str
             How to display the histogram. If 'show', it's displayed directly. Default is 'show'.
 
@@ -531,14 +533,14 @@ class Plotter:
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.mean_node_values(['opinion']):
+            for group_data in self.interface.mean_group_values_iterator([x_parameter]):
                 fig, ax = plt.subplots(figsize=(10, 7))
 
                 Plotter.plot_histogram(
-                    ax, group_data['data']['opinion'], scale=scale)
+                    ax, group_data['data'][x_parameter], scale=scale)
 
-                ax.set_title('Opinion Distribution')
-                ax.set_xlabel('Opinion Value')
+                ax.set_xlabel(self._parameter_dict.get(
+                    x_parameter, x_parameter))
                 ax.set_ylabel('Number of Nodes')
                 group_data["time"] = group_data["time"]
 
@@ -581,7 +583,7 @@ class Plotter:
         all_nodes_data = {}
         time_array = []
 
-        for group_data in self.interface.mean_node_values(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
+        for group_data in self.interface.mean_group_values_iterator(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
             time_array.append(group_data['time'])
 
             for node, opinion, size, max_opinion, min_opinion in zip(
@@ -708,7 +710,7 @@ class Plotter:
         - name (str): Name of the plot. Default is '2D_distribution'.
         """
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.node_values([x_parameter, y_parameter]):
+            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
 
                 x_values = []
                 y_values = []
@@ -764,7 +766,7 @@ class Plotter:
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.node_values([x_parameter, y_parameter]):
+            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
 
                 x_values = []
                 y_values = []

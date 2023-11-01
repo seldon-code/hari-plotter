@@ -158,7 +158,7 @@ class Interface(ABC):
         return results
 
     @abstractmethod
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+    def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Abstract method to fetch mean node values based on parameters.
 
@@ -172,7 +172,7 @@ class Interface(ABC):
             "This method must be implemented in subclasses")
 
     @abstractmethod
-    def node_values(self, params: List[str]) -> Iterator[dict]:
+    def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Abstract method to fetch node values based on parameters.
 
@@ -230,9 +230,9 @@ class HariGraphInterface(Interface):
         """
         return self.data.gatherer.gather(params)
 
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+    def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
-        Fetch the mean values for nodes based on provided parameters for the HariGraph.
+        Fetch the mean values for groups based on provided parameters for the HariGraph.
 
         Args:
             params (List[str]): List of parameter names.
@@ -245,7 +245,7 @@ class HariGraphInterface(Interface):
         data['time'] = 0
         yield data
 
-    def node_values(self, params: List[str]) -> Iterator[dict]:
+    def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the node values based on provided parameters for the HariGraph.
 
@@ -314,7 +314,7 @@ class HariDynamicsInterface(Interface):
         """
         return self.data[image].gatherer.gather(params)
 
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+    def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the mean values for nodes based on provided parameters for the HariDynamics.
 
@@ -332,7 +332,7 @@ class HariDynamicsInterface(Interface):
             data['time'] = group[-1]
             yield data
 
-    def node_values(self, params: List[str]) -> Iterator[dict]:
+    def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the node values based on provided parameters for the HariDynamics.
 
@@ -403,7 +403,7 @@ class SimulationInterface(Interface):
         """
         return self.data.dynamics[image].gatherer.gather(params)
 
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
+    def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the mean values for nodes based on provided parameters for the Simulation.
 
@@ -421,7 +421,7 @@ class SimulationInterface(Interface):
             data['time'] = group[-1] * self.data.model.params.get("dt", 1)
             yield data
 
-    def node_values(self, params: List[str]) -> Iterator[dict]:
+    def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the node values based on provided parameters for the Simulation.
 
