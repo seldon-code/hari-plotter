@@ -20,4 +20,19 @@ class TestPlotter:
     def test_draw(self):
         self.H_plotter.draw(mode=[])
 
-        # plotter.draw(x_parameter='opinion', y_parameter='neighbor_mean_opinion',mode = ['show', 'save', 'gif'],save_dir='test_pics', gif_path='test_pics/gif.gif', show_time=True, scale='tanh')
+    def test_1D_distribution(self):
+        self.H_plotter.plot_1D_distribution(mode=[], x_parameter='opinion')
+        self.H_plotter.plot_1D_distribution(
+            mode=[], x_parameter='opinion', scale='tanh')
+
+    def test_plot_2D_distribution(self):
+        self.H_plotter.plot_2D_distribution(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion')
+        self.H_plotter.plot_2D_distribution(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale='tanh')
+
+    def test_plot_2D_distribution_extended(self):
+        self.H_plotter.plot_2D_distribution_extended(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion')
+        self.H_plotter.plot_2D_distribution_extended(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale='tanh')
