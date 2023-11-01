@@ -204,8 +204,8 @@ class HariGraphInterface(Interface):
             dict: The image data for the HariGraph with an assigned time of 0.
         """
         image = self.data.copy()
-        image.time = 0
-        yield image
+        time = 0
+        yield {'image': image, 'time': time}
 
     def groups(self) -> Any:
         """
