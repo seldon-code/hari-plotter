@@ -122,6 +122,9 @@ class PlotSaver:
 
 
 class Plotter:
+    _parameter_dict = {'opinion': 'Node Opinion',
+                       'cluster_size': 'Cluster size'}
+
     def __init__(self, interface: Interface):
         """
         Initialize the Plotter object with the given Interface instance.
@@ -132,6 +135,16 @@ class Plotter:
             Interface instance to be used for plotting.
         """
         self.interface: Interface = interface
+
+    @property
+    def available_parameters(self) -> list:
+        """
+        Retrieves the list of available parameters/methods from the interface.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return self.interface.available_parameters
 
     @classmethod
     def create_plotter(cls, data) -> 'Plotter':
@@ -555,7 +568,7 @@ class Plotter:
         - colormap (str): Colormap for the plot. Default is 'coolwarm'.
         - name (str): Name of the plot. Default is 'opinions_dynamics'.
         - width_threshold (float): Threshold for the width of the plot. Default is 1.
-        - scale (str): Scale for the plot values. Default is 'linear'.
+        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
         - show_legend (bool): Whether to show the legend. Default is True.
         """
         all_nodes_data = {}
@@ -661,20 +674,22 @@ class Plotter:
 
             saver.save(fig)
 
-    def plot_neighbor_mean_opinion(self,
-                                   mode: str = 'show',
-                                   save_dir: Optional[str] = None,
-                                   gif_path: Optional[str] = None,
-                                   show_time: bool = False,
-                                   extent: Optional[Union[list, tuple]] = None,
-                                   cmax: Optional[float] = None,
-                                   colormap: str = 'inferno',
-                                   scale: str = 'linear',
-                                   name: str = 'neighbor_opinion'):
+    def plot_2D_distribution(self, x_parameter: str, y_parameter: str,
+                             mode: str = 'show',
+                             save_dir: Optional[str] = None,
+                             gif_path: Optional[str] = None,
+                             show_time: bool = False,
+                             extent: Optional[Union[list, tuple]] = None,
+                             cmax: Optional[float] = None,
+                             colormap: str = 'inferno',
+                             scale: str = 'linear',
+                             name: str = '2D_distribution'):
         """
         Plot the mean opinion of the neighbors of nodes.
 
         Parameters:
+        - x_parameter (str): Parameter to show on x axis
+        - y_parameter (str): Parameter to show on y axis
         - mode (str): Mode of the plot. Default is 'show'.
         - save_dir (str, optional): Directory to save the plot. Default is None.
         - gif_path (str, optional): Path to save the gif. Default is None.
@@ -682,17 +697,17 @@ class Plotter:
         - extent (list/tuple, optional): Range of the plot. Default is None.
         - cmax (float, optional): Maximum value for the color scale. Default is None.
         - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (str): Scale for the plot values. Default is 'linear'.
-        - name (str): Name of the plot. Default is 'neighbor_opinion'.
+        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
+        - name (str): Name of the plot. Default is '2D_distribution'.
         """
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.node_values(['opinion', 'neighbor_mean_opinion']):
+            for group_data in self.interface.node_values([x_parameter, y_parameter]):
 
                 x_values = []
                 y_values = []
                 for node, node_data in group_data['data'].items():
-                    x_values.extend(node_data['opinion'])
-                    y_values.extend(node_data['neighbor_mean_opinion'])
+                    x_values.extend(node_data[x_parameter])
+                    y_values.extend(node_data[y_parameter])
 
                 fig, ax = plt.subplots(figsize=(10, 7))
                 Plotter.plot_hexbin(ax=ax, x_values=x_values, y_values=y_values, extent=extent,
@@ -706,26 +721,30 @@ class Plotter:
 
                     ax.set_title(f't = {formatted_time}')
 
-                ax.set_xlabel('Node Opinion')
-                ax.set_ylabel('Mean Neighbor Opinion')
+                ax.set_xlabel(self._parameter_dict.get(
+                    x_parameter, x_parameter))
+                ax.set_ylabel(self._parameter_dict.get(
+                    y_parameter, y_parameter))
 
                 saver.save(fig)
 
-    def plot_neighbor_mean_opinion_extended(self,
-                                            mode: str = 'show',
-                                            save_dir: Optional[str] = None,
-                                            gif_path: Optional[str] = None,
-                                            show_time: bool = False,
-                                            extent: Optional[Union[list,
-                                                                   tuple]] = None,
-                                            cmax: Optional[float] = None,
-                                            colormap: str = 'inferno',
-                                            scale: str = 'linear',
-                                            name: str = 'neighbor_opinion'):
+    def plot_2D_distribution_extended(self, x_parameter: str, y_parameter: str,
+                                      mode: str = 'show',
+                                      save_dir: Optional[str] = None,
+                                      gif_path: Optional[str] = None,
+                                      show_time: bool = False,
+                                      extent: Optional[Union[list,
+                                                             tuple]] = None,
+                                      cmax: Optional[float] = None,
+                                      colormap: str = 'inferno',
+                                      scale: str = 'linear',
+                                      name: str = '2D_distribution_extended'):
         """
         Extended plot of the mean opinion of the neighbors of nodes.
 
         Parameters:
+        - x_parameter (str): Parameter to show on x axis
+        - y_parameter (str): Parameter to show on y axis
         - mode (str): Mode of the plot. Default is 'show'.
         - save_dir (str, optional): Directory to save the plot. Default is None.
         - gif_path (str, optional): Path to save the gif. Default is None.
@@ -733,18 +752,18 @@ class Plotter:
         - extent (list/tuple, optional): Range of the plot. Default is None.
         - cmax (float, optional): Maximum value for the color scale. Default is None.
         - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (str): Scale for the plot values. Default is 'linear'.
-        - name (str): Name of the plot. Default is 'neighbor_opinion'.
+        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
+        - name (str): Name of the plot. Default is '2D_distribution_extended'.
         """
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.node_values(['opinion', 'neighbor_mean_opinion']):
+            for group_data in self.interface.node_values([x_parameter, y_parameter]):
 
                 x_values = []
                 y_values = []
                 for node, node_data in group_data['data'].items():
-                    x_values.extend(node_data['opinion'])
-                    y_values.extend(node_data['neighbor_mean_opinion'])
+                    x_values.extend(node_data[x_parameter])
+                    y_values.extend(node_data[y_parameter])
 
                 fig, axs = plt.subplots(2, 2, figsize=(10, 10), gridspec_kw={
                                         'width_ratios': [4, 1], 'height_ratios': [1, 4]})
@@ -784,7 +803,9 @@ class Plotter:
 
                     axs[0, 0].set_title(f't = {formatted_time}')
 
-                axs[1, 0].set_xlabel('Node Opinion')
-                axs[1, 0].set_ylabel('Mean Neighbor Opinion')
+                axs[1, 0].set_xlabel(self._parameter_dict.get(
+                    x_parameter, x_parameter))
+                axs[1, 0].set_ylabel(self._parameter_dict.get(
+                    y_parameter, y_parameter))
 
                 saver.save(fig)

@@ -1,4 +1,4 @@
-from abc import ABC, abstractmethod
+from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
@@ -185,6 +185,11 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
+    @abstractproperty
+    def available_parameters(self) -> list:
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
 
 class HariGraphInterface(Interface):
     """Interface specifically designed for the HariGraph class."""
@@ -254,6 +259,16 @@ class HariGraphInterface(Interface):
             [None])}  # No group for single image
         data['time'] = 0
         yield data
+
+    @property
+    def available_parameters(self) -> list:
+        """
+        Retrieves the list of available parameters/methods from the data gatherer.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return self.data.gatherer.methods
 
 
 class HariDynamicsInterface(Interface):
@@ -334,6 +349,16 @@ class HariDynamicsInterface(Interface):
             data['time'] = group[-1]
             yield data
 
+    @property
+    def available_parameters(self) -> list:
+        """
+        Retrieves the list of available parameters/methods from the data gatherer.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return self.data[0].gatherer.methods
+
 
 class SimulationInterface(Interface):
     """Interface specifically designed for the Simulation class."""
@@ -413,3 +438,13 @@ class SimulationInterface(Interface):
             data = {'data': self._calculate_node_values(group, params)}
             data['time'] = group[-1] * self.data.model.params.get("dt", 1)
             yield data
+
+    @property
+    def available_parameters(self) -> list:
+        """
+        Retrieves the list of available parameters/methods from the data gatherer.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return self.data.dynamics[0].gatherer.methods
