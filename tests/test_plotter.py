@@ -18,6 +18,6 @@ class TestPlotter:
         assert isinstance(self.H_plotter.interface, Interface)
 
     def test_draw(self):
-        self.H_plotter.draw()
+        self.H_plotter.draw(mode=[])
 
         # plotter.draw(x_parameter='opinion', y_parameter='neighbor_mean_opinion',mode = ['show', 'save', 'gif'],save_dir='test_pics', gif_path='test_pics/gif.gif', show_time=True, scale='tanh')
