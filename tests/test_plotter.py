@@ -29,10 +29,14 @@ class TestPlotter:
         self.H_plotter.plot_2D_distribution(
             mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion')
         self.H_plotter.plot_2D_distribution(
-            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale='tanh')
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale=['linear', 'tanh'])
+        self.H_plotter.plot_2D_distribution(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale=['tanh', 'tanh'])
 
     def test_plot_2D_distribution_extended(self):
         self.H_plotter.plot_2D_distribution_extended(
             mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion')
         self.H_plotter.plot_2D_distribution_extended(
-            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale='tanh')
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale=['linear', 'tanh'])
+        self.H_plotter.plot_2D_distribution_extended(
+            mode=[], x_parameter='opinion', y_parameter='neighbor_mean_opinion', scale=['tanh', 'tanh'])

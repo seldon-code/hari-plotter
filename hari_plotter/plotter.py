@@ -2,7 +2,7 @@ import math
 import os
 import shutil
 import tempfile
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Union, Sequence
 
 import imageio
 import matplotlib
@@ -172,13 +172,13 @@ class Plotter:
         return cls(interface)
 
     @staticmethod
-    def tanh_axis_labels(ax, axis: str):
+    def tanh_axis_labels(ax: plt.Axes, axis: str):
         """
         Adjust axis labels for tanh scaling.
 
         Parameters:
         -----------
-        ax : Axes
+        ax : plt.Axes
             The Axes object to which the label adjustments should be applied.
         axis : str
             Which axis to adjust. Choices: 'x', 'y', or 'both'.
@@ -207,13 +207,17 @@ class Plotter:
             ax.set_ylim([-1, 1])
 
     @staticmethod
-    def plot_histogram(ax, values: List[float], scale: str = 'linear', rotated: bool = False):
+    def plot_histogram(ax: plt.Axes,
+                       values: List[float],
+                       scale: Optional[str] = 'linear',
+                       rotated: Optional[bool] = False,
+                       extent: Optional[Sequence[float] | None] = None):
         """
         Plot a histogram on the given ax with the provided values data.
 
         Parameters:
         -----------
-        ax : Axes
+        ax : plt.Axes
             Axes object where the histogram will be plotted.
         values : list[float]
             List containing opinion values.
@@ -221,31 +225,57 @@ class Plotter:
             The scale for the x-axis. Options: 'linear' or 'tanh'.
         rotated : bool, optional
             If True, the histogram is rotated to be horizontal.
+        extent : Optional[Sequence[float] | None]
+            Limits of the histogram
         """
+
+        values = np.array(values)
+        valid_indices = ~np.isnan(values)
+        values = values[valid_indices]
+
         if scale == 'tanh':
-            transformed_values = np.tanh(values)
-            if rotated:
-                sns.histplot(y=transformed_values,
-                             edgecolor='black', kde=True, ax=ax)
+            values = np.tanh(values)
+
+        if extent is None:
+            extent = [-1, 1] if scale == 'tanh' else [
+                np.nanmin(values), np.nanmax(values)]
+
+        print(f'histogram {extent = }')
+
+        print(f'{np.nanmax(values) = }')
+
+        if rotated:
+            sns.kdeplot(y=values, ax=ax, fill=True)
+            sns.histplot(y=values, kde=False, ax=ax,
+                         binrange=extent, element="step", fill=False, stat="density")
+            if scale == 'tanh':
                 Plotter.tanh_axis_labels(ax=ax, axis='y')
-            else:
-                sns.histplot(data=transformed_values,
-                             edgecolor='black', kde=True, ax=ax)
-                Plotter.tanh_axis_labels(ax=ax, axis='x')
         else:
-            if rotated:
-                sns.histplot(y=values, edgecolor='black', kde=True, ax=ax)
-            else:
-                sns.histplot(data=values, edgecolor='black', kde=True, ax=ax)
+            sns.kdeplot(data=values, ax=ax, fill=True)
+            sns.histplot(data=values, kde=False, ax=ax,
+                         binrange=extent, element="step", fill=False, stat="density")
+            if scale == 'tanh':
+                Plotter.tanh_axis_labels(ax=ax, axis='x')
+
+        if rotated:
+            ax.set_ylim(extent[0], extent[1])
+        else:
+            ax.set_xlim(extent[0], extent[1])
 
     @staticmethod
-    def plot_hexbin(ax, x_values: List[float], y_values: List[float], extent: Optional[List[float]] = None, colormap: str = 'inferno', cmax: Optional[float] = None, scale: str = 'linear', show_colorbar: bool = False):
+    def plot_hexbin(ax: plt.Axes,
+                    x_values: List[float], y_values: List[float],
+                    extent: Optional[Sequence[float] | None] = None,
+                    colormap: Optional[str] = 'inferno',
+                    cmax: Optional[float | None] = None,
+                    scale: Optional[Sequence | None] = None,
+                    show_colorbar: Optional[bool] = False):
         """
         Plot a hexbin on the given ax with the provided x and y values.
 
         Parameters:
         -----------
-        ax : Axes
+        ax : plt.Axes
             Axes object where the hexbin will be plotted.
         x_values : list[float]
             List containing x-values.
@@ -257,10 +287,13 @@ class Plotter:
             The colormap to be used for hexbin coloring.
         cmax : float, optional
             The maximum number of counts in a hexbin for colormap scaling.
-        scale : str, optional
-            The scale for the x and y values. Options: 'linear' or 'tanh'.
+        scale : list, optional
+            Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
         show_colorbar : bool, optional
         """
+
+        scale = ['linear', 'linear'] if scale is None else scale
+
         x_values = np.array(x_values)
         y_values = np.array(y_values)
         # Find indices where neither x_values nor y_values are NaN
@@ -269,43 +302,54 @@ class Plotter:
         # Filter the values using these indices
         x_values = x_values[valid_indices]
         y_values = y_values[valid_indices]
-        if scale == 'tanh':
-            # max_value = np.max(np.abs(list(x_values)+list(y_values)))
-            # mean_value = np.mean(np.abs(list(x_values)+list(y_values)))
 
-            # scaling_factor = 1/mean_value
-            # x_values = np.tanh(scaling_factor*x_values)
-            # y_values = np.tanh(scaling_factor*y_values)
+        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
+            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
 
+        if scale[0] == 'tanh':
             x_values = np.tanh(x_values)
+
+        if scale[1] == 'tanh':
             y_values = np.tanh(y_values)
 
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
-                      interpolation='nearest', aspect='auto', extent=[-1.1, 1.1, -1.1, 1.1])
+        if extent is None:
+            x_extent = [-1, 1] if scale[0] == 'tanh' else [
+                np.nanmin(x_values), np.nanmax(x_values)]
+            y_extent = [-1, 1] if scale[1] == 'tanh' else [
+                np.nanmin(y_values), np.nanmax(y_values)]
 
-            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           bins='log', extent=[-1, 1, -1, 1], vmax=cmax)
+            extent = x_extent+y_extent
 
-            Plotter.tanh_axis_labels(ax=ax, axis='both')
+        print(f'hexbin {extent = }')
 
-        else:
-            if extent is None:
-                extent = [np.nanmin(x_values), np.nanmax(x_values),
-                          np.nanmin(y_values), np.nanmax(y_values)]
-            elif len(extent) == 2:
-                extent = [extent[0], extent[1], extent[0], extent[1]]
-            elif len(extent) != 4:
-                print(
-                    "Invalid extent value. Please provide None, 2 values, or 4 values.")
-                return
+        delta_x = 0.1*(extent[1]-extent[0])
+        x_field_extent = [extent[0]-delta_x, extent[1]+delta_x]
 
-            # Create a background filled with the `0` value of the colormap
-            ax.imshow([[0, 0], [0, 0]], cmap=colormap,
-                      interpolation='nearest', aspect='auto', extent=extent)
-            # Create the hexbin plot
+        delta_y = 0.1*(extent[3]-extent[2])
+        y_field_extent = [extent[2]-delta_y, extent[3]+delta_y]
 
-            hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                           bins='log', extent=extent, vmax=cmax)
+        field_extent = x_field_extent + y_field_extent
+
+        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                  interpolation='nearest', aspect='auto', extent=field_extent)
+
+        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                       bins='log', extent=extent, vmax=cmax)
+
+        if tanh_axis is not None:
+            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
+
+        # Create a background filled with the `0` value of the colormap
+        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+                  interpolation='nearest', aspect='auto', extent=extent)
+        # Create the hexbin plot
+
+        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
+                       bins='log', extent=extent, vmax=cmax)
+
+        ax.set_xlim(extent[0], extent[1])
+        ax.set_ylim(extent[2], extent[3])
+
         if show_colorbar:
             plt.colorbar(hb, ax=ax)
 
@@ -691,7 +735,7 @@ class Plotter:
                              extent: Optional[Union[list, tuple]] = None,
                              cmax: Optional[float] = None,
                              colormap: str = 'inferno',
-                             scale: str = 'linear',
+                             scale: list = None,
                              name: str = '2D_distribution'):
         """
         Plot the mean opinion of the neighbors of nodes.
@@ -706,9 +750,13 @@ class Plotter:
         - extent (list/tuple, optional): Range of the plot. Default is None.
         - cmax (float, optional): Maximum value for the color scale. Default is None.
         - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
+        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
         - name (str): Name of the plot. Default is '2D_distribution'.
         """
+
+        if scale is None:
+            scale = ['linear', 'linear']
+
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
             for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
 
@@ -739,15 +787,15 @@ class Plotter:
 
     def plot_2D_distribution_extended(self, x_parameter: str, y_parameter: str,
                                       mode: str = 'show',
-                                      save_dir: Optional[str] = None,
-                                      gif_path: Optional[str] = None,
-                                      show_time: bool = False,
+                                      save_dir: Optional[str | None] = None,
+                                      gif_path: Optional[str | None] = None,
+                                      show_time: Optional[bool] = False,
                                       extent: Optional[Union[list,
-                                                             tuple]] = None,
-                                      cmax: Optional[float] = None,
-                                      colormap: str = 'inferno',
-                                      scale: str = 'linear',
-                                      name: str = '2D_distribution_extended'):
+                                                             tuple] | None] = None,
+                                      cmax: Optional[float | None] = None,
+                                      colormap: Optional[str] = 'inferno',
+                                      scale: Optional[list | None] = None,
+                                      name: Optional[str] = '2D_distribution_extended'):
         """
         Extended plot of the mean opinion of the neighbors of nodes.
 
@@ -761,9 +809,11 @@ class Plotter:
         - extent (list/tuple, optional): Range of the plot. Default is None.
         - cmax (float, optional): Maximum value for the color scale. Default is None.
         - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
+        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
         - name (str): Name of the plot. Default is '2D_distribution_extended'.
         """
+
+        scale = ['linear', 'linear'] if scale is None else scale
 
         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
             for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
@@ -774,34 +824,45 @@ class Plotter:
                     x_values.extend(node_data[x_parameter])
                     y_values.extend(node_data[y_parameter])
 
+                x_values = np.array(x_values)
+                y_values = np.array(y_values)
+                # Find indices where neither x_values nor y_values are NaN
+                valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+
+                # Filter the values using these indices
+                x_values = x_values[valid_indices]
+                y_values = y_values[valid_indices]
+
+                if extent is None:
+                    x_extent = [-1, 1] if scale[0] == 'tanh' else [
+                        np.nanmin(x_values), np.nanmax(x_values)]
+                    y_extent = [-1, 1] if scale[1] == 'tanh' else [
+                        np.nanmin(y_values), np.nanmax(y_values)]
+
+                    extent = x_extent+y_extent
+
                 fig, axs = plt.subplots(2, 2, figsize=(10, 10), gridspec_kw={
                                         'width_ratios': [4, 1], 'height_ratios': [1, 4]})
 
-                if scale == 'tanh':
-                    Plotter.plot_hexbin(
-                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale, colormap=colormap)
-                    Plotter.plot_histogram(values=y_values,
-                                           ax=axs[0, 0], scale=scale)
-                    Plotter.plot_histogram(
-                        values=x_values, ax=axs[1, 1], rotated=True, scale=scale)
-                else:
-                    Plotter.plot_hexbin(
-                        ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, colormap=colormap)
-                    Plotter.plot_histogram(values=y_values,
-                                           ax=axs[0, 0])
-                    Plotter.plot_histogram(
-                        values=x_values, ax=axs[1, 1], rotated=True)
+                print(f'{extent = }')
 
-                axs[0, 0].set_xlim(axs[1, 0].get_xlim())
-                axs[0, 0].set_xticks([])
+                Plotter.plot_hexbin(
+                    ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale, colormap=colormap)
+                Plotter.plot_histogram(
+                    values=x_values, ax=axs[0, 0], scale=scale[0], extent=[extent[0], extent[1]])
+                Plotter.plot_histogram(
+                    values=y_values, ax=axs[1, 1], scale=scale[1], extent=[extent[2], extent[3]], rotated=True)
 
-                axs[1, 1].set_ylim(axs[1, 0].get_ylim())
-                axs[1, 1].set_yticks([])
+                # axs[0, 0].set_xlim(axs[1, 0].get_xlim())
+                # axs[0, 0].set_xticks([])
 
-                axs[0, 1].set_xticks([])
-                axs[0, 1].set_yticks([])
-                for spine in axs[0, 1].spines.values():
-                    spine.set_visible(False)
+                # axs[1, 1].set_ylim(axs[1, 0].get_ylim())
+                # axs[1, 1].set_yticks([])
+
+                # axs[0, 1].set_xticks([])
+                # axs[0, 1].set_yticks([])
+                # for spine in axs[0, 1].spines.values():
+                #     spine.set_visible(False)
 
                 if show_time:
                     if isinstance(group_data["time"], float):
@@ -816,5 +877,7 @@ class Plotter:
                     x_parameter, x_parameter))
                 axs[1, 0].set_ylabel(self._parameter_dict.get(
                     y_parameter, y_parameter))
+
+                # axs[1, 1].invert_yaxis()
 
                 saver.save(fig)
