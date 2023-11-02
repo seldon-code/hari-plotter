@@ -240,10 +240,6 @@ class Plotter:
             extent = [-1, 1] if scale == 'tanh' else [
                 np.nanmin(values), np.nanmax(values)]
 
-        print(f'histogram {extent = }')
-
-        print(f'{np.nanmax(values) = }')
-
         if rotated:
             sns.kdeplot(y=values, ax=ax, fill=True)
             sns.histplot(y=values, kde=False, ax=ax,
@@ -319,8 +315,6 @@ class Plotter:
                 np.nanmin(y_values), np.nanmax(y_values)]
 
             extent = x_extent+y_extent
-
-        print(f'hexbin {extent = }')
 
         delta_x = 0.1*(extent[1]-extent[0])
         x_field_extent = [extent[0]-delta_x, extent[1]+delta_x]
@@ -844,8 +838,6 @@ class Plotter:
                 fig, axs = plt.subplots(2, 2, figsize=(10, 10), gridspec_kw={
                                         'width_ratios': [4, 1], 'height_ratios': [1, 4]})
 
-                print(f'{extent = }')
-
                 Plotter.plot_hexbin(
                     ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale, colormap=colormap)
                 Plotter.plot_histogram(
@@ -853,16 +845,16 @@ class Plotter:
                 Plotter.plot_histogram(
                     values=y_values, ax=axs[1, 1], scale=scale[1], extent=[extent[2], extent[3]], rotated=True)
 
-                # axs[0, 0].set_xlim(axs[1, 0].get_xlim())
-                # axs[0, 0].set_xticks([])
+                axs[0, 0].set_xlim(axs[1, 0].get_xlim())
+                axs[0, 0].set_xticks([])
 
-                # axs[1, 1].set_ylim(axs[1, 0].get_ylim())
-                # axs[1, 1].set_yticks([])
+                axs[1, 1].set_ylim(axs[1, 0].get_ylim())
+                axs[1, 1].set_yticks([])
 
-                # axs[0, 1].set_xticks([])
-                # axs[0, 1].set_yticks([])
-                # for spine in axs[0, 1].spines.values():
-                #     spine.set_visible(False)
+                axs[0, 1].set_xticks([])
+                axs[0, 1].set_yticks([])
+                for spine in axs[0, 1].spines.values():
+                    spine.set_visible(False)
 
                 if show_time:
                     if isinstance(group_data["time"], float):
@@ -877,7 +869,5 @@ class Plotter:
                     x_parameter, x_parameter))
                 axs[1, 0].set_ylabel(self._parameter_dict.get(
                     y_parameter, y_parameter))
-
-                # axs[1, 1].invert_yaxis()
 
                 saver.save(fig)
