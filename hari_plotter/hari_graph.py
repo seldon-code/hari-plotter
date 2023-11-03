@@ -266,6 +266,18 @@ class HariGraph(nx.DiGraph):
             # Update the node's attributes with the gathered parameters
             self.nodes[node_id].update(parameters)
 
+    def has_self_loops(self):
+        """
+        Checks if the graph contains any self-loops.
+
+        Returns:
+            bool: True if there is at least one self-loop in the graph, False otherwise.
+        """
+        for node in self.nodes:
+            if self.has_edge(node, node):
+                return True  # A self-loop exists
+        return False  # No self-loops found
+
     def remove_self_loops(self):
         """
         Removes any self-loops present in the graph.
