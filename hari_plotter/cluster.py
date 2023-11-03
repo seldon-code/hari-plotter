@@ -6,6 +6,7 @@ from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
 import matplotlib.pyplot as plt
 import numpy as np
 import seaborn as sns
+import skfuzzy as fuzz
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
@@ -279,3 +280,101 @@ class KMeansCluster(Cluster):
         else:
             raise ValueError(
                 "After removing NaN values, no data points remain for clustering.")
+
+
+class FuzzyCMeanCluster(Cluster):
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, fuzzy_membership: np.ndarray):
+        super().__init__(clusters, centroids, labels)
+        self.fuzzy_membership = fuzzy_membership
+
+    def get_number_of_clusters(self) -> int:
+        """
+        Get the number of clusters.
+
+        Returns:
+        - int : The number of clusters.
+        """
+        return len(self.centroids)
+
+    @classmethod
+    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
+                  scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
+        """
+        Creates an instance of FuzzyCMeanCluster from a structured data dictionary,
+        applying specified scaling to each parameter if needed.
+
+        Args:
+            data_dict: A dictionary with a 'data' key whose value is another 
+                    dictionary mapping integer node numbers to another dictionary 
+                    of parameter names and their corresponding list of float values.
+            scale: An optional dictionary where keys are parameter names and 
+                values are functions ('linear' or 'tanh') to be applied to 
+                the parameter values before clustering.
+
+        Returns:
+            FuzzyCMeanCluster: An instance of FuzzyCMeanCluster with clusters, centroids, 
+                            labels, and fuzzy memberships determined from the data.
+
+        Raises:
+            ValueError: If no data points remain after removing NaN values or if
+                        an unknown scaling function is specified.
+        """
+        if scale is None:
+            scale = {}
+
+        # Define the scaling functions
+        scale_funcs = {
+            'linear': lambda x: x,
+            'tanh': np.tanh
+        }
+
+        # Ensure scale contains known functions only
+        for param, func in scale.items():
+            if func not in scale_funcs:
+                raise ValueError(
+                    f"Unknown scale function '{func}' for parameter '{param}'.")
+
+        # Flatten the data and remove NaN values
+        flat_data = []
+        for node_data in data_dict['data'].values():
+            for values in node_data.values():
+                flat_data.extend(values)
+        flat_data = np.array(flat_data)
+
+        # Reshape flat_data to 2D array (n_samples, n_features)
+        num_features = len(next(iter(data_dict['data'].values())))
+        points = flat_data.reshape(-1, num_features)
+
+        # Remove NaN values
+        if np.isnan(points).any():
+            points = points[~np.isnan(points).any(axis=1)]
+
+        # Apply scaling to the appropriate parameters
+        for i, (parameter_name, scaling_function) in enumerate(scale.items()):
+            if scaling_function in scale_funcs:
+                points[:, i] = scale_funcs[scaling_function](points[:, i])
+            else:
+                raise ValueError(
+                    f"Unknown scaling function '{scaling_function}' for parameter '{parameter_name}'.")
+
+        # Ensure there is data to cluster
+        if not points.size:
+            raise ValueError("No data points remain after preprocessing.")
+
+        # Perform Fuzzy C-Means clustering, assuming 2 clusters
+        cntr, u, _, _, _, _, _ = fuzz.cluster.cmeans(
+            points.T, 2, 2, error=0.005, maxiter=1000, init=None
+        )
+
+        # Determine cluster membership
+        labels = np.argmax(u, axis=0)
+        clusters = [points[labels == k] for k in range(2)]
+
+        return cls(clusters, cntr, labels, u)
+
+    def predict_cluster(self, data_point: List[float]) -> int:
+        # In Fuzzy C-Means, the prediction would return the cluster with the highest membership.
+        u, u0, d, jm, p, fpc = fuzz.cluster.cmeans_predict(
+            np.array([data_point]).T, self.centroids, 2, error=0.005, maxiter=1000)
+
+        return np.argmax(u, axis=0)[0]
