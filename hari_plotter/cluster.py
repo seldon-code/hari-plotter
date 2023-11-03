@@ -17,10 +17,11 @@ class Cluster(ABC):
     # This dictionary will hold the subclass references with their names
     clusterization_methods = {}
 
-    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray):
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, parameters: List[str]):
         self.clusters = clusters
         self.centroids = centroids
         self.labels = labels
+        self.parameters = parameters  # Stores the list of parameter names
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -76,12 +77,27 @@ class Cluster(ABC):
         """
         pass
 
+    @abstractmethod
+    def degree_of_membership(self, data_point: List[float]) -> List[float]:
+        """
+        Abstract method to predict the 'probability' of belonging to each cluster for a new data point.
+        """
+        pass
+
+    @abstractmethod
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Abstract method to reorder clusters based on a new order.
+        Assumes that the new_order list contains the indices of the clusters in their new order.
+        """
+        pass
+
 
 class KMeansCluster(Cluster):
     """A KMeans clustering representation, extending the generic Cluster class."""
 
-    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray):
-        super().__init__(clusters, centroids, labels)
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, parameters: List[str]):
+        super().__init__(clusters, centroids, labels, parameters)
 
     def get_number_of_clusters(self) -> int:
         """
@@ -250,20 +266,17 @@ class KMeansCluster(Cluster):
                 raise ValueError(
                     f"Unknown scale function '{func}' for parameter '{param}'.")
 
-        parameter_names = next(iter(data_dict['data'].values())).keys()
-        node_numbers = data_dict['data'].keys()
+        # Retrieve parameter names and initialize points array
+        parameter_names = list(next(iter(data_dict['data'].values())).keys())
+        points = []
 
-        # Convert the nested dictionary into a list of data points
-        data_points = []
-        for node_number in node_numbers:
-            for parameter_name in parameter_names:
-                data_points.append(
-                    data_dict['data'][node_number][parameter_name])
+        # Extract and flatten data points from the nested dictionary
+        for node_data in data_dict['data'].values():
+            node_values = [node_data[param] for param in parameter_names]
+            points.append(node_values)
+        points = np.array(points).reshape(-1, len(parameter_names))
 
-        # Convert list to numpy array and reshape
-        points = np.array(data_points).reshape(-1, len(parameter_names))
-
-        # Check for NaN values and remove any rows that contain NaN
+        # Remove NaN values
         if np.isnan(points).any():
             points = points[~np.isnan(points).any(axis=1)]
 
@@ -276,16 +289,62 @@ class KMeansCluster(Cluster):
         # Proceed with clustering if points has data left
         if points.size > 0:
             clusters, centroids, labels = cls.optimal_clusters(points)
-            return cls(clusters, centroids, labels)
+            # Create an instance of KMeansCluster with clusters, centroids, labels, and parameter names
+            return cls(clusters, centroids, labels, parameter_names)
         else:
             raise ValueError(
                 "After removing NaN values, no data points remain for clustering.")
 
+    def degree_of_membership(self, data_point: List[float]) -> List[float]:
+        """
+        Predicts the 'probability' of belonging to each cluster for a new data point.
+
+        Since KMeans does not provide probabilities but hard assignments, this method
+        will return a list with a 1 at the index of the assigned cluster and 0s elsewhere.
+
+        Args:
+            data_point: The new data point's parameter values as a list of floats.
+
+        Returns:
+            List[float]: A list of zeros and one one, indicating the cluster assignment.
+        """
+        nearest_cluster_index = self.predict_cluster(data_point)
+        return [1.0 if i == nearest_cluster_index else 0.0 for i in range(len(self.centroids))]
+
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Reorders clusters and associated information based on a new order.
+
+        Args:
+            new_order: A list containing the indices of the clusters in their new order.
+
+        Raises:
+            ValueError: If new_order does not contain all existing cluster indices.
+        """
+        if set(new_order) != set(range(len(self.centroids))):
+            raise ValueError(
+                "New order must contain all existing cluster indices.")
+
+        self.centroids = self.centroids[new_order]
+        self.clusters = [self.clusters[i] for i in new_order]
+        # Create a mapping from old to new labels
+        label_mapping = {old: new for new, old in enumerate(new_order)}
+        self.labels = np.array([label_mapping[label] for label in self.labels])
+
 
 class FuzzyCMeanCluster(Cluster):
-    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, fuzzy_membership: np.ndarray):
-        super().__init__(clusters, centroids, labels)
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, fuzzy_membership: np.ndarray, parameters: List[str]):
+        super().__init__(clusters, centroids, labels, parameters)
         self.fuzzy_membership = fuzzy_membership
+
+    def calculate_fpc(self) -> float:
+        """
+        Calculates the Fuzzy Partition Coefficient (FPC) for the clustering.
+
+        Returns:
+            float: The FPC value.
+        """
+        return np.mean(np.sum(self.fuzzy_membership ** 2, axis=0) / self.fuzzy_membership.shape[1])
 
     def get_number_of_clusters(self) -> int:
         """
@@ -296,6 +355,48 @@ class FuzzyCMeanCluster(Cluster):
         """
         return len(self.centroids)
 
+    def degree_of_membership(self, data_point: List[float]) -> List[float]:
+        """
+        Predicts the fuzzy membership values for each cluster for a new data point.
+
+        Args:
+            data_point: The new data point's parameter values as a list of floats.
+
+        Returns:
+            List[float]: A list of fuzzy membership values indicating the degree of belonging to each cluster.
+        """
+        # Predict the fuzzy membership values for the data point
+        u, _, _, _, _, _ = fuzz.cluster.cmeans_predict(
+            np.array([data_point]).T, self.centroids, 2, error=0.005, maxiter=1000)
+
+        # Return the membership values for each cluster
+        return u.flatten().tolist()
+
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Reorders clusters, centroids, labels, and fuzzy membership matrix based on a new order.
+
+        Args:
+            new_order: A list containing the indices of the clusters in their new order.
+
+        Raises:
+            ValueError: If new_order does not contain all existing cluster indices.
+        """
+        if set(new_order) != set(range(len(self.centroids))):
+            raise ValueError(
+                "New order must contain all existing cluster indices.")
+
+        # Reorder the centroids and fuzzy memberships
+        self.centroids = self.centroids[new_order, :]
+        self.fuzzy_membership = self.fuzzy_membership[new_order, :]
+
+        # Update clusters and labels based on the new order
+        self.clusters = [self.clusters[i] for i in new_order]
+        label_mapping = {old: new for new, old in enumerate(new_order)}
+        self.labels = np.array([label_mapping[label] for label in self.labels])
+
+        # Since fuzzy memberships are not a hard assignment, we do not need to update the fuzzy_membership array
+
     @classmethod
     def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
                   scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
@@ -305,15 +406,15 @@ class FuzzyCMeanCluster(Cluster):
 
         Args:
             data_dict: A dictionary with a 'data' key whose value is another 
-                    dictionary mapping integer node numbers to another dictionary 
-                    of parameter names and their corresponding list of float values.
+                       dictionary mapping integer node numbers to another dictionary 
+                       of parameter names and their corresponding list of float values.
             scale: An optional dictionary where keys are parameter names and 
-                values are functions ('linear' or 'tanh') to be applied to 
-                the parameter values before clustering.
+                   values are functions ('linear' or 'tanh') to be applied to 
+                   the parameter values before clustering.
 
         Returns:
             FuzzyCMeanCluster: An instance of FuzzyCMeanCluster with clusters, centroids, 
-                            labels, and fuzzy memberships determined from the data.
+                               labels, and fuzzy memberships determined from the data.
 
         Raises:
             ValueError: If no data points remain after removing NaN values or if
@@ -334,28 +435,25 @@ class FuzzyCMeanCluster(Cluster):
                 raise ValueError(
                     f"Unknown scale function '{func}' for parameter '{param}'.")
 
-        # Flatten the data and remove NaN values
-        flat_data = []
-        for node_data in data_dict['data'].values():
-            for values in node_data.values():
-                flat_data.extend(values)
-        flat_data = np.array(flat_data)
+        # Retrieve parameter names and initialize points array
+        parameter_names = list(next(iter(data_dict['data'].values())).keys())
+        points = []
 
-        # Reshape flat_data to 2D array (n_samples, n_features)
-        num_features = len(next(iter(data_dict['data'].values())))
-        points = flat_data.reshape(-1, num_features)
+        # Extract and flatten data points from the nested dictionary
+        for node_data in data_dict['data'].values():
+            node_values = [node_data[param] for param in parameter_names]
+            points.append(node_values)
+        points = np.array(points).reshape(-1, len(parameter_names))
 
         # Remove NaN values
         if np.isnan(points).any():
             points = points[~np.isnan(points).any(axis=1)]
 
         # Apply scaling to the appropriate parameters
-        for i, (parameter_name, scaling_function) in enumerate(scale.items()):
-            if scaling_function in scale_funcs:
-                points[:, i] = scale_funcs[scaling_function](points[:, i])
-            else:
-                raise ValueError(
-                    f"Unknown scaling function '{scaling_function}' for parameter '{parameter_name}'.")
+        for i, parameter_name in enumerate(parameter_names):
+            if parameter_name in scale:
+                func = scale_funcs[scale[parameter_name]]
+                points[:, i] = func(points[:, i])
 
         # Ensure there is data to cluster
         if not points.size:
@@ -370,7 +468,8 @@ class FuzzyCMeanCluster(Cluster):
         labels = np.argmax(u, axis=0)
         clusters = [points[labels == k] for k in range(2)]
 
-        return cls(clusters, cntr, labels, u)
+        # Create an instance of FuzzyCMeanCluster with clusters, centroids, labels, fuzzy memberships, and parameter names
+        return cls(clusters, cntr, labels, u, parameter_names)
 
     def predict_cluster(self, data_point: List[float]) -> int:
         # In Fuzzy C-Means, the prediction would return the cluster with the highest membership.
