@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import math
 import os
 import shutil
@@ -56,7 +58,7 @@ class PlotSaver:
         except NameError:
             return False
 
-    def __enter__(self) -> 'PlotSaver':
+    def __enter__(self) -> PlotSaver:
         """
         Entry point for the context manager.
 
@@ -154,7 +156,7 @@ class Plotter:
         return self.interface.available_parameters
 
     @classmethod
-    def create_plotter(cls, data) -> 'Plotter':
+    def create_plotter(cls, data) -> Plotter:
         """
         Class method to create a Plotter instance given data.
 
