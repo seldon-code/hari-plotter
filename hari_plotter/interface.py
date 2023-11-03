@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
@@ -43,7 +45,7 @@ class Interface(ABC):
             Interface.available_classes[cls.REQUIRED_TYPE] = cls
 
     @classmethod
-    def create_interface(cls, data: Any) -> 'Interface':
+    def create_interface(cls, data: Any) -> Interface:
         """Create an interface for the given data.
 
         Args:
@@ -374,6 +376,9 @@ class SimulationInterface(Interface):
 
         Yields:
             dict: Dictionary containing the image data and its associated time.
+
+        Note:
+            Are self-loops good?
         """
         for group in self.data.dynamics.groups:
             image = self.data.dynamics[group[-1]].copy()
