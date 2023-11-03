@@ -12,8 +12,13 @@ class TestCluster:
         H = HariGraph.read_network(
             'tests/network.txt', 'tests/opinions_0.txt')
         cls.H_interface = Interface.create_interface(H)
-        for data in cls.H_interface.group_values_iterator(['opinion', 'neighbor_mean_opinion']):
-            cls.H_cluster = Cluster.create_cluster('KMeansCluster', data)
 
     def test_from_H(self):
-        assert isinstance(self.H_cluster, Cluster)
+        for data in self.H_interface.group_values_iterator(['opinion', 'neighbor_mean_opinion']):
+            H_cluster = Cluster.create_cluster('KMeansCluster', data)
+            assert isinstance(H_cluster, Cluster)
+
+        for data in self.H_interface.group_values_iterator(['opinion', 'neighbor_mean_opinion']):
+            H_cluster = Cluster.create_cluster('KMeansCluster', data, scale={
+                                               'opinion': 'tanh', 'neighbor_mean_opinion': 'tanh'})
+            assert isinstance(H_cluster, Cluster)

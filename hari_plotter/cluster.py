@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
-from typing import Any, Dict, Iterator, List, Optional, Type, Union
+from typing import Any, Callable, Dict, Iterator, List, Optional, Type, Union
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -32,31 +32,34 @@ class Cluster(ABC):
             "This method must be implemented in subclasses")
 
     @classmethod
-    def create_cluster(cls, method_name: str, data: Dict[str, Dict[int, List[float]]]) -> Cluster:
+    def create_cluster(cls, method_name: str, data: Dict[str, Dict[int, List[float]]],
+                       scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
         """
-        Factory method that creates an instance of a subclass of `Cluster` based on the provided method name.
-
-        This method looks up the subclass in the `clusterization_methods` dictionary using the given method name
-        and calls the subclass's `from_data` method to create an instance.
+        Factory method that creates an instance of a subclass of `Cluster` based on the provided method name
+        and applies specified scaling functions to the data before clustering.
 
         Args:
-            method_name (str): The name of the clusterization method corresponding to a subclass of `Cluster`.
-            data (Dict[str, Dict[int, List[float]]]): The data to be clustered, structured as a dictionary.
-                The keys are string identifiers, and the values are dictionaries mapping integers to lists of floats.
+            method_name: The name of the clusterization method corresponding to a subclass of `Cluster`.
+            data: The data to be clustered, structured as a dictionary with the key 'data' and value as another
+                dictionary mapping integers to lists of float values.
+            scale: An optional dictionary where keys are parameter names and values are functions ('linear' or 'tanh')
+                to be applied to the parameter values before clustering. If not provided, no scaling is applied.
 
         Returns:
-            Cluster: An instance of the subclass of `Cluster` that corresponds to the given method name.
+            An instance of the subclass of `Cluster` that corresponds to the given method name.
 
         Raises:
             ValueError: If the method name is not recognized (i.e., not found in the `clusterization_methods`).
         """
         if method_name not in cls.clusterization_methods:
-            raise ValueError(
-                f"Clusterization method {method_name} not recognized. Available methods: {list(cls.clusterization_methods.keys())}")
+            raise ValueError(f"Clusterization method '{method_name}' not recognized. "
+                             f"Available methods: {list(cls.clusterization_methods.keys())}")
 
-        # Get the subclass and call its from_data method
+        # Get the subclass corresponding to the method name
         method_cls = cls.clusterization_methods[method_name]
-        return method_cls.from_data(data)
+
+        # Create an instance of the subclass from the data, applying any specified scaling functions
+        return method_cls.from_data(data, scale)
 
     @abstractmethod
     def get_number_of_clusters(self) -> int:
@@ -209,19 +212,43 @@ class KMeansCluster(Cluster):
         return clusters, centroids, labels  # Ensure three values are returned here
 
     @classmethod
-    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]]) -> Cluster:
-        """Creates an instance of KMeansCluster from a structured data dictionary.
+    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
+                  scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
+        """
+        Creates an instance of KMeansCluster from a structured data dictionary,
+        applying specified scaling to each parameter if needed.
 
         Args:
-            data_dict: A dictionary where the key is a string representing the group and the value
-                       is another dictionary of integer keys and list of float values.
+            data_dict: A dictionary with a 'data' key whose value is another 
+                    dictionary mapping integer node numbers to another dictionary of 
+                    parameter names and their corresponding list of float values.
+            scale: An optional dictionary where keys are parameter names and 
+                values are functions ('linear' or 'tanh') to be applied to 
+                the parameter values before clustering.
 
         Returns:
-            KMeansCluster: An instance of KMeansCluster with clusters, centroids, and labels determined from the data.
+            KMeansCluster: An instance of KMeansCluster with clusters, centroids, 
+                        and labels determined from the data.
 
         Raises:
-            ValueError: If no data points remain after removing NaN values.
+            ValueError: If no data points remain after removing NaN values or if
+                        an unknown scaling function is specified.
         """
+        if scale is None:
+            scale = {}
+
+        # Define the scaling functions
+        scale_funcs = {
+            'linear': lambda x: x,
+            'tanh': np.tanh
+        }
+
+        # Ensure scale contains known functions only
+        for param, func in scale.items():
+            if func not in scale_funcs:
+                raise ValueError(
+                    f"Unknown scale function '{func}' for parameter '{param}'.")
+
         parameter_names = next(iter(data_dict['data'].values())).keys()
         node_numbers = data_dict['data'].keys()
 
@@ -232,15 +259,18 @@ class KMeansCluster(Cluster):
                 data_points.append(
                     data_dict['data'][node_number][parameter_name])
 
-        # Convert list to numpy array
-        points = np.array(data_points)
-
-        # Reshape points to (number of samples, number of features)
-        points = points.reshape(-1, len(parameter_names))
+        # Convert list to numpy array and reshape
+        points = np.array(data_points).reshape(-1, len(parameter_names))
 
         # Check for NaN values and remove any rows that contain NaN
         if np.isnan(points).any():
             points = points[~np.isnan(points).any(axis=1)]
+
+        # Apply scaling to the appropriate parameters
+        for i, parameter_name in enumerate(parameter_names):
+            if parameter_name in scale:
+                func = scale_funcs[scale[parameter_name]]
+                points[:, i] = func(points[:, i])
 
         # Proceed with clustering if points has data left
         if points.size > 0:
