@@ -232,6 +232,36 @@ class HariGraphInterface(Interface):
         """
         return self.data.gatherer.gather(params)
 
+    def mean_group_values(self, params: List[str]) -> dict:
+        """
+        Fetch the mean values for nodes based on provided parameters for the HariGraph.
+
+        Args:
+            params (List[str]): List of parameter names.
+
+        Returns:
+            dict: A dictionary containing mean node values and the time stamp.
+        """
+        data = {'data': self._calculate_mean_node_values(
+            [None], params)}  # No group for single image
+        data['time'] = 0
+        return data
+
+    def group_values(self, params: List[str]) -> dict:
+        """
+        Fetch the node values based on provided parameters for the HariGraph.
+
+        Args:
+            params (List[str]): List of parameter names.
+
+        Returns:
+            dict: A dictionary containing node values and the time stamp.
+        """
+        data = {'data': self._calculate_node_values(
+            [None], params)}  # No group for single image
+        data['time'] = 0
+        return data
+
     def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
         Fetch the mean values for groups based on provided parameters for the HariGraph.
@@ -315,6 +345,38 @@ class HariDynamicsInterface(Interface):
             dict: A dictionary containing node values based on provided parameters.
         """
         return self.data[image].gatherer.gather(params)
+
+    def mean_group_values(self, params: List[str], i: int) -> dict:
+        """
+        Fetch the mean values for nodes based on provided parameters for a specific group in the HariDynamics.
+
+        Args:
+            params (List[str]): List of parameter names.
+            i (int): Index of the group.
+
+        Returns:
+            dict: A dictionary containing mean node values and the time stamp for the specified group.
+        """
+        group = self.data.groups[i]
+        data = {'data': self._calculate_mean_node_values(group, params)}
+        data['time'] = group[-1]
+        return data
+
+    def group_values(self, params: List[str], i: int) -> dict:
+        """
+        Fetch the node values based on provided parameters for a specific group in the HariDynamics.
+
+        Args:
+            params (List[str]): List of parameter names.
+            i (int): Index of the group.
+
+        Returns:
+            dict: A dictionary containing node values and the time stamp for the specified group.
+        """
+        group = self.data.groups[i]
+        data = {'data': self._calculate_node_values(group, params)}
+        data['time'] = group[-1]
+        return data
 
     def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
@@ -407,6 +469,38 @@ class SimulationInterface(Interface):
             dict: A dictionary containing node values based on provided parameters.
         """
         return self.data.dynamics[image].gatherer.gather(params)
+
+    def mean_group_values(self, params: List[str], i: int) -> dict:
+        """
+        Fetch the mean values for nodes based on provided parameters for a specific group in the Simulation.
+
+        Args:
+            params (List[str]): List of parameter names.
+            i (int): Index of the group.
+
+        Returns:
+            dict: A dictionary containing mean node values and the adjusted time stamp for the specified group.
+        """
+        group = self.data.dynamics.groups[i]
+        data = {'data': self._calculate_mean_node_values(group, params)}
+        data['time'] = group[-1] * self.data.model.params.get("dt", 1)
+        return data
+
+    def group_values(self, params: List[str], i: int) -> dict:
+        """
+        Fetch the node values based on provided parameters for a specific group in the Simulation.
+
+        Args:
+            params (List[str]): List of parameter names.
+            i (int): Index of the group.
+
+        Returns:
+            dict: A dictionary containing node values and the adjusted time stamp for the specified group.
+        """
+        group = self.data.dynamics.groups[i]
+        data = {'data': self._calculate_node_values(group, params)}
+        data['time'] = group[-1] * self.data.model.params.get("dt", 1)
+        return data
 
     def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
         """
