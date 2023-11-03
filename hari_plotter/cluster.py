@@ -1,0 +1,251 @@
+from __future__ import annotations
+
+from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from typing import Any, Dict, Iterator, List, Optional, Type, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
+from scipy.spatial.distance import cdist
+from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
+
+
+class Cluster(ABC):
+    """Abstract base class to represent a cluster."""
+    # This dictionary will hold the subclass references with their names
+    clusterization_methods = {}
+
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray):
+        self.clusters = clusters
+        self.centroids = centroids
+        self.labels = labels
+
+    def __init_subclass__(cls, **kwargs):
+        super().__init_subclass__(**kwargs)
+        # Register each subclass in the clusterization_methods dictionary
+        cls.clusterization_methods[cls.__name__] = cls
+
+    @abstractclassmethod
+    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]]) -> Cluster:
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
+    @classmethod
+    def create_cluster(cls, method_name: str, data: Dict[str, Dict[int, List[float]]]) -> Cluster:
+        """
+        Factory method that creates an instance of a subclass of `Cluster` based on the provided method name.
+
+        This method looks up the subclass in the `clusterization_methods` dictionary using the given method name
+        and calls the subclass's `from_data` method to create an instance.
+
+        Args:
+            method_name (str): The name of the clusterization method corresponding to a subclass of `Cluster`.
+            data (Dict[str, Dict[int, List[float]]]): The data to be clustered, structured as a dictionary.
+                The keys are string identifiers, and the values are dictionaries mapping integers to lists of floats.
+
+        Returns:
+            Cluster: An instance of the subclass of `Cluster` that corresponds to the given method name.
+
+        Raises:
+            ValueError: If the method name is not recognized (i.e., not found in the `clusterization_methods`).
+        """
+        if method_name not in cls.clusterization_methods:
+            raise ValueError(
+                f"Clusterization method {method_name} not recognized. Available methods: {list(cls.clusterization_methods.keys())}")
+
+        # Get the subclass and call its from_data method
+        method_cls = cls.clusterization_methods[method_name]
+        return method_cls.from_data(data)
+
+    @abstractmethod
+    def get_number_of_clusters(self) -> int:
+        """
+        Abstract method to get the number of clusters.
+        """
+        pass
+
+    @abstractmethod
+    def predict_cluster(self, data_point: List[float]) -> int:
+        """
+        Abstract method to predict the cluster for a new data point.
+        """
+        pass
+
+
+class KMeansCluster(Cluster):
+    """A KMeans clustering representation, extending the generic Cluster class."""
+
+    def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray):
+        super().__init__(clusters, centroids, labels)
+
+    def get_number_of_clusters(self) -> int:
+        """
+        Get the number of clusters.
+
+        Returns:
+        - int : The number of clusters.
+        """
+        return len(self.centroids)
+
+    def predict_cluster(self, data_point: List[float]) -> int:
+        """
+        Predicts the cluster index to which a new data point belongs based on the centroids.
+
+        Args:
+            data_point: The new data point's parameter values as a list of floats.
+
+        Returns:
+            int: The index of the closest cluster centroid to the data point.
+
+        Raises:
+            ValueError: If the dimensionality of the data point does not match that of the centroids.
+        """
+        # Check if the data point is of the correct dimension
+        if len(data_point) != self.centroids.shape[1]:
+            raise ValueError(
+                "Data point dimensionality does not match number of features in centroids.")
+
+        # Convert the data point to a numpy array and reshape for cdist
+        data_point_np = np.array(data_point).reshape(1, -1)
+
+        # Calculate the distance from this point to each centroid
+        distances = cdist(data_point_np, self.centroids, 'euclidean').flatten()
+
+        # Find the index of the nearest centroid
+        nearest_centroid_index = np.argmin(distances)
+        return nearest_centroid_index
+
+    @staticmethod
+    def is_single_cluster(points: np.ndarray):
+        """
+        Check if the given data represents a single cluster.
+
+        Parameters:
+        - points : np.ndarray
+            n-dimensional data points.
+
+        Returns:
+        - bool : True if data likely represents a single cluster, False otherwise.
+        """
+        kmeans = KMeans(n_clusters=2, init='k-means++',
+                        n_init='auto', random_state=42)
+        kmeans.fit(points)
+        cluster_labels = kmeans.labels_
+        two_cluster_score = silhouette_score(points, cluster_labels)
+
+        return two_cluster_score < 0.75
+
+    @staticmethod
+    def merge_close_clusters(centroids, labels, min_distance):
+        """
+        Merges clusters that are closer than a specified minimum distance.
+
+        Args:
+            centroids: Array containing centroids of clusters.
+            labels: Labels assigned to each data point.
+            min_distance: The minimum distance below which clusters are merged.
+
+        Returns:
+            Tuple[np.ndarray, np.ndarray]: The updated labels and centroids after merging.
+        """
+        distance_matrix = cdist(centroids, centroids, 'euclidean')
+        np.fill_diagonal(distance_matrix, np.inf)
+
+        while np.min(distance_matrix) < min_distance:
+            i, j = np.unravel_index(
+                distance_matrix.argmin(), distance_matrix.shape)
+            labels[labels == j] = i
+            labels[labels > j] -= 1
+            centroids = np.delete(centroids, j, 0)
+            distance_matrix = cdist(centroids, centroids, 'euclidean')
+            np.fill_diagonal(distance_matrix, np.inf)
+
+        return labels, centroids
+
+    @staticmethod
+    def optimal_clusters(points: np.ndarray, min_distance=1e-2):
+        """
+        Finds the optimal clustering of data points and merges close clusters.
+
+        Args:
+            points: A NumPy array of n-dimensional data points.
+            min_distance: The minimum distance between centroids to consider clusters separate.
+
+        Returns:
+            Tuple[List[np.ndarray], np.ndarray, np.ndarray]: The clusters, centroids, and labels.
+        """
+        if KMeansCluster.is_single_cluster(points):
+            # Assuming points.shape[0] is the number of data points.
+            # Create a single centroid that is the mean of all points
+            # and assign all points to a single cluster with label 0.
+            centroid = np.mean(points, axis=0).reshape(
+                1, -1)  # single centroid
+            # all points labeled as 0
+            labels = np.zeros(points.shape[0], dtype=int)
+            # all points in one cluster
+            clusters = [list(range(points.shape[0]))]
+            return clusters, centroid, labels
+
+        wcss = []
+        for i in range(1, 11):
+            kmeans = KMeans(n_clusters=i, init='k-means++',
+                            n_init='auto', random_state=42)
+            kmeans.fit(points)
+            wcss.append(kmeans.inertia_)
+
+        deltas = np.diff(wcss)
+        n = np.where(deltas == np.min(deltas))[0][0] + 2
+
+        kmeans = KMeans(n_clusters=n, init='k-means++',
+                        n_init='auto', random_state=42)
+        kmeans.fit(points)
+        labels, centroids = KMeansCluster.merge_close_clusters(
+            kmeans.cluster_centers_, kmeans.labels_, min_distance)
+
+        unique_labels = np.unique(labels)
+        clusters = [points[labels == label] for label in unique_labels]
+
+        return clusters, centroids, labels  # Ensure three values are returned here
+
+    @classmethod
+    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]]) -> Cluster:
+        """Creates an instance of KMeansCluster from a structured data dictionary.
+
+        Args:
+            data_dict: A dictionary where the key is a string representing the group and the value
+                       is another dictionary of integer keys and list of float values.
+
+        Returns:
+            KMeansCluster: An instance of KMeansCluster with clusters, centroids, and labels determined from the data.
+
+        Raises:
+            ValueError: If no data points remain after removing NaN values.
+        """
+        parameter_names = next(iter(data_dict['data'].values())).keys()
+        node_numbers = data_dict['data'].keys()
+
+        # Convert the nested dictionary into a list of data points
+        data_points = []
+        for node_number in node_numbers:
+            for parameter_name in parameter_names:
+                data_points.append(
+                    data_dict['data'][node_number][parameter_name])
+
+        # Convert list to numpy array
+        points = np.array(data_points)
+
+        # Reshape points to (number of samples, number of features)
+        points = points.reshape(-1, len(parameter_names))
+
+        # Check for NaN values and remove any rows that contain NaN
+        if np.isnan(points).any():
+            points = points[~np.isnan(points).any(axis=1)]
+
+        # Proceed with clustering if points has data left
+        if points.size > 0:
+            clusters, centroids, labels = cls.optimal_clusters(points)
+            return cls(clusters, centroids, labels)
+        else:
+            raise ValueError(
+                "After removing NaN values, no data points remain for clustering.")

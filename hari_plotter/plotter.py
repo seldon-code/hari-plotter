@@ -4,7 +4,7 @@ import math
 import os
 import shutil
 import tempfile
-from typing import Dict, List, Optional, Union, Sequence
+from typing import Dict, List, Optional, Sequence, Union
 
 import imageio
 import matplotlib
