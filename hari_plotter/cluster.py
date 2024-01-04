@@ -139,6 +139,36 @@ class Cluster(ABC):
 
         return [cluster[:, param_indices] for cluster in self.clusters]
 
+    def get_indices_from_parameters(self, params: Union[str, List[str]]) -> Union[int, List[int]]:
+        """
+        Returns the indices corresponding to the given parameter(s).
+
+        Args:
+            params (Union[str, List[str]]): The parameter name or list of parameter names.
+
+        Returns:
+            Union[int, List[int]]: The index or list of indices corresponding to the given parameter(s).
+        """
+        if isinstance(params, str):
+            return self.parameters.index(params)
+        else:
+            return [self.parameters.index(param) for param in params]
+
+    def get_parameters_from_indices(self, indices: Union[int, List[int]]) -> Union[str, List[str]]:
+        """
+        Returns the parameter names corresponding to the given index/indices.
+
+        Args:
+            indices (Union[int, List[int]]): The index or list of indices.
+
+        Returns:
+            Union[str, List[str]]: The parameter name or list of parameter names corresponding to the given index/indices.
+        """
+        if isinstance(indices, int):
+            return self.parameters[indices]
+        else:
+            return [self.parameters[index] for index in indices]
+
 
 class KMeansCluster(Cluster):
     """A KMeans clustering representation, extending the generic Cluster class."""
