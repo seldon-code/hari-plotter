@@ -4,6 +4,7 @@ import math
 import os
 import shutil
 import tempfile
+import warnings
 from typing import Dict, List, Optional, Sequence, Union
 
 import imageio
@@ -14,6 +15,7 @@ import networkx as nx
 import numpy as np
 import seaborn as sns
 
+from .cluster import Cluster
 from .interface import Interface
 
 
@@ -348,6 +350,87 @@ class Plotter:
 
         if show_colorbar:
             plt.colorbar(hb, ax=ax)
+
+    @staticmethod
+    def plot_cluster_sns(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
+        """
+        Plots the fuzzy membership probabilities for each cluster for a 2D slice of the cluster object's data
+        using seaborn's kdeplot.
+
+        Args:
+        - cluster (FuzzyCMeanCluster): A Cluster object with fitted clusters and fuzzy memberships.
+        - x_feature_name (int): The index of the feature to be plotted on the x-axis.
+        - y_feature_name (int): The index of the feature to be plotted on the y-axis.
+        - extent (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
+        - resolution (int): The number of points to generate in the mesh for the plot.
+
+        Returns:
+        None
+        """
+
+        scale = ['linear', 'linear'] if scale is None else scale
+
+        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
+
+        if extent is None:
+            x_extent = [-1, 1] if scale[0] == 'tanh' else [
+                np.nanmin(x_values), np.nanmax(x_values)]
+            y_extent = [-1, 1] if scale[1] == 'tanh' else [
+                np.nanmin(y_values), np.nanmax(y_values)]
+
+            extent = x_extent+y_extent
+
+        x_min, x_max, y_min, y_max = extent
+        xx, yy = np.meshgrid(np.linspace(
+            x_min, x_max, resolution), np.linspace(y_min, y_max, resolution))
+
+        # Prepare data for the contour plot
+        mesh_points = np.c_[xx.ravel(), yy.ravel()]
+
+        # Create arrays to hold data for kdeplot
+        xs, ys, memberships, clusters_idx = [], [], [], []
+
+        # Calculate the fuzzy membership for each point on the meshgrid for each cluster
+        for cluster_index in range(cluster.get_number_of_clusters()):
+            # Get membership values for each point in the mesh grid for the current cluster
+            membership_values = np.array([
+                cluster.degree_of_membership(
+                    [point[0], point[1]])[cluster_index]
+                for point in mesh_points
+            ])
+
+            # Collect data for plotting
+            xs.extend(mesh_points[:, 0])
+            ys.extend(mesh_points[:, 1])
+            memberships.extend(membership_values)
+            clusters_idx.extend([cluster_index] * len(membership_values))
+
+        # Plot the membership probabilities using seaborn kdeplot
+        sns.kdeplot(ax=ax,
+                    x=xs,
+                    y=ys,
+                    hue=clusters_idx,
+                    weights=memberships,
+                    levels=5,
+                    thresh=0.5,
+                    alpha=0.5,
+                    cmap="mako"
+                    )
+
+        # Plot centroids
+        centroids = cluster.centroids
+        plt.scatter(centroids[:, 0], centroids[:, 1],
+                    color='red', label='Centroids', marker='X', s=100)
+
+        # Setting the plot limits and labels
+        plt.xlim(x_min, x_max)
+        plt.ylim(y_min, y_max)
+
+        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
+            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
+
+        if tanh_axis is not None:
+            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
 
     def draw(self,
              mode: str = 'show',
@@ -870,6 +953,71 @@ class Plotter:
                 axs[1, 0].set_xlabel(self._parameter_dict.get(
                     x_parameter, x_parameter))
                 axs[1, 0].set_ylabel(self._parameter_dict.get(
+                    y_parameter, y_parameter))
+
+                saver.save(fig)
+
+    def plot_2D_clusters(self, x_parameter: str, y_parameter: str,
+                         mode: str = 'show',
+                         save_dir: Optional[str] = None,
+                         gif_path: Optional[str] = None,
+                         show_time: bool = False,
+                         extent: Optional[Union[list, tuple]] = None,
+                         cmax: Optional[float] = None,
+                         colormap: str = 'inferno',
+                         scale: list = None,
+                         name: str = '2D_clusters',
+                         cluster_type: str = 'FuzzyCMeanCluster',
+                         plot_type: str = 'sns'):
+        """
+        Plot the mean opinion of the neighbors of nodes.
+
+        Parameters:
+        - x_parameter (str): Parameter to show on x axis
+        - y_parameter (str): Parameter to show on y axis
+        - mode (str): Mode of the plot. Default is 'show'.
+        - save_dir (str, optional): Directory to save the plot. Default is None.
+        - gif_path (str, optional): Path to save the gif. Default is None.
+        - show_time (bool): Whether to show time in the plot. Default is False.
+        - extent (list/tuple, optional): Range of the plot. Default is None.
+        - cmax (float, optional): Maximum value for the color scale. Default is None.
+        - colormap (str): Colormap for the plot. Default is 'inferno'.
+        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
+        - name (str): Name of the plot. Default is '2D_distribution'.
+        """
+
+        if scale is None:
+            scale = ['linear', 'linear']
+
+        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
+
+                cluster = Cluster.create_cluster(cluster_type, group_data, scale={
+                                                 x_parameter: scale[0], y_parameter: scale[1]})
+
+                # print(f'{cluster.get_number_of_clusters() = }')
+                # print(f'{cluster.calculate_fpc() = }')
+
+                fig, ax = plt.subplots(figsize=(10, 7))
+                # Call the function to plot the clusters and decision boundaries
+                match plot_type:
+                    case 'sns':
+                        Plotter.plot_cluster_sns(ax=ax, cluster=cluster, x_feature_name=x_parameter,
+                                                 y_feature_name=y_parameter, scale=scale, extent=extent)
+                    case _:
+                        warnings.warn('Plot type unknown')
+
+                if show_time:
+                    if isinstance(group_data["time"], float):
+                        formatted_time = "{:.2f}".format(group_data["time"])
+                    else:
+                        formatted_time = str(group_data["time"])
+
+                    ax.set_title(f't = {formatted_time}')
+
+                ax.set_xlabel(self._parameter_dict.get(
+                    x_parameter, x_parameter))
+                ax.set_ylabel(self._parameter_dict.get(
                     y_parameter, y_parameter))
 
                 saver.save(fig)

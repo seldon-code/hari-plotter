@@ -13,15 +13,39 @@ from sklearn.metrics import silhouette_score
 
 
 class Cluster(ABC):
-    """Abstract base class to represent a cluster."""
-    # This dictionary will hold the subclass references with their names
+    """
+    Abstract base class representing a cluster. It provides a template for clustering algorithms.
+
+    Attributes:
+        clusters (List[np.ndarray]): A list of clusters, where each cluster is represented by a numpy array.
+        centroids (np.ndarray): An array of centroids for the clusters.
+        labels (np.ndarray): An array indicating the label of each data point.
+        parameters (List[str]): A list of parameter names used for clustering.
+    """
+
     clusterization_methods = {}
 
     def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, parameters: List[str]):
+        """
+        Initializes the Cluster object with cluster data.
+
+        Args:
+            clusters (List[np.ndarray]): List of numpy arrays, each representing a cluster. 
+                                         Each array contains the indices or representations of 
+                                         data points belonging to that cluster.
+            centroids (np.ndarray): A numpy array representing the centroids of the clusters.
+                                    Each row in this array corresponds to a centroid.
+            labels (np.ndarray): A numpy array representing the cluster labels for each data point. 
+                                 The value in each position indicates the cluster to which the 
+                                 corresponding data point belongs.
+            parameters (List[str]): A list of strings representing the names of the parameters 
+                                    or features used in clustering. These names correspond to the 
+                                    dimensions/features in the data points.
+        """
         self.clusters = clusters
         self.centroids = centroids
         self.labels = labels
-        self.parameters = parameters  # Stores the list of parameter names
+        self.parameters = parameters
 
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
@@ -91,6 +115,29 @@ class Cluster(ABC):
         Assumes that the new_order list contains the indices of the clusters in their new order.
         """
         pass
+
+    def __getitem__(self, key: Union[str, List[str]]) -> List[np.ndarray]:
+        """
+        Returns the values corresponding to the given parameter(s) for all points in the clusters.
+
+        Args:
+            key (Union[str, List[str]]): The parameter name or list of parameter names.
+
+        Returns:
+            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster 
+                              and contains the values of the specified parameter(s) for each point in that cluster.
+        """
+        if isinstance(key, str):
+            # Single parameter requested
+            key = [key]
+
+        if not all(k in self.parameters for k in key):
+            raise KeyError(
+                "One or more requested parameters are not found in the cluster parameters.")
+
+        param_indices = [self.parameters.index(k) for k in key]
+
+        return [cluster[:, param_indices] for cluster in self.clusters]
 
 
 class KMeansCluster(Cluster):
