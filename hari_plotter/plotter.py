@@ -352,6 +352,177 @@ class Plotter:
             plt.colorbar(hb, ax=ax)
 
     @staticmethod
+    def plot_cluster_boundaries(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
+        """
+        Plots the decision boundaries for a 2D slice of the cluster object's data.
+
+        Args:
+        - cluster (Cluster): A Cluster object with fitted clusters.
+        - x_feature_index (int): The index of the feature to be plotted on the x-axis.
+        - y_feature_index (int): The index of the feature to be plotted on the y-axis.
+        - plot_limits (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
+        - resolution (int): The number of points to generate in the mesh for the plot.
+
+        Returns:
+        None
+        """
+        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
+
+        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+            [x_feature_name, y_feature_name])
+
+        if extent is None:
+            x_extent = [-1, 1] if scale[0] == 'tanh' else [
+                np.nanmin(x_values), np.nanmax(x_values)]
+            y_extent = [-1, 1] if scale[1] == 'tanh' else [
+                np.nanmin(y_values), np.nanmax(y_values)]
+
+            extent = x_extent+y_extent
+
+        x_min, x_max, y_min, y_max = extent
+
+        xx, yy = np.meshgrid(
+            np.linspace(x_min, x_max, resolution), np.linspace(
+                y_min, y_max, resolution)
+        )
+
+        # Form a grid by stacking mesh points into a (N, 2) array, representing all points in the 2D plane
+        mesh_points = np.c_[xx.ravel(), yy.ravel()]
+
+        # Predict the cluster index for each point on the mesh grid
+        Z = np.array(
+            [
+                cluster.predict_cluster(
+                    [mesh_points[i, x_feature_index],
+                        mesh_points[i, y_feature_index]]
+                )
+                for i in range(mesh_points.shape[0])
+            ]
+        )
+        Z = Z.reshape(xx.shape)
+
+        # Create the plot
+        ax.contourf(xx, yy, Z, alpha=0.4)
+
+        # Plot the actual data points with labels
+        for i, cluster_points in enumerate(cluster.clusters):
+            # Ensure cluster_points is a list of lists, even if there's only one point
+            # This means there's only one point, and it's given as an int index
+            if isinstance(cluster_points, int):
+                # Encapsulate the index in a list to standardize the structure
+                cluster_points = [cluster_points]
+            elif not isinstance(cluster_points[0], (list, np.ndarray)):
+                # Encapsulate single data point in a list
+                cluster_points = [cluster_points]
+
+            # Now cluster_points is guaranteed to be a list of lists (or arrays), and we can proceed
+            points = np.array(cluster_points)
+            ax.scatter(
+                points[:, x_feature_index], points[:,
+                                                   y_feature_index], label=f"Cluster {i}"
+            )
+
+        # Plot centroids if they are 2D
+        if cluster.centroids.shape[1] == 2:
+            ax.scatter(
+                cluster.centroids[:, x_feature_index],
+                cluster.centroids[:, y_feature_index],
+                color="red",
+                label="Centroids",
+                marker="X",
+            )
+
+        # Setting the plot limits
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+
+        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
+            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
+
+        if tanh_axis is not None:
+            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
+
+    @staticmethod
+    def plot_cluster_degree_of_membership(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
+        """
+        Plots the fuzzy membership probabilities for a 2D slice of the cluster object's data.
+
+        Args:
+        - cluster (FuzzyCMeanCluster): A Cluster object with fitted clusters and fuzzy memberships.
+        - x_feature_index (int): The index of the feature to be plotted on the x-axis.
+        - y_feature_index (int): The index of the feature to be plotted on the y-axis.
+        - plot_limits (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
+        - resolution (int): The number of points to generate in the mesh for the plot.
+
+        Returns:
+        None
+        """
+
+        scale = ['linear', 'linear'] if scale is None else scale
+
+        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
+
+        if extent is None:
+            x_extent = [-1, 1] if scale[0] == 'tanh' else [
+                np.nanmin(x_values), np.nanmax(x_values)]
+            y_extent = [-1, 1] if scale[1] == 'tanh' else [
+                np.nanmin(y_values), np.nanmax(y_values)]
+
+            extent = x_extent+y_extent
+
+        x_min, x_max, y_min, y_max = extent
+
+        xx, yy = np.meshgrid(np.linspace(x_min, x_max, resolution),
+                             np.linspace(y_min, y_max, resolution))
+
+        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+            [x_feature_name, y_feature_name])
+
+        # Form a grid by stacking mesh points into a (N, 2) array, representing all points in the 2D plane
+        mesh_points = np.c_[xx.ravel(), yy.ravel()]
+
+        # Predict the membership values for each point on the mesh grid
+        memberships = np.array([cluster.degree_of_membership(
+            [point[x_feature_index], point[y_feature_index]]) for point in mesh_points])
+
+        # We take the highest membership value to decide the cluster color
+        Z = memberships.max(axis=1)
+        Z = Z.reshape(xx.shape)
+
+        # Create the plot
+        ax.contourf(xx, yy, Z, alpha=0.5,
+                    levels=np.linspace(0, 1, 11), cmap='viridis')
+
+        # Plot the actual data points with labels
+        for i, cluster_points in enumerate(cluster.clusters):
+            # Now cluster_points is guaranteed to be a list of arrays, and we can proceed
+            points = np.array(cluster_points)
+            ax.scatter(
+                points[:, x_feature_index],
+                points[:, y_feature_index],
+                label=f'Cluster {i}',
+                cmap='viridis',
+                edgecolors='k'
+            )
+
+        # Plot centroids
+        centroids = cluster.centroids
+        ax.scatter(centroids[:, x_feature_index], centroids[:,
+                                                            y_feature_index], label='Centroids', c='red', marker='X', s=100)
+
+        # Setting the plot limits
+        ax.set_xlim(x_min, x_max)
+        ax.set_ylim(y_min, y_max)
+        ax.legend()
+        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
+            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
+
+        if tanh_axis is not None:
+            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
+
+    # Then call the function as you did before.
+
+    @staticmethod
     def plot_cluster_sns(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
         """
         Plots the fuzzy membership probabilities for each cluster for a 2D slice of the cluster object's data
@@ -1004,6 +1175,12 @@ class Plotter:
                     case 'sns':
                         Plotter.plot_cluster_sns(ax=ax, cluster=cluster, x_feature_name=x_parameter,
                                                  y_feature_name=y_parameter, scale=scale, extent=extent)
+                    case 'degree_of_membership':
+                        Plotter.plot_cluster_degree_of_membership(ax=ax, cluster=cluster, x_feature_name=x_parameter,
+                                                                  y_feature_name=y_parameter, scale=scale, extent=extent)
+                    case 'boundaries':
+                        Plotter.plot_cluster_boundaries(ax=ax, cluster=cluster, x_feature_name=x_parameter,
+                                                        y_feature_name=y_parameter, scale=scale, extent=extent)
                     case _:
                         warnings.warn('Plot type unknown')
 

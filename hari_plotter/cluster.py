@@ -53,7 +53,7 @@ class Cluster(ABC):
         cls.clusterization_methods[cls.__name__] = cls
 
     @abstractclassmethod
-    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]]) -> Cluster:
+    def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]], scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
