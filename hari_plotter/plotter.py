@@ -1,11 +1,16 @@
 from __future__ import annotations
 
+import copy
+import inspect
 import math
 import os
 import shutil
 import tempfile
 import warnings
-from typing import Dict, List, Optional, Sequence, Union
+from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from collections import defaultdict
+from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
+                    Union)
 
 import imageio
 import matplotlib
@@ -16,6 +21,7 @@ import numpy as np
 import seaborn as sns
 
 from .cluster import Cluster
+from .hari_graph import HariGraph
 from .interface import Interface
 
 
@@ -126,7 +132,8 @@ class PlotSaver:
 
 
 class Plotter:
-    _parameter_dict = {'opinion': 'Node Opinion',
+    _parameter_dict = {'time': 'Time',
+                       'opinion': 'Node Opinion',
                        'cluster_size': 'Cluster size',
                        'importance': 'Node Importance',
                        'label': 'Node Label',
@@ -136,7 +143,9 @@ class Plotter:
                        'max_opinion': 'Node Max Opinion',
                        'min_opinion': 'Node Min Opinion'}
 
-    def __init__(self, interface: Interface):
+    _plot_methods = {}
+
+    def __init__(self, interface: Interface, figsize=None):
         """
         Initialize the Plotter object with the given Interface instance.
 
@@ -146,6 +155,260 @@ class Plotter:
             Interface instance to be used for plotting.
         """
         self.interface: Interface = interface
+        self.plots = [[[]]]
+        self._figsize = figsize
+        self.num_rows = 1
+        self.num_cols = 1
+        self.size_ratios = [[1], [1]]
+
+    @property
+    def figsize(self):
+        """
+        Property to get the figure size. If a size was set during initialization, it returns that size.
+        Otherwise, it calculates the size based on the sum of size_ratios.
+
+        Returns:
+            List[int]: The size of the figure as [width, height].
+        """
+        if self._figsize is not None:
+            return self._figsize
+        else:
+            # Calculate size based on the sum of size ratios
+            width = np.sum(self.size_ratios[0])*2
+            height = np.sum(self.size_ratios[1])*2
+            return [width, height]
+
+    @figsize.setter
+    def figsize(self, value):
+        """
+        Property setter to set the figure size.
+
+        Parameters:
+            value (List[int]): The size of the figure as [width, height].
+        """
+        if not isinstance(value, (list, tuple)) or len(value) != 2:
+            raise ValueError(
+                "fig_size must be a list or tuple of two elements: [width, height]")
+        self._figsize = value
+
+    @classmethod
+    def plot_type(cls, plot_name):
+        """
+        Decorator to register a plot method.
+
+        Parameters:
+        plot_name (str): Name of the plot type.
+        instructions (dict): Provides the information about the plot type and function that is used for creating the plot.
+        """
+        def decorator(plot_func):
+            if plot_name in cls._plot_methods:
+                raise ValueError(f"Plot type {plot_name} is already defined.")
+
+            # sig = inspect.signature(plot_func)
+            # method_parameters = {name: param.default for name,
+            #                      param in sig.parameters.items() if name != 'ax'}
+
+            cls._plot_methods[plot_name] = plot_func
+            # cls._plot_methods[plot_name] = {plot_func,
+            #     'method_parameters': method_parameters,
+            #     'instructions': instructions
+            # }
+            return plot_func
+        return decorator
+
+    def expand_plot_grid(self, new_row, new_col):
+        """
+        Expand the plot grid and adjust size ratios to at least the specified number of rows and columns.
+        Existing plots are preserved, and new spaces are filled with individual empty lists.
+        """
+
+        # Expand rows if needed
+        while len(self.plots) <= new_row:
+            self.plots.append([[] for _ in range(len(self.plots[0]))])
+            self.size_ratios[1].append(1)  # Adjust height ratios
+
+        # Expand columns if needed
+        for row in self.plots:
+            while len(row) <= new_col:
+                row.append([])
+
+        # Adjust width ratios for columns
+        if self.plots and len(self.plots[0]) > len(self.size_ratios[0]):
+            additional_cols = len(self.plots[0]) - len(self.size_ratios[0])
+            self.size_ratios[0].extend([1] * additional_cols)
+
+        # Update the stored number of rows and columns
+        self.num_rows = len(self.plots)
+        self.num_cols = len(self.plots[0]) if self.plots else 0
+
+    def add_plot(self, plot_type, plot_arguments, row: int = 0, col: int = 0):
+        self.expand_plot_grid(row, col)
+        plot = self._plot_methods[plot_type](**plot_arguments)
+
+        # Initialize the cell with an empty list if it's None
+        if self.plots[row][col] is None:
+            self.plots[row][col] = []
+
+        # Append the new plot to the cell's list
+        self.plots[row][col].append(plot)
+
+    def plot(self, mode: str = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram') -> None:
+        """
+        Create and display the plots based on the stored configurations.
+        """
+        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+
+            # Determine the rendering order
+            render_order = self._determine_plot_order()
+            # print(f'{render_order = }')
+
+            # Data fetching for static plots
+            static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
+                self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
+            dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
+                self.num_cols) for plot in self.plots[i][j] for item in plot.get_dynamic_plot_requests()]
+
+            # print(f'{static_data_cache_requests = }')
+            # print(f'{dynamic_data_cache_requests = }')
+
+            static_data_cache = {}
+
+            for request in static_data_cache_requests:
+                method_name = request['method']
+                settings = request['settings']
+                data_key = Plotter.request_to_tuple(request)
+                if data_key not in static_data_cache:
+                    # Fetch and cache the data for each group
+                    data_for_all_groups = []
+                    for group in self.interface.groups():
+                        data = getattr(group, method_name)(**settings)
+                        # print(f'{data = }')
+                        data_for_all_groups.append(data)
+
+                    static_data_cache[data_key] = data_for_all_groups
+
+            # print(f'{static_data_cache = }')
+
+            # static cache postprocessing
+
+            # for key, values in static_data_cache.items():
+            #     if 'calculate_node_values' in key:
+            #         static_data_cache[key] = transform_data(values)
+
+            # print(f'{static_data_cache = }')
+
+            for group in self.interface.groups():
+
+                dynamic_data_cache = {}
+                axis_limits = dict()
+
+                for request in dynamic_data_cache_requests:
+                    method_name = request['method']
+                    settings = request['settings']
+                    # print(f'{request = }')
+                    data_key = Plotter.request_to_tuple(request)
+                    if data_key not in dynamic_data_cache:
+                        dynamic_data_cache[data_key] = getattr(
+                            group, method_name)(**settings)
+
+                # print(f'{dynamic_data_cache = }')
+
+                fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
+                    'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
+
+                # Ensure axs is a 2D array for consistency
+                if self.num_rows == 1 and self.num_cols == 1:
+                    axs = [[axs]]  # Single plot
+                elif self.num_rows == 1:
+                    axs = [axs]  # Single row, multiple columns
+                elif self.num_cols == 1:
+                    axs = [[ax] for ax in axs]  # Multiple rows, single column
+
+                for (i, j) in render_order:
+                    # print(f'{i,j = }')
+                    ax = axs[i][j]
+                    for plot in self.plots[i][j]:
+                        plot.plot(ax=ax, dynamic_data_cache=dynamic_data_cache,
+                                  static_data_cache=static_data_cache, axis_limits=axis_limits)
+
+                        # Store axis limits for future reference
+                        axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
+                    if not self.plots[i][j]:
+                        ax.grid(False)
+                        ax.axis('off')
+                        ax.set_visible(False)
+
+    def _determine_plot_order(self):
+        """
+        Determine the order in which plots should be rendered based on dependencies.
+
+        Returns:
+            List of tuples: Each tuple represents the row and column indices of a plot,
+            sorted in the order they should be rendered.
+        """
+        dependency_graph = nx.DiGraph()
+
+        for i in range(self.num_rows):
+            for j in range(self.num_cols):
+                cell_plots = self.plots[i][j]
+                plot_node = (i, j)
+                dependency_graph.add_node(plot_node)
+                if cell_plots is not None:
+                    for plot in cell_plots:
+                        # Use (i, j) as the node
+
+                        dependencies = plot.plot_dependencies()
+
+                        for dependency in dependencies['after']:
+                            dependency_graph.add_edge(dependency, plot_node)
+
+        # print("Nodes:")
+        # for node in dependency_graph.nodes():
+        #     print(node)
+
+        # # Print the edges
+        # print("\nEdges:")
+        # for edge in dependency_graph.edges():
+        #     print(edge)
+
+        sorted_order = self._topological_sort(dependency_graph)
+
+        return sorted_order
+
+    def info(self):
+        info_str = ''
+        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
+            return 'Plot is empty'
+        for i, row in enumerate(self.plots):
+            for j, cell in enumerate(row):
+                info_str += f'\n{i,j}\n'
+                if len(cell) > 0:
+                    for plot in cell:
+                        info_str += str(plot) + '\n'
+                else:
+                    info_str += 'Empty cell'
+        return info_str
+
+    def clear_plot(self, row: int, col: int):
+        if row < len(self.plots) and col < len(self.plots[row]):
+            self.plots[row][col] = []
+
+    def _topological_sort(self, dependency_graph):
+        """
+        Perform a topological sort on the dependency graph.
+
+        Args:
+            dependency_graph (networkx.DiGraph): The dependency graph.
+
+        Returns:
+            List of tuples: Sorted order of plots.
+        """
+        # Check for cycles
+        if not nx.is_directed_acyclic_graph(dependency_graph):
+            raise ValueError("A cycle was detected in the plot dependencies.")
+
+        # Perform topological sort
+        return list(nx.topological_sort(dependency_graph))
 
     @property
     def available_parameters(self) -> list:
@@ -156,6 +419,16 @@ class Plotter:
             list: A list of available parameters or methods.
         """
         return self.interface.available_parameters
+
+    @property
+    def available_plot_types(self) -> list:
+        """
+        Retrieves the list of available parameters/methods from the interface.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return list(self._plot_methods.keys())
 
     @classmethod
     def create_plotter(cls, data) -> Plotter:
@@ -176,7 +449,7 @@ class Plotter:
         return cls(interface)
 
     @staticmethod
-    def tanh_axis_labels(ax: plt.Axes, axis: str):
+    def tanh_axis_labels(ax: plt.Axes, scale: List[str]):
         """
         Adjust axis labels for tanh scaling.
 
@@ -184,7 +457,7 @@ class Plotter:
         -----------
         ax : plt.Axes
             The Axes object to which the label adjustments should be applied.
-        axis : str
+        scale : List[str]
             Which axis to adjust. Choices: 'x', 'y', or 'both'.
         """
         tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
@@ -196,14 +469,14 @@ class Plotter:
         minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
         minor_ticks = np.tanh(minor_tickslabels)
 
-        if axis in ['x', 'both']:
+        if scale[0] == 'tanh':
             ax.set_xticks(ticks)
             ax.set_xticklabels(tickslabels)
             ax.set_xticks(minor_ticks, minor=True)
             ax.set_xticklabels([], minor=True)
             ax.set_xlim([-1, 1])
 
-        if axis in ['y', 'both']:
+        if scale[1] == 'tanh':
             ax.set_yticks(ticks)
             ax.set_yticklabels(tickslabels)
             ax.set_yticks(minor_ticks, minor=True)
@@ -211,65 +484,223 @@ class Plotter:
             ax.set_ylim([-1, 1])
 
     @staticmethod
-    def plot_histogram(ax: plt.Axes,
-                       values: List[float],
-                       scale: Optional[str] = 'linear',
-                       rotated: Optional[bool] = False,
-                       extent: Optional[Sequence[float] | None] = None):
+    def request_to_tuple(request):
+        def convert(item):
+            if isinstance(item, dict):
+                return tuple(sorted((k, convert(v)) for k, v in item.items()))
+            elif isinstance(item, list):
+                return tuple(convert(v) for v in item)
+            else:
+                return item
+
+        return convert(request)
+
+
+class Plot(ABC):
+
+    def _parse_axis_limit_reference(self, reference_str):
         """
-        Plot a histogram on the given ax with the provided values data.
+        Parse the axis limit reference string.
+
+        Args:
+            reference_str (str): The reference string (e.g., 'x@1,0').
+
+        Returns:
+            tuple: A tuple containing the axis ('x' or 'y'), row index, and column index.
+        """
+        ref_axis, ref_indices = reference_str.split('@')
+        ref_row, ref_col = map(int, ref_indices.split(','))
+        return ref_axis, ref_row, ref_col
+
+    def plot_dependencies(self):
+        dependencies = {'before': [], 'after': []}
+
+        for value in [self.x_lim, self.y_lim]:
+            if isinstance(value, str):
+                # Assuming format is 'x(y)@row,col'
+                ref_plot = tuple(map(int, value[2:].split(',')))
+                # Add edge with (row, col) only
+                dependencies['after'].append(ref_plot)
+        return dependencies
+
+    def get_limits(self, axis_limits: dict):
+        final_limits = []
+        for i_lim in (self.x_lim, self.y_lim):
+            if isinstance(i_lim, str):
+                ref_axis, ref_row, ref_col = self._parse_axis_limit_reference(
+                    i_lim)
+                if (ref_row, ref_col) in axis_limits:
+                    final_limits.append(
+                        axis_limits[(ref_row, ref_col)][0 if ref_axis == 'x' else 1])
+                else:
+                    raise ValueError('Render order failure')
+            else:
+                final_limits.append(i_lim)
+
+        return final_limits
+
+    @staticmethod
+    def transform_data(data_list):
+        # Extract unique node IDs and sort them
+        nodes = sorted(
+            {node for data in data_list for node in data['nodes']})
+        node_index = {node: i for i, node in enumerate(nodes)}
+
+        # Extract time steps
+        time_steps = [data['time'] for data in data_list]
+
+        # Initialize parameters dictionary
+        params = {key: np.full((len(nodes), len(time_steps)), np.nan)
+                  for key in data_list[0] if key not in ['nodes', 'time']}
+
+        # Fill in the parameter values
+        for t, data in enumerate(data_list):
+            for param in params:
+                if param in data:
+                    # Map each node's value to the corresponding row in the parameter's array
+                    for node, value in zip(data['nodes'], data[param]):
+                        idx = node_index[node]
+                        params[param][idx, t] = value
+
+        return {
+            'time': np.array(time_steps),
+            'nodes': nodes,
+            **params
+        }
+
+
+@Plotter.plot_type("Histogram")
+class plot_histogram(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 rotated: Optional[bool] = False,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.rotated = rotated
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+
+        # print(f'{self.get_dynamic_plot_requests()[0] = }')
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        """
+        Plot a histogram on the given ax with the provided data data.
 
         Parameters:
         -----------
         ax : plt.Axes
             Axes object where the histogram will be plotted.
-        values : list[float]
-            List containing opinion values.
+        data : list[float]
+            List containing parameter values.
         scale : str, optional
             The scale for the x-axis. Options: 'linear' or 'tanh'.
         rotated : bool, optional
             If True, the histogram is rotated to be horizontal.
-        extent : Optional[Sequence[float] | None]
-            Limits of the histogram
+        x_lim : Optional[Sequence[float] | None]
+            Limits of the x-axis.
+        y_lim : Optional[Sequence[float] | None]
+            Limits of the y-axis.
         """
 
-        values = np.array(values)
+        if len(self.parameters) != 1:
+            raise ValueError('Histogram expects only one parameter')
+
+        x_lim, y_lim = self.get_limits(axis_limits)
+        data = dynamic_data_cache[self.data_key]
+
+        parameter = self.parameters[0]
+        values = np.array(data[parameter])
         valid_indices = ~np.isnan(values)
         values = values[valid_indices]
 
-        if scale == 'tanh':
-            values = np.tanh(values)
+        if self.rotated:
+            if self.scale[1] == 'tanh':
+                values = np.tanh(values)
 
-        if extent is None:
-            extent = [-1, 1] if scale == 'tanh' else [
-                np.nanmin(values), np.nanmax(values)]
+            if y_lim is None:
+                y_lim = [-1, 1] if self.scale[1] == 'tanh' else [
+                    np.nanmin(values), np.nanmax(values)]
 
-        if rotated:
+            values = values[(values >= y_lim[0]) & (values <= y_lim[1])]
+
             sns.kdeplot(y=values, ax=ax, fill=True)
             sns.histplot(y=values, kde=False, ax=ax,
-                         binrange=extent, element="step", fill=False, stat="density")
-            if scale == 'tanh':
-                Plotter.tanh_axis_labels(ax=ax, axis='y')
+                         binrange=y_lim, element="step", fill=False, stat="density")
+
+            if self.show_y_label:
+                ax.set_ylabel(Plotter._parameter_dict.get(
+                    parameter, parameter))
+            if self.show_x_label:
+                ax.set_xlabel('Density')
+
         else:
+
+            if self.scale[0] == 'tanh':
+                values = np.tanh(values)
+
+            if x_lim is None:
+                x_lim = [-1, 1] if self.scale[0] == 'tanh' else [
+                    np.nanmin(values), np.nanmax(values)]
+
+            values = values[(values >= x_lim[0]) & (values <= x_lim[1])]
+
             sns.kdeplot(data=values, ax=ax, fill=True)
             sns.histplot(data=values, kde=False, ax=ax,
-                         binrange=extent, element="step", fill=False, stat="density")
-            if scale == 'tanh':
-                Plotter.tanh_axis_labels(ax=ax, axis='x')
+                         binrange=x_lim, element="step", fill=False, stat="density")
 
-        if rotated:
-            ax.set_ylim(extent[0], extent[1])
-        else:
-            ax.set_xlim(extent[0], extent[1])
+            if self.show_x_label:
+                ax.set_xlabel(Plotter._parameter_dict.get(
+                    parameter, parameter))
+            if self.show_y_label:
+                ax.set_ylabel('Density')
 
-    @staticmethod
-    def plot_hexbin(ax: plt.Axes,
-                    x_values: List[float], y_values: List[float],
-                    extent: Optional[Sequence[float] | None] = None,
-                    colormap: Optional[str] = 'inferno',
-                    cmax: Optional[float | None] = None,
-                    scale: Optional[Sequence | None] = None,
-                    show_colorbar: Optional[bool] = False):
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+
+@Plotter.plot_type("Hexbin")
+class plot_hexbin(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 rotated: Optional[bool] = False,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm', show_colorbar: bool = False):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.rotated = rotated
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.colormap = colormap
+        self.show_colorbar = show_colorbar
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         """
         Plot a hexbin on the given ax with the provided x and y values.
 
@@ -277,10 +708,8 @@ class Plotter:
         -----------
         ax : plt.Axes
             Axes object where the hexbin will be plotted.
-        x_values : list[float]
-            List containing x-values.
-        y_values : list[float]
-            List containing y-values.
+        x_values, y_values : list[float]
+            Lists containing x-values and y-values
         extent : list[float], optional
             The bounding box in data coordinates that the hexbin should fill.
         colormap : str, optional
@@ -292,10 +721,15 @@ class Plotter:
         show_colorbar : bool, optional
         """
 
-        scale = ['linear', 'linear'] if scale is None else scale
+        x_lim, y_lim = self.get_limits(axis_limits)
 
-        x_values = np.array(x_values)
-        y_values = np.array(y_values)
+        data = dynamic_data_cache[self.data_key]
+
+        x_parameter = self.parameters[0]
+        y_parameter = self.parameters[1]
+        x_values = np.array(data[x_parameter])
+        y_values = np.array(data[y_parameter])
+
         # Find indices where neither x_values nor y_values are NaN
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
 
@@ -303,22 +737,20 @@ class Plotter:
         x_values = x_values[valid_indices]
         y_values = y_values[valid_indices]
 
-        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
-            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
-
-        if scale[0] == 'tanh':
+        if self.scale[0] == 'tanh':
             x_values = np.tanh(x_values)
 
-        if scale[1] == 'tanh':
+        if self.scale[1] == 'tanh':
             y_values = np.tanh(y_values)
 
-        if extent is None:
-            x_extent = [-1, 1] if scale[0] == 'tanh' else [
+        if x_lim is None:
+            x_extent = [-1, 1] if self.scale[0] == 'tanh' else [
                 np.nanmin(x_values), np.nanmax(x_values)]
-            y_extent = [-1, 1] if scale[1] == 'tanh' else [
+        if y_lim is None:
+            y_extent = [-1, 1] if self.scale[1] == 'tanh' else [
                 np.nanmin(y_values), np.nanmax(y_values)]
 
-            extent = x_extent+y_extent
+        extent = x_extent+y_extent
 
         delta_x = 0.1*(extent[1]-extent[0])
         x_field_extent = [extent[0]-delta_x, extent[1]+delta_x]
@@ -328,36 +760,160 @@ class Plotter:
 
         field_extent = x_field_extent + y_field_extent
 
-        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+        ax.imshow([[0, 0], [0, 0]], cmap=self.colormap,
                   interpolation='nearest', aspect='auto', extent=field_extent)
 
-        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                       bins='log', extent=extent, vmax=cmax)
-
-        if tanh_axis is not None:
-            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
+        hb = ax.hexbin(x_values, y_values, gridsize=50,
+                       bins='log', extent=extent, cmap=self.colormap)
 
         # Create a background filled with the `0` value of the colormap
-        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
+        ax.imshow([[0, 0], [0, 0]], cmap=self.colormap,
                   interpolation='nearest', aspect='auto', extent=extent)
         # Create the hexbin plot
 
-        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
-                       bins='log', extent=extent, vmax=cmax)
+        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=self.colormap,
+                       bins='log', extent=extent)
 
-        ax.set_xlim(extent[0], extent[1])
-        ax.set_ylim(extent[2], extent[3])
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
-        if show_colorbar:
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_colorbar:
             plt.colorbar(hb, ax=ax)
 
-    @staticmethod
-    def plot_cluster_boundaries(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+
+@Plotter.plot_type("Scatter")
+class plot_scatter(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 rotated: Optional[bool] = False,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str] = 'blue', marker: str = 'o',):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.rotated = rotated
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.color = color
+        self.marker = marker
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        """
+        Plot a scatter plot on the given ax with the provided x and y values.
+
+        Parameters:
+        -----------
+        ax : plt.Axes
+            Axes object where the scatter plot will be plotted.
+        data : defaultdict[List[float]]
+            A dictionary containing lists of x and y values.
+        parameters : tuple[str]
+            A tuple containing the names of the parameters to be plotted.
+        x_lim, y_lim : Optional[Sequence[float]]
+            The limits for the x and y axes.
+        color : Optional[str]
+            The color of the markers.
+        marker : str
+            The shape of the marker.
+        show_x_label, show_y_label : bool
+            Flags to show or hide the x and y labels.
+        """
+
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = dynamic_data_cache[self.data_key]
+
+        x_parameter, y_parameter = self.parameters
+        x_values = np.array(data[x_parameter])
+        y_values = np.array(data[y_parameter])
+
+        # Remove NaN values
+        valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
+        x_values = x_values[valid_indices]
+        y_values = y_values[valid_indices]
+
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+
+        if self.scale[1] == 'tanh':
+            y_values = np.tanh(y_values)
+
+        ax.scatter(x_values, y_values, color=self.color, marker=self.marker)
+
+        # Setting the plot limits
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                x_parameter, x_parameter))
+
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                y_parameter, y_parameter))
+
+
+@Plotter.plot_type("Cluster: Centroids")
+class plot_cluster_centroids(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 rotated: Optional[bool] = False,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        if 'clusterization_parameters' not in self.cluster_settings:
+            self.cluster_settings['clusterization_parameters'] = self.parameters
+
+        # print(f'{self.cluster_settings = }')
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.rotated = rotated
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.resolution = resolution
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         """
         Plots the decision boundaries for a 2D slice of the cluster object's data.
 
         Args:
-        - cluster (Cluster): A Cluster object with fitted clusters.
+        - values (Cluster): A Cluster object with fitted clusters.
         - x_feature_index (int): The index of the feature to be plotted on the x-axis.
         - y_feature_index (int): The index of the feature to be plotted on the y-axis.
         - plot_limits (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
@@ -366,835 +922,1053 @@ class Plotter:
         Returns:
         None
         """
-        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
+
+        x_lim, y_lim = self.get_limits(axis_limits)
+        cluster = dynamic_data_cache[self.data_key]
+
+        x_feature_name, y_feature_name = self.parameters
 
         x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
-
-        if extent is None:
-            x_extent = [-1, 1] if scale[0] == 'tanh' else [
-                np.nanmin(x_values), np.nanmax(x_values)]
-            y_extent = [-1, 1] if scale[1] == 'tanh' else [
-                np.nanmin(y_values), np.nanmax(y_values)]
-
-            extent = x_extent+y_extent
-
-        x_min, x_max, y_min, y_max = extent
-
-        xx, yy = np.meshgrid(
-            np.linspace(x_min, x_max, resolution), np.linspace(
-                y_min, y_max, resolution)
-        )
-
-        # Form a grid by stacking mesh points into a (N, 2) array, representing all points in the 2D plane
-        mesh_points = np.c_[xx.ravel(), yy.ravel()]
-
-        # Predict the cluster index for each point on the mesh grid
-        Z = np.array(
-            [
-                cluster.predict_cluster(
-                    [mesh_points[i, x_feature_index],
-                        mesh_points[i, y_feature_index]]
-                )
-                for i in range(mesh_points.shape[0])
-            ]
-        )
-        Z = Z.reshape(xx.shape)
-
-        # Create the plot
-        ax.contourf(xx, yy, Z, alpha=0.4)
-
-        # Plot the actual data points with labels
-        for i, cluster_points in enumerate(cluster.clusters):
-            # Ensure cluster_points is a list of lists, even if there's only one point
-            # This means there's only one point, and it's given as an int index
-            if isinstance(cluster_points, int):
-                # Encapsulate the index in a list to standardize the structure
-                cluster_points = [cluster_points]
-            elif not isinstance(cluster_points[0], (list, np.ndarray)):
-                # Encapsulate single data point in a list
-                cluster_points = [cluster_points]
-
-            # Now cluster_points is guaranteed to be a list of lists (or arrays), and we can proceed
-            points = np.array(cluster_points)
-            ax.scatter(
-                points[:, x_feature_index], points[:,
-                                                   y_feature_index], label=f"Cluster {i}"
-            )
 
         # Plot centroids if they are 2D
-        if cluster.centroids.shape[1] == 2:
-            ax.scatter(
-                cluster.centroids[:, x_feature_index],
-                cluster.centroids[:, y_feature_index],
-                color="red",
-                label="Centroids",
-                marker="X",
-            )
+        centroids = cluster.centroids()
+        if centroids.shape[1] == 2:
+            centroids_x = centroids[:, x_feature_index]
+            centroids_y = centroids[:, y_feature_index]
+            if self.scale[0] == 'tanh':
+                centroids_x = np.tanh(centroids_x)
+            if self.scale[1] == 'tanh':
+                centroids_y = np.tanh(centroids_y)
 
-        # Setting the plot limits
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
+            ax.scatter(centroids_x, centroids_y,
+                       color="red",
+                       label="Centroids",
+                       marker="X",
+                       )
+        else:
+            warnings.warn(
+                f'centroids.shape[1] != 2, it is {centroids.shape[1]}. Cluster centroids are not shown on a plot')
 
-        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
-            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
 
-        if tanh_axis is not None:
-            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
 
-    @staticmethod
-    def plot_cluster_degree_of_membership(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
+@Plotter.plot_type("Cluster: Scatter")
+class plot_cluster_scatter(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        if 'clusterization_parameters' not in self.cluster_settings:
+            self.cluster_settings['clusterization_parameters'] = self.parameters
+
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.resolution = resolution
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         """
-        Plots the fuzzy membership probabilities for a 2D slice of the cluster object's data.
-
-        Args:
-        - cluster (FuzzyCMeanCluster): A Cluster object with fitted clusters and fuzzy memberships.
-        - x_feature_index (int): The index of the feature to be plotted on the x-axis.
-        - y_feature_index (int): The index of the feature to be plotted on the y-axis.
-        - plot_limits (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
-        - resolution (int): The number of points to generate in the mesh for the plot.
-
-        Returns:
-        None
+        Plots the decision scatter for a 2D slice of the cluster object's data.
         """
 
-        scale = ['linear', 'linear'] if scale is None else scale
+        x_lim, y_lim = self.get_limits(axis_limits)
+        cluster = dynamic_data_cache[self.data_key]
 
-        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
-
-        if extent is None:
-            x_extent = [-1, 1] if scale[0] == 'tanh' else [
-                np.nanmin(x_values), np.nanmax(x_values)]
-            y_extent = [-1, 1] if scale[1] == 'tanh' else [
-                np.nanmin(y_values), np.nanmax(y_values)]
-
-            extent = x_extent+y_extent
-
-        x_min, x_max, y_min, y_max = extent
-
-        xx, yy = np.meshgrid(np.linspace(x_min, x_max, resolution),
-                             np.linspace(y_min, y_max, resolution))
+        x_feature_name, y_feature_name = self.parameters
 
         x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
-        # Form a grid by stacking mesh points into a (N, 2) array, representing all points in the 2D plane
+        data = cluster.get_values([x_feature_name, y_feature_name])
+
+        for i, points in enumerate(data):
+            x_points = points[:, 0]
+            y_points = points[:, 1]
+            if self.scale[0] == 'tanh':
+                x_points = np.tanh(x_points)
+            if self.scale[1] == 'tanh':
+                y_points = np.tanh(y_points)
+
+            ax.scatter(x_points, y_points, label=f"Cluster {i}")
+
+        # Setting the plot limits
+        if self.x_lim is not None:
+            ax.set_xlim(*self.x_lim)
+        if self.y_lim is not None:
+            ax.set_ylim(*self.y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+
+@Plotter.plot_type("Cluster: Fill")
+class plot_cluster_fill(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        if 'clusterization_parameters' not in self.cluster_settings:
+            self.cluster_settings['clusterization_parameters'] = self.parameters
+
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.resolution = resolution
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+        cluster = dynamic_data_cache[self.data_key]
+
+        x_feature_name, y_feature_name = self.parameters
+        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+            [x_feature_name, y_feature_name])
+
+        xx, yy = np.meshgrid(
+            np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
+                y_lim[0], y_lim[1], self.resolution)
+        )
+
         mesh_points = np.c_[xx.ravel(), yy.ravel()]
+        mesh_points_scaled = np.array(mesh_points)
+        if self.scale[0] == 'tanh':
+            mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
+        if self.scale[1] == 'tanh':
+            mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
-        # Predict the membership values for each point on the mesh grid
-        memberships = np.array([cluster.degree_of_membership(
-            [point[x_feature_index], point[y_feature_index]]) for point in mesh_points])
-
-        # We take the highest membership value to decide the cluster color
-        Z = memberships.max(axis=1)
+        Z = cluster.predict_cluster(mesh_points_scaled)
         Z = Z.reshape(xx.shape)
 
-        # Create the plot
+        im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
+                       origin='lower', aspect='auto', alpha=0.4, interpolation='nearest')
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+    def get_limits(self, axis_limits):
+        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
+
+        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
+            'x', default_x_lim)
+        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
+            'y', default_y_lim)
+
+        return x_lim, y_lim
+
+
+@Plotter.plot_type("Cluster: Degree of Membership")
+class plot_cluster_degree_of_membership(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        if 'clusterization_parameters' not in self.cluster_settings:
+            self.cluster_settings['clusterization_parameters'] = self.parameters
+
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.resolution = resolution
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+        cluster = dynamic_data_cache[self.data_key]
+
+        xx, yy = np.meshgrid(
+            np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
+                y_lim[0], y_lim[1], self.resolution)
+        )
+
+        mesh_points = np.c_[xx.ravel(), yy.ravel()]
+        mesh_points_scaled = np.array(mesh_points)
+        if self.scale[0] == 'tanh':
+            mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
+        if self.scale[1] == 'tanh':
+            mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
+
+        Z = np.array(cluster.degree_of_membership(mesh_points_scaled))
+        Z = Z.max(axis=0)
+        Z = Z.reshape(xx.shape)
+
         ax.contourf(xx, yy, Z, alpha=0.5,
                     levels=np.linspace(0, 1, 11), cmap='viridis')
 
-        # Plot the actual data points with labels
-        for i, cluster_points in enumerate(cluster.clusters):
-            # Now cluster_points is guaranteed to be a list of arrays, and we can proceed
-            points = np.array(cluster_points)
-            ax.scatter(
-                points[:, x_feature_index],
-                points[:, y_feature_index],
-                label=f'Cluster {i}',
-                cmap='viridis',
-                edgecolors='k'
-            )
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
 
-        # Plot centroids
-        centroids = cluster.centroids
-        ax.scatter(centroids[:, x_feature_index], centroids[:,
-                                                            y_feature_index], label='Centroids', c='red', marker='X', s=100)
+    def get_limits(self, axis_limits):
+        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
 
-        # Setting the plot limits
-        ax.set_xlim(x_min, x_max)
-        ax.set_ylim(y_min, y_max)
-        ax.legend()
-        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
-            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
+        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
+            'x', default_x_lim)
+        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
+            'y', default_y_lim)
 
-        if tanh_axis is not None:
-            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
+        return x_lim, y_lim
 
-    # Then call the function as you did before.
 
-    @staticmethod
-    def plot_cluster_sns(ax: plt.Axes, cluster: Cluster, x_feature_name, y_feature_name, extent, scale: Optional[Sequence | None] = None, resolution=100):
-        """
-        Plots the fuzzy membership probabilities for each cluster for a 2D slice of the cluster object's data
-        using seaborn's kdeplot.
+@Plotter.plot_type("Cluster: sns")
+class plot_cluster_sns(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        if 'clusterization_parameters' not in self.cluster_settings:
+            self.cluster_settings['clusterization_parameters'] = self.parameters
 
-        Args:
-        - cluster (FuzzyCMeanCluster): A Cluster object with fitted clusters and fuzzy memberships.
-        - x_feature_name (int): The index of the feature to be plotted on the x-axis.
-        - y_feature_name (int): The index of the feature to be plotted on the y-axis.
-        - extent (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
-        - resolution (int): The number of points to generate in the mesh for the plot.
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.resolution = resolution
 
-        Returns:
-        None
-        """
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
 
-        scale = ['linear', 'linear'] if scale is None else scale
+    def get_static_plot_requests(self):
+        return []
 
-        x_values, y_values = cluster[[x_feature_name, y_feature_name]]
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
 
-        if extent is None:
-            x_extent = [-1, 1] if scale[0] == 'tanh' else [
-                np.nanmin(x_values), np.nanmax(x_values)]
-            y_extent = [-1, 1] if scale[1] == 'tanh' else [
-                np.nanmin(y_values), np.nanmax(y_values)]
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+        cluster = dynamic_data_cache[self.data_key]
 
-            extent = x_extent+y_extent
+        xx, yy = np.meshgrid(
+            np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
+                y_lim[0], y_lim[1], self.resolution)
+        )
 
-        x_min, x_max, y_min, y_max = extent
-        xx, yy = np.meshgrid(np.linspace(
-            x_min, x_max, resolution), np.linspace(y_min, y_max, resolution))
-
-        # Prepare data for the contour plot
         mesh_points = np.c_[xx.ravel(), yy.ravel()]
-
-        # Create arrays to hold data for kdeplot
-        xs, ys, memberships, clusters_idx = [], [], [], []
-
-        # Calculate the fuzzy membership for each point on the meshgrid for each cluster
-        for cluster_index in range(cluster.get_number_of_clusters()):
-            # Get membership values for each point in the mesh grid for the current cluster
-            membership_values = np.array([
-                cluster.degree_of_membership(
-                    [point[0], point[1]])[cluster_index]
-                for point in mesh_points
-            ])
-
-            # Collect data for plotting
-            xs.extend(mesh_points[:, 0])
-            ys.extend(mesh_points[:, 1])
-            memberships.extend(membership_values)
-            clusters_idx.extend([cluster_index] * len(membership_values))
-
-        # Plot the membership probabilities using seaborn kdeplot
-        sns.kdeplot(ax=ax,
-                    x=xs,
-                    y=ys,
-                    hue=clusters_idx,
-                    weights=memberships,
-                    levels=5,
-                    thresh=0.5,
-                    alpha=0.5,
-                    cmap="mako"
-                    )
-
-        # Plot centroids
-        centroids = cluster.centroids
-        plt.scatter(centroids[:, 0], centroids[:, 1],
-                    color='red', label='Centroids', marker='X', s=100)
-
-        # Setting the plot limits and labels
-        plt.xlim(x_min, x_max)
-        plt.ylim(y_min, y_max)
-
-        tanh_axis = 'both' if scale[0] == 'tanh' and scale[1] == 'tanh' else 'x' if scale[
-            0] == 'tanh' else 'y' if scale[1] == 'tanh' else None
-
-        if tanh_axis is not None:
-            Plotter.tanh_axis_labels(ax=ax, axis=tanh_axis)
-
-    def draw(self,
-             mode: str = 'show',
-             save_dir: Optional[str] = None,
-             gif_path: Optional[str] = None,
-             pos: Optional[Dict[Union[int, str], tuple]] = None,
-             node_info_mode: str = 'none',
-             use_node_color: bool = True,
-             use_edge_thickness: bool = True,
-             show_edge_influences: bool = False,
-             node_size_multiplier: int = 200,
-             arrowhead_length: float = 0.2,
-             arrowhead_width: float = 0.2,
-             min_line_width: float = 0.1,
-             max_line_width: float = 3.0,
-             seed: Optional[int] = None,
-             show_time: bool = False,
-             name: str = 'graph') -> None:
-        """
-        Draws a graphical representation of the graphs in the interface. Node positions are determined 
-        by the graph at the reference index.
-
-        Parameters:
-        -----------
-        mode : str
-            How to display the graph. If 'show', graphs are displayed directly. The default is 'show'.
-
-        save_dir : Optional[str]
-            Directory to save drawn graphs. If provided, each graph is saved as '{i}.png'.
-
-        gif_path : Optional[str]
-            Path to save animation as gif, if needed.
-
-        pos : Optional[Dict[Union[int, str], tuple]]
-            Dictionary of node positions as coordinates. If not provided, spring layout positions nodes.
-
-        node_info_mode : str
-            Determines node information display. Options: 'opinions', 'ids', 'labels', 'cluster_size'. Default is 'none'.
-
-        use_node_color : bool
-            If True, colors nodes based on attributes. Default is True.
-
-        use_edge_thickness : bool
-            If True, edge thickness varies based on influence attributes. Default is True.
-
-        show_edge_influences : bool
-            If True, shows influence values on edges. Default is False.
-
-        node_size_multiplier : int
-            Multiplier for node size to enhance visibility. Default is 200.
-
-        arrowhead_length : float
-            Arrowhead length. Default is 0.2.
-
-        arrowhead_width : float
-            Arrowhead width. Default is 0.2.
-
-        min_line_width : float
-            Minimum line width for edges. Default is 0.1.
-
-        max_line_width : float
-            Maximum line width for edges. Default is 3.0.
-
-        seed : Optional[int]
-            Seed for reproducibility in node positioning.
-
-        show_time : bool
-            If True, displays timestamp of each graph in the plot's bottom-right corner. Default is False.
-
-        name : str
-            Prefix for saved filenames. Default is 'graph'.
-
-        Returns:
-        --------
-        None
-        """
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for data in self.interface.images():
-                image = data['image']
-                fig, ax = plt.subplots(figsize=(10, 7))
-
-                if pos is None:
-                    pos = image.position_nodes(seed=seed)
-
-                node_attributes = nx.get_node_attributes(image, 'opinion')
-                edge_attributes = nx.get_edge_attributes(image, 'influence')
-
-                # Prepare Node Labels
-                node_labels = {}
-                match node_info_mode:
-                    case 'opinion':
-                        node_labels = {node: f"{opinion:.2f}" for node,
-                                       opinion in node_attributes.items()}
-                    case 'ids':
-                        node_labels = {node: f"{node}" for node in image.nodes}
-                    case 'labels':
-                        for node in image.nodes:
-                            label = image.nodes[node].get('label', None)
-                            if label is not None:
-                                node_labels[node] = ','.join(map(str, label))
-                            else:  # If label is not defined, show id instead
-                                node_labels[node] = str(node)
-                    case 'cluster_size':
-                        for node in image.nodes:
-                            label_len = len(
-                                image.nodes[node].get('label', [node]))
-                            node_labels[node] = str(label_len)
-
-                # Prepare Node Colors
-                if use_node_color:
-                    node_colors = [cm.bwr(opinion)
-                                   for opinion in node_attributes.values()]
-                else:
-                    node_colors = 'lightblue'
-
-                # Prepare Edge Widths
-                if use_edge_thickness:
-
-                    # Gather edge weights
-                    edge_weights = list(edge_attributes.values())
-
-                    # Scale edge weights non-linearly
-                    # or np.log1p(edge_weights) for logarithmic scaling
-                    scaled_weights = np.sqrt(edge_weights)
-
-                    # Normalize scaled weights to range [min_line_width,
-                    # max_line_width]
-                    max_scaled_weight = max(scaled_weights)
-                    min_scaled_weight = min(scaled_weights)
-
-                    edge_widths = [
-                        min_line_width + (max_line_width - min_line_width) * (weight -
-                                                                              min_scaled_weight) / (max_scaled_weight - min_scaled_weight)
-                        for weight in scaled_weights
-                    ]
-
-                else:
-                    # Default line width applied to all edges
-                    edge_widths = [1.0] * image.number_of_edges()
-
-                # Prepare Edge Labels
-                edge_labels = None
-                if show_edge_influences:
-                    edge_labels = {(u, v): f"{influence:.2f}" for (u, v),
-                                   influence in edge_attributes.items()}
-
-                # Calculate Node Sizes
-                node_sizes = []
-                for node in image.nodes:
-                    label_len = len(image.nodes[node].get('label', [node]))
-                    size = node_size_multiplier * \
-                        math.sqrt(label_len)  # Nonlinear scaling
-                    node_sizes.append(size)
-
-                # Draw Nodes and Edges
-                nx.draw_networkx_nodes(
-                    image, pos, node_color=node_colors, node_size=node_sizes, ax=ax)
-
-                for (u, v), width in zip(image.edges(), edge_widths):
-                    # Here, node_v_size and node_u_size represent the sizes (or the
-                    # "radii") of the nodes.
-                    node_v_size = node_sizes[list(image.nodes).index(v)]
-                    node_u_size = node_sizes[list(image.nodes).index(u)]
-
-                    # Adjust the margins based on node sizes to avoid collision with
-                    # arrowheads and to avoid unnecessary gaps.
-                    target_margin = 5 * node_v_size / node_size_multiplier
-                    source_margin = 5 * node_u_size / node_size_multiplier
-
-                    if image.has_edge(v, u):
-                        nx.draw_networkx_edges(image, pos, edgelist=[(u, v)], width=width, connectionstyle='arc3,rad=0.3',
-                                               arrowstyle=f'->,head_length={arrowhead_length},head_width={arrowhead_width}', min_target_margin=target_margin, min_source_margin=source_margin)
-                    else:
-                        nx.draw_networkx_edges(image, pos, edgelist=[(
-                            u, v)], width=width, arrowstyle=f'-|>,head_length={arrowhead_length},head_width={arrowhead_width}', min_target_margin=target_margin, min_source_margin=source_margin)
-
-                # Draw Labels
-                nx.draw_networkx_labels(image, pos, labels=node_labels)
-                if edge_labels:
-                    nx.draw_networkx_edge_labels(
-                        image, pos, edge_labels=edge_labels)
-                if show_time:
-                    ax.set_title(f't = {data["time"]}')
-
-                saver.save(fig)
-
-    def plot_1D_distribution(self, x_parameter: str,
-                             mode: str = 'show',
-                             save_dir: Optional[str] = None,
-                             gif_path: Optional[str] = None,
-                             show_time: bool = False,
-                             name: str = 'opinion_histogram',
-                             scale: str = 'linear') -> None:
-        """
-        Plots the histogram of x_parameter in the graphs.
-
-        Parameters:
-        -----------
-        x_parameter : str
-            Parameter to show on x axis
-        mode : str
-            How to display the histogram. If 'show', it's displayed directly. Default is 'show'.
-
-        save_dir : Optional[str]
-            Directory to save the histogram. If provided, the histogram is saved as '{i}.png'.
-
-        gif_path : Optional[str]
-            Path to save animation as gif, if needed.
-
-        show_time : bool
-            If True, includes the time in the histogram's title. Default is False.
-
-        name : str
-            Prefix for saved filenames. Default is 'opinion_histogram'.
-
-        scale : str
-            The x-axis scale. Can be 'linear' or 'tanh'. Default is 'linear'.
-
-        Returns:
-        --------
-        None
-        """
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.mean_group_values_iterator([x_parameter]):
-                fig, ax = plt.subplots(figsize=(10, 7))
-
-                Plotter.plot_histogram(
-                    ax, group_data['data'][x_parameter], scale=scale)
-
-                ax.set_xlabel(self._parameter_dict.get(
-                    x_parameter, x_parameter))
-                ax.set_ylabel('Number of Nodes')
-                group_data["time"] = group_data["time"]
-
-                if show_time:
-                    if isinstance(group_data["time"], float):
-                        formatted_time = "{:.2f}".format(group_data["time"])
-                    else:
-                        formatted_time = str(group_data["time"])
-
-                    ax.set_title(f't = {formatted_time}')
-
-                saver.save(fig)
-
-    def plot_opinions(self,
-                      mode: str = 'show',
-                      save_dir: Optional[str] = None,
-                      gif_path: Optional[str] = None,
-                      reference_index: int = -1,
-                      minimum_cluster_size: int = 1,
-                      colormap: str = 'coolwarm',
-                      name: str = 'opinions_dynamics',
-                      width_threshold: float = 1,
-                      scale: str = 'linear',
-                      show_legend: bool = True):
-        """
-        Plot the opinions of nodes over time.
-
-        Parameters:
-        - mode (str): Mode of the plot. Default is 'show'.
-        - save_dir (str, optional): Directory to save the plot. Default is None.
-        - gif_path (str, optional): Path to save the gif. Default is None.
-        - reference_index (int): Index to refer for plotting. Default is -1.
-        - minimum_cluster_size (int): Minimum size of the cluster for plotting. Default is 1.
-        - colormap (str): Colormap for the plot. Default is 'coolwarm'.
-        - name (str): Name of the plot. Default is 'opinions_dynamics'.
-        - width_threshold (float): Threshold for the width of the plot. Default is 1.
-        - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
-        - show_legend (bool): Whether to show the legend. Default is True.
-        """
-        all_nodes_data = {}
-        time_array = []
-
-        for group_data in self.interface.mean_group_values_iterator(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
-            time_array.append(group_data['time'])
-
-            for node, opinion, size, max_opinion, min_opinion in zip(
-                    group_data['data']['node'], group_data['data']['opinion'], group_data['data']['cluster_size'], group_data['data']['max_opinion'], group_data['data']['min_opinion']):
-                if node not in all_nodes_data:
-
-                    all_nodes_data[node] = {
-                        'opinion': [],
-                        'cluster_size': [],
-                        'max_opinion': [],
-                        'min_opinion': []
-                    }
-
-                all_nodes_data[node]['opinion'].append(opinion)
-                all_nodes_data[node]['cluster_size'].append(size)
-                all_nodes_data[node]['max_opinion'].append(max_opinion)
-                all_nodes_data[node]['min_opinion'].append(min_opinion)
-
-        # Filter nodes where the size is always below the threshold
-        nodes_to_remove = [node for node, data in all_nodes_data.items() if all(
-            size < minimum_cluster_size for size in data['cluster_size'])]
-
-        # Remove those nodes from all_nodes_data
-        for node in nodes_to_remove:
-            del all_nodes_data[node]
-
-        # Initialize values with extreme opposites for comparison
-        smallest_opinion = float('inf')
-        highest_opinion = float('-inf')
-
-        for node, data in all_nodes_data.items():
-            current_min = min(data['opinion'])
-            current_max = max(data['opinion'])
-
-            # Update the global smallest and highest values if needed
-            if current_min < smallest_opinion:
-                smallest_opinion = current_min
-            if current_max > highest_opinion:
-                highest_opinion = current_max
-
-        vmax = max(abs(smallest_opinion), abs(highest_opinion))
-        absolute_width_threshold = 0.01 * width_threshold * vmax
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            fig, ax = plt.subplots(figsize=(10, 7))
-
-            for key, data in all_nodes_data.items():
-                if scale == 'tanh':
-                    vmax_tanh = np.tanh(vmax)
-                    y = np.tanh(data['opinion'])
-                    min_y = np.tanh(data['min_opinion'])
-                    max_y = np.tanh(data['max_opinion'])
-
-                    ref_opinion = np.tanh(y[reference_index])
-                    color = plt.get_cmap(colormap)(
-                        (ref_opinion + vmax_tanh) / (2 * vmax_tanh))
-
-                    # Check if the width difference exceeds the threshold anywhere
-                    widths = [m - n for m, n in zip(max_y, min_y)]
-                    if any(w > absolute_width_threshold for w in widths):
-                        # Plotting the semitransparent region between min and max
-                        # opinions
-                        ax.fill_between(time_array, min_y, max_y,
-                                        color=color, alpha=0.2)
-
-                    # Plotting the line for the opinions
-                    ax.plot(time_array, y, color=color, label=f'Node {key}')
-
-                    Plotter.tanh_axis_labels(ax=ax, axis='y')
-                else:
-                    y = data['opinion']
-                    min_y = data['min_opinion']
-                    max_y = data['max_opinion']
-
-                    ref_opinion = y[reference_index]
-                    color = plt.get_cmap(colormap)(
-                        (ref_opinion + vmax) / (2 * vmax))
-
-                    # Check if the width difference exceeds the threshold anywhere
-                    widths = [m - n for m, n in zip(max_y, min_y)]
-                    if any(w > absolute_width_threshold for w in widths):
-                        # Plotting the semitransparent region between min and max
-                        # opinions
-                        ax.fill_between(time_array, min_y, max_y,
-                                        color=color, alpha=0.2)
-
-                    # Plotting the line for the opinions
-                    ax.plot(time_array, y, color=color, label=f'Node {key}')
-
-            ax.set_title(f"Opinions Over Time")
-            ax.set_xlabel("Time")
-            ax.set_ylabel("Opinion")
-            if show_legend:
-                ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
-
-            ax.set_xlim([min(time_array), max(time_array)])
-
-            saver.save(fig)
-
-    def plot_2D_distribution(self, x_parameter: str, y_parameter: str,
-                             mode: str = 'show',
-                             save_dir: Optional[str] = None,
-                             gif_path: Optional[str] = None,
-                             show_time: bool = False,
-                             extent: Optional[Union[list, tuple]] = None,
-                             cmax: Optional[float] = None,
-                             colormap: str = 'inferno',
-                             scale: list = None,
-                             name: str = '2D_distribution'):
-        """
-        Plot the mean opinion of the neighbors of nodes.
-
-        Parameters:
-        - x_parameter (str): Parameter to show on x axis
-        - y_parameter (str): Parameter to show on y axis
-        - mode (str): Mode of the plot. Default is 'show'.
-        - save_dir (str, optional): Directory to save the plot. Default is None.
-        - gif_path (str, optional): Path to save the gif. Default is None.
-        - show_time (bool): Whether to show time in the plot. Default is False.
-        - extent (list/tuple, optional): Range of the plot. Default is None.
-        - cmax (float, optional): Maximum value for the color scale. Default is None.
-        - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
-        - name (str): Name of the plot. Default is '2D_distribution'.
-        """
-
-        if scale is None:
-            scale = ['linear', 'linear']
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
-
-                x_values = []
-                y_values = []
-                for node, node_data in group_data['data'].items():
-                    x_values.extend(node_data[x_parameter])
-                    y_values.extend(node_data[y_parameter])
-
-                fig, ax = plt.subplots(figsize=(10, 7))
-                Plotter.plot_hexbin(ax=ax, x_values=x_values, y_values=y_values, extent=extent,
-                                    colormap=colormap, cmax=cmax, scale=scale)
-
-                if show_time:
-                    if isinstance(group_data["time"], float):
-                        formatted_time = "{:.2f}".format(group_data["time"])
-                    else:
-                        formatted_time = str(group_data["time"])
-
-                    ax.set_title(f't = {formatted_time}')
-
-                ax.set_xlabel(self._parameter_dict.get(
-                    x_parameter, x_parameter))
-                ax.set_ylabel(self._parameter_dict.get(
-                    y_parameter, y_parameter))
-
-                saver.save(fig)
-
-    def plot_2D_distribution_extended(self, x_parameter: str, y_parameter: str,
-                                      mode: str = 'show',
-                                      save_dir: Optional[str | None] = None,
-                                      gif_path: Optional[str | None] = None,
-                                      show_time: Optional[bool] = False,
-                                      extent: Optional[Union[list,
-                                                             tuple] | None] = None,
-                                      cmax: Optional[float | None] = None,
-                                      colormap: Optional[str] = 'inferno',
-                                      scale: Optional[list | None] = None,
-                                      name: Optional[str] = '2D_distribution_extended'):
-        """
-        Extended plot of the mean opinion of the neighbors of nodes.
-
-        Parameters:
-        - x_parameter (str): Parameter to show on x axis
-        - y_parameter (str): Parameter to show on y axis
-        - mode (str): Mode of the plot. Default is 'show'.
-        - save_dir (str, optional): Directory to save the plot. Default is None.
-        - gif_path (str, optional): Path to save the gif. Default is None.
-        - show_time (bool): Whether to show time in the plot. Default is False.
-        - extent (list/tuple, optional): Range of the plot. Default is None.
-        - cmax (float, optional): Maximum value for the color scale. Default is None.
-        - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
-        - name (str): Name of the plot. Default is '2D_distribution_extended'.
-        """
-
-        scale = ['linear', 'linear'] if scale is None else scale
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
-
-                x_values = []
-                y_values = []
-                for node, node_data in group_data['data'].items():
-                    x_values.extend(node_data[x_parameter])
-                    y_values.extend(node_data[y_parameter])
-
-                x_values = np.array(x_values)
-                y_values = np.array(y_values)
-                # Find indices where neither x_values nor y_values are NaN
-                valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
-
-                # Filter the values using these indices
-                x_values = x_values[valid_indices]
-                y_values = y_values[valid_indices]
-
-                if extent is None:
-                    x_extent = [-1, 1] if scale[0] == 'tanh' else [
-                        np.nanmin(x_values), np.nanmax(x_values)]
-                    y_extent = [-1, 1] if scale[1] == 'tanh' else [
-                        np.nanmin(y_values), np.nanmax(y_values)]
-
-                    extent = x_extent+y_extent
-
-                fig, axs = plt.subplots(2, 2, figsize=(10, 10), gridspec_kw={
-                                        'width_ratios': [4, 1], 'height_ratios': [1, 4]})
-
-                Plotter.plot_hexbin(
-                    ax=axs[1, 0], x_values=x_values, y_values=y_values, extent=extent, cmax=cmax, scale=scale, colormap=colormap)
-                Plotter.plot_histogram(
-                    values=x_values, ax=axs[0, 0], scale=scale[0], extent=[extent[0], extent[1]])
-                Plotter.plot_histogram(
-                    values=y_values, ax=axs[1, 1], scale=scale[1], extent=[extent[2], extent[3]], rotated=True)
-
-                axs[0, 0].set_xlim(axs[1, 0].get_xlim())
-                axs[0, 0].set_xticks([])
-
-                axs[1, 1].set_ylim(axs[1, 0].get_ylim())
-                axs[1, 1].set_yticks([])
-
-                axs[0, 1].set_xticks([])
-                axs[0, 1].set_yticks([])
-                for spine in axs[0, 1].spines.values():
-                    spine.set_visible(False)
-
-                if show_time:
-                    if isinstance(group_data["time"], float):
-                        formatted_time = "{:.2f}".format(
-                            group_data["time"])
-                    else:
-                        formatted_time = str(group_data["time"])
-
-                    axs[0, 0].set_title(f't = {formatted_time}')
-
-                axs[1, 0].set_xlabel(self._parameter_dict.get(
-                    x_parameter, x_parameter))
-                axs[1, 0].set_ylabel(self._parameter_dict.get(
-                    y_parameter, y_parameter))
-
-                saver.save(fig)
-
-    def plot_2D_clusters(self, x_parameter: str, y_parameter: str,
-                         mode: str = 'show',
-                         save_dir: Optional[str] = None,
-                         gif_path: Optional[str] = None,
-                         show_time: bool = False,
-                         extent: Optional[Union[list, tuple]] = None,
-                         cmax: Optional[float] = None,
-                         colormap: str = 'inferno',
-                         scale: list = None,
-                         name: str = '2D_clusters',
-                         cluster_type: str = 'FuzzyCMeanCluster',
-                         plot_type: str = 'sns'):
-        """
-        Plot the mean opinion of the neighbors of nodes.
-
-        Parameters:
-        - x_parameter (str): Parameter to show on x axis
-        - y_parameter (str): Parameter to show on y axis
-        - mode (str): Mode of the plot. Default is 'show'.
-        - save_dir (str, optional): Directory to save the plot. Default is None.
-        - gif_path (str, optional): Path to save the gif. Default is None.
-        - show_time (bool): Whether to show time in the plot. Default is False.
-        - extent (list/tuple, optional): Range of the plot. Default is None.
-        - cmax (float, optional): Maximum value for the color scale. Default is None.
-        - colormap (str): Colormap for the plot. Default is 'inferno'.
-        - scale (List): Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
-        - name (str): Name of the plot. Default is '2D_distribution'.
-        """
-
-        if scale is None:
-            scale = ['linear', 'linear']
-
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-            for group_data in self.interface.group_values_iterator([x_parameter, y_parameter]):
-
-                cluster = Cluster.create_cluster(cluster_type, group_data, scale={
-                                                 x_parameter: scale[0], y_parameter: scale[1]})
-
-                # print(f'{cluster.get_number_of_clusters() = }')
-                # print(f'{cluster.calculate_fpc() = }')
-
-                fig, ax = plt.subplots(figsize=(10, 7))
-                # Call the function to plot the clusters and decision boundaries
-                match plot_type:
-                    case 'sns':
-                        Plotter.plot_cluster_sns(ax=ax, cluster=cluster, x_feature_name=x_parameter,
-                                                 y_feature_name=y_parameter, scale=scale, extent=extent)
-                    case 'degree_of_membership':
-                        Plotter.plot_cluster_degree_of_membership(ax=ax, cluster=cluster, x_feature_name=x_parameter,
-                                                                  y_feature_name=y_parameter, scale=scale, extent=extent)
-                    case 'boundaries':
-                        Plotter.plot_cluster_boundaries(ax=ax, cluster=cluster, x_feature_name=x_parameter,
-                                                        y_feature_name=y_parameter, scale=scale, extent=extent)
-                    case _:
-                        warnings.warn('Plot type unknown')
-
-                if show_time:
-                    if isinstance(group_data["time"], float):
-                        formatted_time = "{:.2f}".format(group_data["time"])
-                    else:
-                        formatted_time = str(group_data["time"])
-
-                    ax.set_title(f't = {formatted_time}')
-
-                ax.set_xlabel(self._parameter_dict.get(
-                    x_parameter, x_parameter))
-                ax.set_ylabel(self._parameter_dict.get(
-                    y_parameter, y_parameter))
-
-                saver.save(fig)
+        mesh_points_scaled = np.array(mesh_points)
+        if self.scale[0] == 'tanh':
+            mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
+        if self.scale[1] == 'tanh':
+            mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
+
+        Z = np.array(cluster.degree_of_membership(mesh_points_scaled))
+        Z = Z.reshape(-1, *xx.shape)
+        Z_index = Z.argmax(axis=0)
+        Z_flat = Z.max(axis=0).ravel()
+
+        xx_flat = xx.ravel()
+        yy_flat = yy.ravel()
+        Z_index_flat = Z_index.ravel()
+
+        sns.kdeplot(
+            ax=ax,
+            x=xx_flat,
+            y=yy_flat,
+            hue=Z_index_flat,
+            weights=Z_flat,
+            levels=5,
+            thresh=0.5,
+            alpha=0.5,
+            cmap="mako"
+        )
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+    def get_limits(self, axis_limits):
+        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
+
+        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
+            'x', default_x_lim)
+        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
+            'y', default_y_lim)
+
+        return x_lim, y_lim
+
+# Needs to be fixed!
+
+
+@Plotter.plot_type("Draw")
+class draw(Plot):
+    def __init__(self, parameters: Union[tuple[str], None] = None,
+                 pos: Optional[Dict[Union[int, str], tuple]] = None,
+                 node_attributes: str = "opinion",
+                 edge_attributes: str = 'importance',
+                 node_info_mode: str = 'none',
+                 use_node_color: bool = True,
+                 use_edge_thickness: bool = True,
+                 show_edge_influences: bool = False,
+                 node_size_multiplier: int = 200,
+                 arrowhead_length: float = 0.2,
+                 arrowhead_width: float = 0.2,
+                 min_line_width: float = 0.1,
+                 max_line_width: float = 3.0,
+                 seed: Optional[int] = None):
+        self.parameters = tuple(parameters) if parameters is not None else ()
+
+        self.pos = pos
+        self.node_attributes = node_attributes
+        self.edge_attributes = edge_attributes
+        self.node_info_mode = node_info_mode
+        self.use_node_color = use_node_color
+        self.use_edge_thickness = use_edge_thickness
+        self.show_edge_influences = show_edge_influences
+        self.node_size_multiplier = node_size_multiplier
+        self.arrowhead_length = arrowhead_length
+        self.arrowhead_width = arrowhead_width
+        self.min_line_width = min_line_width
+        self.max_line_width = max_line_width
+        self.seed = seed
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+        self.x_lim = None
+        self.y_lim = None
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_mean_graph', 'settings': {}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        # Fetch the HariGraph instance using the data_key
+        image = dynamic_data_cache[self.data_key]
+
+        # Use the specified or default positions for nodes
+        if self.pos is None:
+            self.pos = image.position_nodes(seed=self.seed)
+
+        # Prepare Node Labels
+        node_labels = self._prepare_node_labels(image)
+
+        # Prepare Node Colors
+        node_colors = self._prepare_node_colors(image, self.use_node_color)
+
+        # Prepare Edge Widths and Labels
+        edge_widths, edge_labels = self._prepare_edge_attributes(image)
+
+        # Calculate Node Sizes
+        node_sizes = self._calculate_node_sizes(image)
+
+        # Draw Nodes
+        nx.draw_networkx_nodes(
+            image, self.pos, node_color=node_colors, node_size=node_sizes, ax=ax)
+
+        # Draw Edges
+        self._draw_edges(image, ax, edge_widths)
+
+        # Draw Labels
+        nx.draw_networkx_labels(image, self.pos, labels=node_labels, ax=ax)
+        if self.show_edge_influences and edge_labels:
+            nx.draw_networkx_edge_labels(
+                image, self.pos, edge_labels=edge_labels, ax=ax)
+
+    def _prepare_node_labels(self, image):
+        node_labels = {}
+        match self.node_info_mode:
+            case 'opinion':
+                node_labels = {node: f"{opinion:.2f}" for node, opinion in image.gatherer.gather(
+                    self.node_attributes).items()}
+            case 'ids':
+                node_labels = {node: str(node) for node in image.nodes()}
+            case 'labels':
+                node_labels = {node: ','.join(
+                    map(str, label)) for node, label in image.gatherer.gather("label").items()}
+            case 'cluster_size':
+                node_labels = {node: str(
+                    len(label)) for node, label in image.gatherer.gather("label").items()}
+        return node_labels
+
+    def _prepare_node_colors(self, image, use_node_color):
+        node_colors = []
+        default_color = 'lightblue'  # Default color for nodes without specified colors
+        for node in image.nodes():
+            if use_node_color:
+                color = cm.bwr(image.gatherer.gather(
+                    self.node_attributes).get(node, 0.5))
+            else:
+                color = default_color
+            node_colors.append(color)
+        return node_colors
+
+    def _prepare_edge_attributes(self, image):
+        edge_weights = list(image.gatherer.gather(
+            self.edge_attributes).values())
+        scaled_weights = np.sqrt(edge_weights)  # Non-linear scaling
+        max_scaled_weight = np.max(scaled_weights)
+        min_scaled_weight = np.min(scaled_weights)
+        edge_widths = [(self.min_line_width + (self.max_line_width - self.min_line_width) * (weight -
+                        min_scaled_weight) / (max_scaled_weight - min_scaled_weight)) for weight in scaled_weights]
+        edge_labels = {(u, v): f"{influence:.2f}" for (u, v), influence in image.gatherer.gather(
+            self.edge_attributes).items()} if self.show_edge_influences else None
+        return edge_widths, edge_labels
+
+    def _calculate_node_sizes(self, image):
+        node_sizes = []
+        # Default size for nodes without labels
+        default_size = self.node_size_multiplier
+        for node in image.nodes():
+            label = image.nodes[node].get('label')
+            if label:
+                size = self.node_size_multiplier * \
+                    math.sqrt(len(label))  # Nonlinear scaling
+            else:
+                size = default_size
+            node_sizes.append(size)
+        return node_sizes
+
+    def _draw_edges(self, image, ax, edge_widths):
+        # Initialize style with a default value
+        default_style = 'arc3,rad=0.3'  # or any other default style you prefer
+
+        for (u, v), width in zip(image.edges(), edge_widths):
+            # Here you might have some logic to determine the style for each edge
+            # For example:
+            # if some_condition:
+            #     style = 'some_specific_style'
+            # else:
+            #     style = default_style
+
+            # If no specific style is set, use the default
+            style = default_style
+
+            # Now draw the edge with the defined style
+            nx.draw_networkx_edges(image, self.pos, edgelist=[(u, v)], width=width, ax=ax,
+                                   arrowstyle=f'-|>,head_length={self.arrowhead_length},head_width={self.arrowhead_width}',
+                                   connectionstyle=style)
+
+
+@Plotter.plot_type("Static: Time line")
+class plot_time_line(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_dynamic_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return []
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'mean_time', 'settings': {}}]
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = dynamic_data_cache[self.data_key]
+
+        x_parameter, y_parameter = self.parameters
+
+        if x_parameter == 'time':
+            # Time is on the x-axis, draw a vertical line
+            ax.axvline(x=data, color='r', linestyle='--')
+        elif y_parameter == 'time':
+            # Time is on the y-axis, draw a horizontal line
+            ax.axhline(y=data, color='r', linestyle='--')
+
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                x_parameter, x_parameter))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                y_parameter, y_parameter))
+
+
+@Plotter.plot_type("Static: Node lines")
+class plot_node_lines(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.colormap = colormap
+
+        self._static_data = None
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+
+    def get_dynamic_plot_requests(self):
+        return []
+
+    def data(self, static_data_cache: List[dict]):
+        if self._static_data is not None:
+            return self._static_data
+
+        data_list = static_data_cache[self.data_key]
+        self._static_data = self.transform_data(data_list)
+        return self._static_data
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = self.data(static_data_cache)
+
+        # print(f'{data = }')
+        # print(f'{data = }')
+        # print(f'{data.keys() = }')
+        # print(f'{data["time"] = }')
+
+        x_parameter, y_parameter = self.parameters
+
+        if not (x_parameter == 'time' or y_parameter == 'time'):
+            raise ValueError('One of the parameters should be time.')
+
+        # Determine which axis time is on
+        time_is_x_axis = x_parameter == 'time'
+
+        x_values = data[x_parameter]
+        y_values = data[y_parameter]
+
+        if self.scale[0 if time_is_x_axis else 1] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1 if time_is_x_axis else 0] == 'tanh':
+            y_values = np.tanh(y_values)
+
+        # Color map for final state values
+        cmap = plt.get_cmap(self.colormap)
+        final_values = y_values[:, -1] if time_is_x_axis else x_values[:, -1]
+        colors = cmap(final_values / max(final_values))
+
+        # Plotting
+        for i, color in enumerate(colors):
+            if time_is_x_axis:
+                ax.plot(x_values, y_values[i], color=color)
+            else:
+                ax.plot(y_values[i], x_values, color=color)
+
+        # Set limits
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+
+@Plotter.plot_type("Static: Graph line")
+class plot_graph_line(Plot):
+    def __init__(self, parameters: tuple[str],
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
+        self.parameters = tuple(parameters)
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.function = function
+
+        self._static_data = None
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return [{'method': 'calculate_function_of_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'function': self.function}}]
+
+    def get_dynamic_plot_requests(self):
+        return []
+
+    def data(self, static_data_cache: List[dict]):
+        if self._static_data is not None:
+            return self._static_data
+
+        data = static_data_cache[self.data_key]
+
+        keys = list(data[0].keys())
+
+        self._static_data = {key: [] for key in keys}
+        for frame in data:
+            for key in keys:
+                self._static_data[key].append(frame[key])
+
+        return self._static_data
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = self.data(static_data_cache)
+
+        x_parameter, y_parameter = self.parameters
+
+        x_values = data[x_parameter]
+        y_values = data[y_parameter]
+
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'tanh':
+            y_values = np.tanh(y_values)
+
+        ax.plot(x_values, y_values)
+
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                x_parameter, x_parameter))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                y_parameter, y_parameter))
+
+
+@Plotter.plot_type("Static: Graph Range")
+class plot_fill_between(Plot):
+    def __init__(self, parameters: tuple[str], functions: Optional[List[str]] = None,
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+        self.parameters = tuple(parameters)
+        self.functions = functions if functions is not None else ['min', 'max']
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+
+        self._static_data = None
+
+        # Generate data keys for both functions
+        self.data_key_min = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+        self.data_key_max = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[1])
+
+    def get_static_plot_requests(self):
+        return [
+            {'method': 'calculate_function_of_node_values', 'settings': {
+                'parameters': self.parameters, 'scale': self.scale, 'function': self.functions[0]}},
+            {'method': 'calculate_function_of_node_values', 'settings': {
+                'parameters': self.parameters, 'scale': self.scale, 'function': self.functions[1]}}
+        ]
+
+    def get_dynamic_plot_requests(self):
+        return []
+
+    def data(self, static_data_cache: List[dict], function_key):
+        data = static_data_cache[function_key]
+
+        keys = list(data[0].keys())
+
+        _static_data = {key: [] for key in keys}
+        for frame in data:
+            for key in keys:
+                _static_data[key].append(frame[key])
+
+        return _static_data
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data_min = self.data(static_data_cache, self.data_key_min)
+        data_max = self.data(static_data_cache, self.data_key_max)
+
+        x_parameter, y_parameter = self.parameters
+
+        x_values = data_min[x_parameter]
+        y_values_min = data_min[y_parameter]
+        y_values_max = data_max[y_parameter]
+
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'tanh':
+            y_values_min = np.tanh(y_values_min)
+            y_values_max = np.tanh(y_values_max)
+
+        # Fill the area between the min and max curves
+        ax.fill_between(x_values, y_values_min, y_values_max, alpha=0.5)
+
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                x_parameter, x_parameter))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                y_parameter, y_parameter))
+
+
+@Plotter.plot_type("Static: Cluster Line")
+class plot_cluster_line(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+
+        self._static_data = None
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return [{'method': 'cluster_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def get_dynamic_plot_requests(self):
+        return []
+
+    def data(self, static_data_cache: List[dict]):
+        if self._static_data is not None:
+            return self._static_data
+
+        data = static_data_cache[self.data_key]
+
+        data = self.transform_data(data)
+
+        x_parameter, y_parameter = self.parameters
+
+        # Transform data to suitable format for plotting
+        x_values = np.array(data[x_parameter])
+        y_values = np.array(data[y_parameter])
+
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'tanh':
+            y_values = np.tanh(y_values)
+
+        self._static_data = {'x': x_values, 'y': y_values}
+        return self._static_data
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = self.data(static_data_cache)
+
+        # print(f'{data = }')
+
+        ax.plot(data['x'], data['y'].T)
+
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+
+@Plotter.plot_type("Static: Cluster Range")
+class plot_fill_between_cluster(Plot):
+    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+        assert len(
+            parameters) == 3, "Three parameters are required, with the last or first being 'time'."
+
+        self.parameters = tuple(parameters)
+        self.cluster_settings = cluster_settings
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+
+        self._static_data = None
+
+        self.data_key = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+
+    def get_static_plot_requests(self):
+        return [{'method': 'cluster_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+
+    def get_dynamic_plot_requests(self):
+        return []
+
+    def data(self, static_data_cache: List[dict]):
+        if self._static_data is not None:
+            return self._static_data
+
+        data = static_data_cache[self.data_key]
+
+        data = self.transform_data(data)
+
+        x_parameter, y1_parameter, y2_parameter = self.parameters
+
+        # Transform data to suitable format for plotting
+        x_values = np.array(data[x_parameter])
+        y1_values = np.array(data[y1_parameter])
+        y2_values = np.array(data[y2_parameter])
+
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'tanh':
+            y1_values = np.tanh(y1_values)
+            y2_values = np.tanh(y2_values)
+
+        self._static_data = {'x': x_values, 'y1': y1_values, 'y2': y2_values}
+        return self._static_data
+
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        data = self.data(static_data_cache)
+
+        # Assuming x_values are common for all intervals
+        x_values = data['x']
+
+        # Iterate over each set of intervals
+        # Assuming data['y1'] and data['y2'] have the same first dimension
+        for i in range(data['y1'].shape[0]):
+            y1_values = data['y1'][i, :]
+            y2_values = data['y2'][i, :]
+
+            # Use tanh scaling if specified
+            if self.scale[1] == 'tanh':
+                y1_values = np.tanh(y1_values)
+                y2_values = np.tanh(y2_values)
+
+            # Fill the area between y1 and y2 for this set of intervals
+            ax.fill_between(x_values, y1_values, y2_values, alpha=0.5)
+
+        # Setting x and y limits if provided
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        # Setting labels
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+
+#     # class plot_opinions(self,
+#     #                       mode: str = 'show',
+#     #                       save_dir: Optional[str] = None,
+#     #                       gif_path: Optional[str] = None,
+#     #                       reference_index: int = -1,
+#     #                       minimum_cluster_size: int = 1,
+#     #                       colormap: str = 'coolwarm',
+#     #                       name: str = 'opinions_statics',
+#     #                       width_threshold: float = 1,
+#     #                       scale: str = 'linear',
+#     #                       show_legend: bool = True):
+#     #         """
+#     #         Plot the opinions of nodes over time.
+
+#     #         Parameters:
+#     #         - mode (str): Mode of the plot. Default is 'show'.
+#     #         - save_dir (str, optional): Directory to save the plot. Default is None.
+#     #         - gif_path (str, optional): Path to save the gif. Default is None.
+#     #         - reference_index (int): Index to refer for plotting. Default is -1.
+#     #         - minimum_cluster_size (int): Minimum size of the cluster for plotting. Default is 1.
+#     #         - colormap (str): Colormap for the plot. Default is 'coolwarm'.
+#     #         - name (str): Name of the plot. Default is 'opinions_statics'.
+#     #         - width_threshold (float): Threshold for the width of the plot. Default is 1.
+#     #         - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
+#     #         - show_legend (bool): Whether to show the legend. Default is True.
+#     #         """
+#     #         all_nodes_data = {}
+#     #         time_array = []
+
+#     #         for group_data in self.interface.mean_group_values_iterator(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
+#     #             time_array.append(group_data['time'])
+
+#     #             for node, opinion, size, max_opinion, min_opinion in zip(
+#     #                     group_data['data']['node'], group_data['data']['opinion'], group_data['data']['cluster_size'], group_data['data']['max_opinion'], group_data['data']['min_opinion']):
+#     #                 if node not in all_nodes_data:
+
+#     #                     all_nodes_data[node] = {
+#     #                         'opinion': [],
+#     #                         'cluster_size': [],
+#     #                         'max_opinion': [],
+#     #                         'min_opinion': []
+#     #                     }
+
+#     #                 all_nodes_data[node]['opinion'].append(opinion)
+#     #                 all_nodes_data[node]['cluster_size'].append(size)
+#     #                 all_nodes_data[node]['max_opinion'].append(max_opinion)
+#     #                 all_nodes_data[node]['min_opinion'].append(min_opinion)
+
+#     #         # Filter nodes where the size is always below the threshold
+#     #         nodes_to_remove = [node for node, data in all_nodes_data.items() if all(
+#     #             size < minimum_cluster_size for size in data['cluster_size'])]
+
+#     #         # Remove those nodes from all_nodes_data
+#     #         for node in nodes_to_remove:
+#     #             del all_nodes_data[node]
+
+#     #         # Initialize values with extreme opposites for comparison
+#     #         smallest_opinion = float('inf')
+#     #         highest_opinion = float('-inf')
+
+#     #         for node, data in all_nodes_data.items():
+#     #             current_min = min(data['opinion'])
+#     #             current_max = max(data['opinion'])
+
+#     #             # Update the global smallest and highest values if needed
+#     #             if current_min < smallest_opinion:
+#     #                 smallest_opinion = current_min
+#     #             if current_max > highest_opinion:
+#     #                 highest_opinion = current_max
+
+#     #         vmax = max(abs(smallest_opinion), abs(highest_opinion))
+#     #         absolute_width_threshold = 0.01 * width_threshold * vmax
+
+#     #         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+#     #             fig, ax = plt.subplots(figsize=(10, 7))
+
+#     #             for key, data in all_nodes_data.items():
+#     #                 if scale == 'tanh':
+#     #                     vmax_tanh = np.tanh(vmax)
+#     #                     y = np.tanh(data['opinion'])
+#     #                     min_y = np.tanh(data['min_opinion'])
+#     #                     max_y = np.tanh(data['max_opinion'])
+
+#     #                     ref_opinion = np.tanh(y[reference_index])
+#     #                     color = plt.get_cmap(colormap)(
+#     #                         (ref_opinion + vmax_tanh) / (2 * vmax_tanh))
+
+#     #                     # Check if the width difference exceeds the threshold anywhere
+#     #                     widths = [m - n for m, n in zip(max_y, min_y)]
+#     #                     if any(w > absolute_width_threshold for w in widths):
+#     #                         # Plotting the semitransparent region between min and max
+#     #                         # opinions
+#     #                         ax.fill_between(time_array, min_y, max_y,
+#     #                                         color=color, alpha=0.2)
+
+#     #                     # Plotting the line for the opinions
+#     #                     ax.plot(time_array, y, color=color, label=f'Node {key}')
+
+#     #                     Plotter.tanh_axis_labels(ax=ax, axis='y')
+#     #                 else:
+#     #                     y = data['opinion']
+#     #                     min_y = data['min_opinion']
+#     #                     max_y = data['max_opinion']
+
+#     #                     ref_opinion = y[reference_index]
+#     #                     color = plt.get_cmap(colormap)(
+#     #                         (ref_opinion + vmax) / (2 * vmax))
+
+#     #                     # Check if the width difference exceeds the threshold anywhere
+#     #                     widths = [m - n for m, n in zip(max_y, min_y)]
+#     #                     if any(w > absolute_width_threshold for w in widths):
+#     #                         # Plotting the semitransparent region between min and max
+#     #                         # opinions
+#     #                         ax.fill_between(time_array, min_y, max_y,
+#     #                                         color=color, alpha=0.2)
+
+#     #                     # Plotting the line for the opinions
+#     #                     ax.plot(time_array, y, color=color, label=f'Node {key}')
+
+#     #             ax.set_title(f"Opinions Over Time")
+#     #             ax.set_xlabel("Time")
+#     #             ax.set_ylabel("Opinion")
+#     #             if show_legend:
+#     #                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+
+#     #             ax.set_xlim([min(time_array), max(time_array)])
+
+#     #             saver.save(fig)

@@ -156,16 +156,19 @@ class TestHariGraph:
     def test_min_max_opinions(self):
         self.graph.add_parameters_to_nodes()
 
-        min_opinions = self.graph.gatherer.gather('min_opinion')
-        max_opinions = self.graph.gatherer.gather('max_opinion')
+        opinions_data = self.graph.gatherer.gather(
+            ['min_opinion', 'max_opinion'])
+        min_opinions = opinions_data['min_opinion']
+        max_opinions = opinions_data['max_opinion']
+
         assert isinstance(
-            min_opinions, dict), "min_opinions should return a dictionary."
+            min_opinions, list), "min_opinions should return a list."
         assert isinstance(
-            max_opinions, dict), "max_opinions should return a dictionary."
-        assert np.all(np.array(list(min_opinions.values())) >= 0) and np.all(
-            np.array(list(min_opinions.values())) <= 1), "min_opinions are not in range."
-        assert np.all(np.array(list(max_opinions.values())) >= 0) and np.all(
-            np.array(list(max_opinions.values())) <= 1), "max_opinions are not in range."
+            max_opinions, list), "max_opinions should return a list."
+        assert all(
+            0 <= opinion <= 1 for opinion in min_opinions), "min_opinions are not in range [0, 1]."
+        assert all(
+            0 <= opinion <= 1 for opinion in max_opinions), "max_opinions are not in range [0, 1]."
 
     def test_merge_by_intervals(self):
         self.graph.merge_by_intervals([0.25, 0.75])

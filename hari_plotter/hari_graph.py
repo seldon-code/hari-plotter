@@ -61,36 +61,47 @@ class NodeGatherer(ABC):
 
     def gather(self, param: Union[str, List[str]]) -> dict:
         """
-        Extracts the desired parameter(s) for all nodes in the graph.
+        Extracts the desired parameter(s) for all nodes in the graph, and includes node names/IDs.
 
         Parameters:
             param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
 
         Returns:
-            dict: A dictionary containing the extracted parameters. The structure depends on the type of `param`.
-        Note:
-            Note that output is different if the param is str and List!
-            output of 'param' and ['param'] is different!
-
-            If str - dict with nodes as keys and parameter values as values
-            {node: parameter value}
-            If List - dict with nodes as keys and dict with parameters as keys and parameter values as values as values
-            {node: {parameter: parameter value}}
+            dict: A dictionary containing the extracted parameters, plus a 'nodes' key with a list of node names/IDs.
         """
         if isinstance(param, str):
-            method = self._methods[param]
-            return method(self)
+            param = [param]
 
-        result = defaultdict(dict)
+        result = {p: [] for p in param}
 
         for p in param:
-            method = self._methods[p]
-            # Assuming the method returns a dict with node values
-            method_result = method(self)
-            for node, value in method_result.items():
-                result[node][p] = value
+            if p not in self._methods:
+                raise ValueError(
+                    f'{p} is not a valid method. Valid methods are: {self.methods}')
 
-        return dict(result)
+            method = self._methods[p]
+            method_result = method(self)
+            # Use None or a default value for missing data
+            result[p].append(method_result)
+
+        transformed_result = {}
+
+        # Assuming all parameters have the same nodes, sort them once
+        nodes = sorted(next(iter(result.values()))[0].keys())
+        transformed_result['nodes'] = nodes
+
+        # Iterate over each parameter in the result
+        for parameter, values in result.items():
+            # Get the first dictionary in the list (assuming each parameter has a list with a single dictionary)
+            node_value_dict = values[0]
+
+            # Extract the values for the sorted nodes
+            sorted_values = [node_value_dict.get(node, None) for node in nodes]
+
+            # Store in the transformed result
+            transformed_result[parameter] = sorted_values
+
+        return transformed_result
 
     def gather_everything(self) -> dict:
         return self.gather(self._methods.keys())
@@ -164,7 +175,7 @@ class DefaultNodeGatherer(NodeGatherer):
     def cluster_size(self) -> dict:
         """Returns a dictionary mapping node IDs to their cluster sizes."""
         return {node: self.G.nodes[node].get('cluster_size', len(
-            self.G.nodes[node].get('label', [0, ]))) for node in self.G.nodes}
+            self.G.nodes[node].get('label', [0, ]))) for node in sorted(self.G.nodes)}
 
     @NodeGatherer.parameter("importance")
     def importance(self) -> dict:
@@ -346,6 +357,40 @@ class HariGraph(nx.DiGraph):
                 self[u][v]['influence'] /= total_influence
 
     @classmethod
+    def mean_graph(cls, images: List[HariGraph]) -> HariGraph:
+        if len(images) == 1:
+            return images[0].copy()
+        # Initialize a new graph
+        mean_graph = cls()
+
+        # Assure that all graphs have the same nodes
+        nodes = set(images[0].nodes())
+        if not all(set(g.nodes()) == nodes for g in images):
+            raise ValueError("Graphs do not have the same nodes")
+
+        # Calculate mean values for node attributes
+        for node in nodes:
+            mean_opinion = sum(g.nodes[node]['opinion']
+                               for g in images) / len(images)
+            mean_graph.add_node(node, opinion=mean_opinion)
+
+        # Calculate mean values for edge attributes
+        for i, j in combinations(nodes, 2):
+            influences = []
+            for g in images:
+                if g.has_edge(i, j):
+                    influences.append(g[i][j]['influence'])
+                else:
+                    # Assuming 0 influence for missing edges
+                    influences.append(0)
+
+            mean_influence = sum(influences) / len(images)
+            if mean_influence > 0:  # Add the edge only if the mean influence is positive
+                mean_graph.add_edge(i, j, influence=mean_influence)
+
+        return mean_graph
+
+    @classmethod
     def read_network(cls, network_file: str, opinion_file: str) -> HariGraph:
         """
         Class method to create an instance of HariGraph from the provided files.
@@ -410,6 +455,9 @@ class HariGraph(nx.DiGraph):
         :param opinion_file: The name of the file to write the node opinions to.
         :param delimiter: Delimiter used to separate the opinions in the file (default is comma).
         '''
+        # Gather node opinions
+        opinions = self.gatherer.gather('opinion')
+
         # Save network structure
         with open(network_file, 'w') as f:
             # Write header
@@ -428,9 +476,10 @@ class HariGraph(nx.DiGraph):
         with open(opinion_file, 'w') as f:
             # Write header
             f.write(f"# idx_agent{delimiter}opinion[...]\n")
-            for node, data in self.nodes(data=True):
+            for node_id in opinions['nodes']:
                 # Write each node's opinion opinion in a separate line
-                f.write(f"{node}{delimiter}{data['opinion']}\n")
+                opinion = opinions['opinion'][opinions['nodes'].index(node_id)]
+                f.write(f"{node_id}{delimiter}{opinion}\n")
 
     @classmethod
     def read_json(cls, filename: str) -> HariGraph:
@@ -469,11 +518,22 @@ class HariGraph(nx.DiGraph):
         """
         params_to_save = ['opinion', 'cluster_size',
                           'activity', 'inner_opinions']
+
+        # Gathering all parameters at once
+        gathered_data = self.gatherer.gather(params_to_save)
+
+        # Construct node data
         graph_dict = {
             "nodes": [
-                {"id": n, **{prop: self.gatherer.gather(prop)[n] for prop in params_to_save}} for n in self.nodes()
+                {"id": node_id, **
+                    {prop: gathered_data[prop][i] for prop in params_to_save}}
+                for i, node_id in enumerate(gathered_data['nodes'])
             ],
-            "edges": [{"source": u, "target": v, "influence": self[u][v]["influence"]} for u, v in self.edges()]
+            "edges": [
+                {"source": u, "target": v,
+                    "influence": self[u][v]["influence"]}
+                for u, v in self.edges()
+            ]
         }
 
         with open(filename, 'w') as file:
@@ -643,7 +703,7 @@ class HariGraph(nx.DiGraph):
             G_copy, HariGraph) else G_copy
         G_copy.similarity_function = self.similarity_function
         G_copy.node_parameter_gatherer = self.node_parameter_gatherer
-        G_copy.gatherer = self.gatherer
+        G_copy.gatherer = type(self.gatherer)(G_copy)
         return G_copy
 
     # ---- Clusterization Methods ----
@@ -687,46 +747,33 @@ class HariGraph(nx.DiGraph):
             i (int): The identifier for the first node to merge.
             j (int): The identifier for the second node to merge.
         """
+        # Get node data for merging
+        node_i_data = self.nodes[i]
+        node_j_data = self.nodes[j]
 
-        # Get opinions and others parameters using the
-        # 'node_parameter_gatherer' method
-        parameters = self.gatherer.merge(
-            [self.nodes[i], self.nodes[j]])
+        # Merge nodes using the gatherer's merge method
+        merged_data = self.gatherer.merge([node_i_data, node_j_data])
 
-        # Add a new node to the graph with the calculated opinion, label, and
-        # other unpacked parameters
-        new_node = max(max(self.nodes), max(
-            item for sublist in self.gatherer.label().values() for item in sublist)) + 1
-        self.add_node(new_node, **parameters)
+        # Generate a new node ID
+        new_node_id = max(self.nodes) + 1
+
+        # Add the new merged node to the graph
+        self.add_node(new_node_id, **merged_data)
 
         # Reconnect edges
         for u, v, data in list(self.edges(data=True)):
-            if u == i or u == j:
-                if v != i and v != j:  # Avoid connecting the new node to itself
-                    influence = self[u][v]['influence']
-                    if self.has_edge(new_node, v):
-                        # Sum the influences if both original nodes were
-                        # connected to the same node
-                        self[new_node][v]['influence'] += influence
-                    else:
-                        self.add_edge(new_node, v, influence=influence)
-                if self.has_edge(
-                        u, v):  # Check if the edge exists before removing it
-                    self.remove_edge(u, v)
-            if v == i or v == j:
-                if u != i and u != j:  # Avoid connecting the new node to itself
-                    influence = self[u][v]['influence']
-                    if self.has_edge(u, new_node):
-                        # Sum the influences if both original nodes were
-                        # connected to the same node
-                        self[u][new_node]['influence'] += influence
-                    else:
-                        self.add_edge(u, new_node, influence=influence)
-                if self.has_edge(
-                        u, v):  # Check if the edge exists before removing it
-                    self.remove_edge(u, v)
+            if u in [i, j]:
+                if v not in [i, j]:
+                    influence = data['influence']
+                    self.add_edge(new_node_id, v, influence=influence)
+                self.remove_edge(u, v)
+            elif v in [i, j]:
+                if u not in [i, j]:
+                    influence = data['influence']
+                    self.add_edge(u, new_node_id, influence=influence)
+                self.remove_edge(u, v)
 
-        # Remove the old nodes
+        # Remove the original nodes
         self.remove_node(i)
         self.remove_node(j)
 
@@ -838,66 +885,64 @@ class HariGraph(nx.DiGraph):
             cluster_mapping[node] = set(label)
         return cluster_mapping
 
-    def merge_clusters(self, clusters: Union[List[Set[int]], Dict[int, int]]):
+    def merge_clusters(self, clusters: Union[List[Set[int]], Dict[int, int]], merge_remaining=False):
         """
-        Merges clusters of nodes in the graph into new nodes.
-
-        For each cluster, a new node is created whose opinion is the weighted
-        average of the opinions of the nodes in the cluster, with the weights
-        being the lengths of the labels of the nodes. The new node's label
-        is the concatenation of the labels of the nodes in the cluster.
-        The edges are reconnected to the new nodes, and the old nodes are removed.
+        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
 
         Parameters:
             clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
+            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
         """
-        # Determine whether clusters are provided as a list or a dictionary
+        # Handle clusters input
         if isinstance(clusters, dict):
-            # Filter out trivial mappings (like {4: {4}})
-            clusters = {k: v for k, v in clusters.items()
-                        if k not in v or len(v) > 1}
-            id_mapping = {old_id: new_id for new_id,
-                          old_ids_set in clusters.items() for old_id in old_ids_set}
-            new_ids = set(id_mapping.values())
-            clusters_list = [set(old_id for old_id, mapped_id in id_mapping.items(
-            ) if mapped_id == new_id) for new_id in new_ids]
+            cluster_sets = [set(group) for group in clusters.values()]
         elif isinstance(clusters, list):
-            id_mapping = {}
-            clusters_list = clusters
-            new_id_start = max(max(self.nodes), max(
-                item for sublist in self.gatherer.label().values() for item in sublist)) + 1
-            for i, cluster in enumerate(clusters):
-                new_id = new_id_start + i
-                for node_id in cluster:
-                    assert node_id in self.nodes and node_id not in id_mapping, f"Node {node_id}"\
-                        "already exists in the graph or is being merged multiple times."
-                    id_mapping[node_id] = new_id
+            cluster_sets = clusters
         else:
             raise ValueError(
                 "clusters must be a list of sets or a dictionary.")
 
-        for i, cluster in enumerate(clusters_list):
-            new_id = id_mapping[next(iter(cluster))]
-            parameters = self.gatherer.merge(
-                [self.nodes[node_id] for node_id in cluster])
-            self.add_node(new_id, **parameters)
+        # All nodes in the graph
+        all_nodes = set(self.nodes)
 
-        for old_node_id, new_id in id_mapping.items():
-            for successor in list(self.successors(old_node_id)):
-                mapped_successor = id_mapping.get(successor, successor)
-                if mapped_successor != new_id:
-                    self.add_edge(new_id, mapped_successor,
-                                  influence=self[old_node_id][successor]['influence'])
+        # Record all nodes that are part of the specified clusters
+        clustered_nodes = set(
+            node for cluster in cluster_sets for node in cluster)
 
-            for predecessor in list(self.predecessors(old_node_id)):
-                mapped_predecessor = id_mapping.get(predecessor, predecessor)
-                if mapped_predecessor != new_id:
-                    self.add_edge(mapped_predecessor, new_id,
-                                  influence=self[predecessor][old_node_id]['influence'])
+        # Remaining nodes not in any cluster
+        if merge_remaining:
+            remaining_nodes = all_nodes - clustered_nodes
+            if remaining_nodes:
+                cluster_sets.append(remaining_nodes)
 
-            self.remove_node(old_node_id)
+        # Generate new IDs for the merged nodes
+        new_id_start = max(self.nodes) + 1
+
+        for i, cluster in enumerate(cluster_sets):
+            # Create new node ID
+            new_id = new_id_start + i
+
+            # Gather and merge node attributes in the cluster
+            node_attributes = [self.nodes[node_id] for node_id in cluster]
+            merged_attributes = self.gatherer.merge(node_attributes)
+            self.add_node(new_id, **merged_attributes)
+
+            # Reconnect edges
+            for old_node_id in cluster:
+                for successor in list(self.successors(old_node_id)):
+                    if successor not in cluster:
+                        influence = self[old_node_id][successor]['influence']
+                        self.add_edge(new_id, successor, influence=influence)
+
+                for predecessor in list(self.predecessors(old_node_id)):
+                    if predecessor not in cluster:
+                        influence = self[predecessor][old_node_id]['influence']
+                        self.add_edge(predecessor, new_id, influence=influence)
+
+                # Remove old node
+                self.remove_node(old_node_id)
 
     def simplify_graph_one_iteration(self):
         """
@@ -941,7 +986,7 @@ class HariGraph(nx.DiGraph):
         """
         for source, target in permutations(self.nodes, 2):
             if not nx.has_path(self, source, target):
-                # print(f"No path exists from {source} to {target}")
+                # f"No path exists from {source} to {target}"
                 return False
         return True
 

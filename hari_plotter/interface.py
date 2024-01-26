@@ -9,6 +9,7 @@ import numpy as np
 from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
 from .simulation import Simulation
+from .group import Group
 
 
 class Interface(ABC):
@@ -86,12 +87,12 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def _calculate_mean_node_values(self, group: List, params: List[str]) -> dict:
+    def _calculate_mean_node_values(self, group: Group, params: List[str]) -> dict:
         """
         Calculate the mean node values based on parameters.
 
         Args:
-            group (List): List containing data for each node.
+            group (Group): Group of images of the dynamics
             params (List[str]): List of parameter names.
 
         Returns:
@@ -125,12 +126,12 @@ class Interface(ABC):
 
         return results
 
-    def _calculate_node_values(self, group: List, params: List[str]) -> dict:
+    def _calculate_node_values(self, group: Group, params: List[str]) -> dict:
         """
         Calculate node values based on parameters.
 
         Args:
-            group (List): List containing data for each node.
+            group (Group): Group of images of the dynamics
             params (List[str]): List of parameter names.
 
         Returns:
@@ -209,15 +210,12 @@ class HariGraphInterface(Interface):
         time = 0
         yield {'image': image, 'time': time}
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in HariGraph.
+    def group(self, i: int = 0) -> Group:
+        assert i == 0
+        return Group([self.data[0]], time=np.array([0]))
 
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def groups(self) -> List[Group]:
+        return [self.group(0)]
 
     def get_node_values(self, image: Any, params: List[str]) -> dict:
         """
@@ -242,6 +240,7 @@ class HariGraphInterface(Interface):
         Returns:
             dict: A dictionary containing mean node values and the time stamp.
         """
+
         data = {'data': self._calculate_mean_node_values(
             [None], params)}  # No group for single image
         data['time'] = 0
@@ -323,15 +322,12 @@ class HariDynamicsInterface(Interface):
             time = group[-1]
             yield {'image': image, 'time': time}
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in HariDynamics.
+    def group(self, i: int) -> Group:
+        group = self.data.groups[i]
+        return Group([self.data[j] for j in group], time=np.array(group))
 
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def groups(self) -> List[Group]:
+        return [self.data.group(i) for i in range(len(self.data.groups))]
 
     def get_node_values(self, image: Any, params: List[str]) -> dict:
         """
@@ -447,15 +443,12 @@ class SimulationInterface(Interface):
             time = group[-1] * self.data.model.params.get("dt", 1)
             yield {'image': image, 'time': time}
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in Simulation.
+    def group(self, i: int) -> Group:
+        group = self.data.dynamics.groups[i]
+        return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.model.params.get("dt", 1))
 
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
+    def groups(self) -> List[Group]:
+        return [self.group(i) for i in range(len(self.data.dynamics.groups))]
 
     def get_node_values(self, image: Any, params: List[str]) -> dict:
         """
