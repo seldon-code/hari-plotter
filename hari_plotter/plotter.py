@@ -1844,131 +1844,115 @@ class plot_fill_between_cluster(Plot):
                 self.parameters[1], self.parameters[1]))
 
 
-#     # class plot_opinions(self,
-#     #                       mode: str = 'show',
-#     #                       save_dir: Optional[str] = None,
-#     #                       gif_path: Optional[str] = None,
-#     #                       reference_index: int = -1,
-#     #                       minimum_cluster_size: int = 1,
-#     #                       colormap: str = 'coolwarm',
-#     #                       name: str = 'opinions_statics',
-#     #                       width_threshold: float = 1,
-#     #                       scale: str = 'linear',
-#     #                       show_legend: bool = True):
-#     #         """
-#     #         Plot the opinions of nodes over time.
+@Plotter.plot_type("Static: Opinions")
+class plot_opinions(Plot):
+    def __init__(self, cluster_settings: dict = {},
+                 scale: Optional[str | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False):
 
-#     #         Parameters:
-#     #         - mode (str): Mode of the plot. Default is 'show'.
-#     #         - save_dir (str, optional): Directory to save the plot. Default is None.
-#     #         - gif_path (str, optional): Path to save the gif. Default is None.
-#     #         - reference_index (int): Index to refer for plotting. Default is -1.
-#     #         - minimum_cluster_size (int): Minimum size of the cluster for plotting. Default is 1.
-#     #         - colormap (str): Colormap for the plot. Default is 'coolwarm'.
-#     #         - name (str): Name of the plot. Default is 'opinions_statics'.
-#     #         - width_threshold (float): Threshold for the width of the plot. Default is 1.
-#     #         - scale (str): Scale for the plot values. Options: 'linear' or 'tanh'. Default is 'linear'.
-#     #         - show_legend (bool): Whether to show the legend. Default is True.
-#     #         """
-#     #         all_nodes_data = {}
-#     #         time_array = []
+        self.cluster_settings = cluster_settings
+        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self.x_lim = x_lim
+        self.y_lim = y_lim
+        self.min_cluster_size = min_cluster_size
+        self.colormap = colormap
 
-#     #         for group_data in self.interface.mean_group_values_iterator(['opinion', 'cluster_size', 'min_opinion', 'max_opinion']):
-#     #             time_array.append(group_data['time'])
+        self.show_colorbar = show_colorbar
 
-#     #             for node, opinion, size, max_opinion, min_opinion in zip(
-#     #                     group_data['data']['node'], group_data['data']['opinion'], group_data['data']['cluster_size'], group_data['data']['max_opinion'], group_data['data']['min_opinion']):
-#     #                 if node not in all_nodes_data:
+        self._static_data = None
+        self.data_key = Plotter.request_to_tuple(
+            self.get_static_plot_requests()[0])
+        self.max_value = None
+        self.min_value = None
 
-#     #                     all_nodes_data[node] = {
-#     #                         'opinion': [],
-#     #                         'cluster_size': [],
-#     #                         'max_opinion': [],
-#     #                         'min_opinion': []
-#     #                     }
+    def get_static_plot_requests(self):
+        return [{'method': 'cluster_graph_values', 'settings': {'parameters': ('time', 'min_opinion', 'opinion', 'max_opinion', 'cluster_size'), 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
 
-#     #                 all_nodes_data[node]['opinion'].append(opinion)
-#     #                 all_nodes_data[node]['cluster_size'].append(size)
-#     #                 all_nodes_data[node]['max_opinion'].append(max_opinion)
-#     #                 all_nodes_data[node]['min_opinion'].append(min_opinion)
+    def get_dynamic_plot_requests(self):
+        return []
 
-#     #         # Filter nodes where the size is always below the threshold
-#     #         nodes_to_remove = [node for node, data in all_nodes_data.items() if all(
-#     #             size < minimum_cluster_size for size in data['cluster_size'])]
+    def data(self, static_data_cache: List[dict]):
+        if self._static_data is not None:
+            return self._static_data
 
-#     #         # Remove those nodes from all_nodes_data
-#     #         for node in nodes_to_remove:
-#     #             del all_nodes_data[node]
+        data = static_data_cache[self.data_key]
 
-#     #         # Initialize values with extreme opposites for comparison
-#     #         smallest_opinion = float('inf')
-#     #         highest_opinion = float('-inf')
+        data = self.transform_data(data)
 
-#     #         for node, data in all_nodes_data.items():
-#     #             current_min = min(data['opinion'])
-#     #             current_max = max(data['opinion'])
+        # Transform data to suitable format for plotting
+        time = np.array(data['time'])
+        min_opinion = np.array(data['min_opinion'])
+        opinion = np.array(data['opinion'])
+        max_opinion = np.array(data['max_opinion'])
+        cluster_size = np.array(data['cluster_size'])
 
-#     #             # Update the global smallest and highest values if needed
-#     #             if current_min < smallest_opinion:
-#     #                 smallest_opinion = current_min
-#     #             if current_max > highest_opinion:
-#     #                 highest_opinion = current_max
+        if self.scale[0] == 'tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'tanh':
+            min_opinion = np.tanh(min_opinion)
+            opinion = np.tanh(opinion)
+            max_opinion = np.tanh(max_opinion)
 
-#     #         vmax = max(abs(smallest_opinion), abs(highest_opinion))
-#     #         absolute_width_threshold = 0.01 * width_threshold * vmax
+        self.min_value = np.nanmin(min_opinion)
+        self.max_value = np.nanmax(max_opinion)
 
-#     #         with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
-#     #             fig, ax = plt.subplots(figsize=(10, 7))
+        self._static_data = {'time': time, 'min_opinion': min_opinion,
+                             'opinion': opinion, 'max_opinion': max_opinion, 'cluster_size': cluster_size}
+        return self._static_data
 
-#     #             for key, data in all_nodes_data.items():
-#     #                 if scale == 'tanh':
-#     #                     vmax_tanh = np.tanh(vmax)
-#     #                     y = np.tanh(data['opinion'])
-#     #                     min_y = np.tanh(data['min_opinion'])
-#     #                     max_y = np.tanh(data['max_opinion'])
+    def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
+        data = self.data(static_data_cache)
 
-#     #                     ref_opinion = np.tanh(y[reference_index])
-#     #                     color = plt.get_cmap(colormap)(
-#     #                         (ref_opinion + vmax_tanh) / (2 * vmax_tanh))
+        time = data['time']
+        min_opinions = data['min_opinion']
+        opinions = data['opinion']
+        max_opinions = data['max_opinion']
+        cluster_sizes = data['cluster_size']
 
-#     #                     # Check if the width difference exceeds the threshold anywhere
-#     #                     widths = [m - n for m, n in zip(max_y, min_y)]
-#     #                     if any(w > absolute_width_threshold for w in widths):
-#     #                         # Plotting the semitransparent region between min and max
-#     #                         # opinions
-#     #                         ax.fill_between(time_array, min_y, max_y,
-#     #                                         color=color, alpha=0.2)
+        print(f'{cluster_sizes.shape = }')
 
-#     #                     # Plotting the line for the opinions
-#     #                     ax.plot(time_array, y, color=color, label=f'Node {key}')
+        # Filter clusters by size
+        valid_clusters = cluster_sizes[:, -1] >= self.min_cluster_size
 
-#     #                     Plotter.tanh_axis_labels(ax=ax, axis='y')
-#     #                 else:
-#     #                     y = data['opinion']
-#     #                     min_y = data['min_opinion']
-#     #                     max_y = data['max_opinion']
+        # Define a colormap
+        cmap = plt.get_cmap(self.colormap)
+        norm = plt.Normalize(np.nanmin(
+            opinions[valid_clusters, -1]), np.nanmax(opinions[valid_clusters, -1]))
 
-#     #                     ref_opinion = y[reference_index]
-#     #                     color = plt.get_cmap(colormap)(
-#     #                         (ref_opinion + vmax) / (2 * vmax))
+        for i in range(opinions.shape[0]):
+            if valid_clusters[i]:
+                # Color by the final opinion value
+                color = cmap(norm(opinions[i, -1]))
 
-#     #                     # Check if the width difference exceeds the threshold anywhere
-#     #                     widths = [m - n for m, n in zip(max_y, min_y)]
-#     #                     if any(w > absolute_width_threshold for w in widths):
-#     #                         # Plotting the semitransparent region between min and max
-#     #                         # opinions
-#     #                         ax.fill_between(time_array, min_y, max_y,
-#     #                                         color=color, alpha=0.2)
+                # Plot the mean opinion line for each cluster
+                ax.plot(time, opinions[i],
+                        label=f'Cluster {i} Mean', color=color)
 
-#     #                     # Plotting the line for the opinions
-#     #                     ax.plot(time_array, y, color=color, label=f'Node {key}')
+                # Fill the area between min and max opinions for each cluster
+                ax.fill_between(
+                    time, min_opinions[i], max_opinions[i], color=color, alpha=0.3, label=f'Cluster {i} Range')
 
-#     #             ax.set_title(f"Opinions Over Time")
-#     #             ax.set_xlabel("Time")
-#     #             ax.set_ylabel("Opinion")
-#     #             if show_legend:
-#     #                 ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
+        # Set the x and y axis labels
+        if self.show_x_label:
+            ax.set_xlabel('Time')
+        if self.show_y_label:
+            ax.set_ylabel('Opinion')
 
-#     #             ax.set_xlim([min(time_array), max(time_array)])
+        # Set the x and y axis limits if provided
+        if self.x_lim is not None:
+            ax.set_xlim(self.x_lim)
+        if self.y_lim is not None:
+            ax.set_ylim(self.y_lim)
 
-#     #             saver.save(fig)
+        # Optional: Add a colorbar to indicate the mapping of the final opinion values to colors
+        sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
+        sm.set_array([])
+        if self.show_colorbar:
+            ax.figure.colorbar(sm, ax=ax, label='Final Opinion')
+
+        # Optional: Hide legend for clarity, but can be enabled if needed
+        # ax.legend(loc='upper left', bbox_to_anchor=(1, 1))
