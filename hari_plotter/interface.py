@@ -193,6 +193,80 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
+    def track_clusters(self, **cluster_settings):
+        def reverse_track_clusters(dynamics):
+            # Initial setup with the last frame, assuming it has the correct order
+            final_order = list(range(len(dynamics[-1])))
+            # Start with the final order for the last frame
+            reorderings = [final_order.copy()]
+
+            # Reverse tracking from the second last frame to the first
+            for frame_index in range(len(dynamics) - 2, -1, -1):
+                current_frame = dynamics[frame_index]
+                next_frame = dynamics[frame_index + 1]
+                reordering = []
+
+                # Match each cluster in the current frame to one in the next frame
+                for current_cluster in current_frame:
+                    best_match = -1
+                    max_overlap = -1
+
+                    for next_cluster_index, next_cluster in enumerate(next_frame):
+                        overlap = len(
+                            set(current_cluster).intersection(set(next_cluster)))
+                        if overlap > max_overlap:
+                            best_match = next_cluster_index
+                            max_overlap = overlap
+
+                    reordering.append(best_match)
+
+                # Reorder based on the best matches to align with the subsequent frame's order
+                reordered = sorted(range(len(reordering)),
+                                   key=lambda i: reordering[i])
+
+                # Handle new clusters by appending them at the end
+                for i in range(len(current_frame)):
+                    if i not in reordered:
+                        reordered.append(i)
+
+                reorderings.insert(0, reordered)
+
+            # Exclude the last frame's reordering, as it's just the initial order
+            return reorderings
+
+        # Implement the Jaccard index function if not already defined
+
+        def jaccard_index(set1, set2):
+            """Calculate the Jaccard Index between two sets."""
+            intersection = len(set1.intersection(set2))
+            union = len(set1.union(set2))
+            return intersection / union if union != 0 else 0
+
+        print(f'{cluster_settings = }')
+        clusters_dynamics = [list(group.cluster(
+            **cluster_settings).get_cluster_mapping()) for group in self.groups()]
+        print(f'{clusters_dynamics = }')
+        print(
+            f'{[[len(cluster) for cluster in clusters] for clusters in clusters_dynamics] = }')
+
+        tracked_clusters = reverse_track_clusters(clusters_dynamics)
+        print(f'{tracked_clusters = }')
+
+        if tracked_clusters[-1] != list(range(len(tracked_clusters[-1]))):
+            raise ValueError('Clusters not clustering:(')
+
+        correct_labels = self.group(-1).cluster(**
+                                                cluster_settings).cluster_labels
+
+        for group, ordering in zip(self.groups(), tracked_clusters):
+            new_labels = [correct_labels[i] for i in ordering]
+            print(f'{new_labels = }')
+
+            group.cluster(
+                **cluster_settings).cluster_labels = new_labels
+
+        # print(f'{[list(tc.keys()) for tc in tracked_clusters] = }')
+
 
 class HariGraphInterface(Interface):
     """Interface specifically designed for the HariGraph class."""

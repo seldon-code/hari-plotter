@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import os
-from typing import Dict, List, Optional, Set, Union
-
-import matplotlib.pyplot as plt
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .hari_graph import HariGraph
 from .lazy_hari_graph import LazyHariGraph
@@ -210,13 +207,13 @@ class HariDynamics:
         return [[self.lazy_hari_graphs[i] for i in group_indices]
                 for group_indices in self.groups]
 
-    def merge_nodes_by_mapping(self, mapping: Dict[int, int]):
+    def merge_nodes_by_mapping(self, mapping: Tuple[int]):
         """
         Merge nodes in each LazyHariGraph based on the provided mapping.
         If a graph was already initialized, uninitialize it first.
 
         Parameters:
-            mapping (Dict[int, int]): A dictionary representing how nodes should be merged.
+            mapping (Tuple[int]): A dictionary representing how nodes should be merged.
         """
 
         for lazy_graph in self.lazy_hari_graphs:
@@ -247,6 +244,7 @@ class HariDynamics:
             target_lazy_graph._initialize()  # Initialize the target graph
 
         mapping = target_lazy_graph.get_cluster_mapping()
+        print(f'{mapping = }')
         self.merge_nodes_by_mapping(mapping)
 
     def __str__(self):

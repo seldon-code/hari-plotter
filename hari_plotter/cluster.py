@@ -48,6 +48,25 @@ class Cluster(ABC):
         self.original_labels = original_labels
         self.parameters = parameters
         self.scales = scales
+        self._cluster_labels = None
+
+    @property
+    def cluster_labels(self) -> List[str]:
+        if self._cluster_labels is None:
+            self._cluster_labels = [f'Cluster {i}' for i in range(
+                self.get_number_of_clusters())]
+        return self._cluster_labels
+
+    @cluster_labels.setter
+    def cluster_labels(self, labels: List[str]):
+        if len(labels) != self.get_number_of_clusters():
+            raise ValueError(
+                f'Labels number {len(labels)} is not equal to the number of clusters {self.get_number_of_clusters()}')
+        self._cluster_labels = labels
+
+    def reorder_labels(self, new_order: List[int]):
+        current_labels = self.cluster_labels
+        self._cluster_labels = [current_labels[i] for i in new_order]
 
     def centroids(self, keep_scale: bool = False):
         centroids = self.unscaled_centroids
@@ -135,6 +154,10 @@ class Cluster(ABC):
         """
         pass
 
+    @abstractmethod
+    def get_cluster_mapping(self) -> List[list]:
+        pass
+
     def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
         """
         Returns the values corresponding to the given parameter(s) for all points in the clusters.
@@ -206,11 +229,11 @@ class KMeansCluster(Cluster):
     def unscaled_centroids(self) -> np.ndarray:
         return self._centroids.copy()
 
-    def get_cluster_mapping(self) -> list:
+    def get_cluster_mapping(self) -> List[list]:
         cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
 
         for label, cluster in zip(self.original_labels, self.cluster_indexes):
-            cluster_nodes[cluster].append(label)
+            cluster_nodes[cluster].append(tuple(label))
         return cluster_nodes
 
     def get_number_of_clusters(self) -> int:
@@ -361,6 +384,7 @@ class KMeansCluster(Cluster):
         # Create a mapping from old to new labels
         label_mapping = {old: new for new, old in enumerate(new_order)}
         self.labels = np.array([label_mapping[label] for label in self.labels])
+        self.reorder_labels(new_order)
 
 
 # class KMeansCluster(Cluster):

@@ -5,233 +5,14 @@ import os
 import random
 import re
 import warnings
-from abc import ABC, abstractmethod
-from collections import defaultdict
 from itertools import combinations, permutations
-from typing import Dict, List, Optional, Set, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 import networkx as nx
 import numpy as np
 
 from .distributions import generate_mixture_of_gaussians
-
-
-class NodeGatherer(ABC):
-    """
-    Abstract base class representing a node gatherer. It provides a framework for extracting specific attributes
-    or parameters of nodes within a graph.
-
-    Attributes:
-        _methods (dict): Dictionary mapping property names to the associated method.
-        G (nx.Graph): The graph containing the nodes.
-    """
-    _methods = {}
-
-    def __init__(self, G):
-        super().__init__()
-        self.G = G
-
-    @classmethod
-    def parameter(cls, property_name):
-        """
-        Class method decorator to register methods that provide various properties of nodes.
-
-        Parameters:
-        -----------
-        property_name : str
-            The name of the property that the method provides.
-
-        Raises:
-        -------
-        ValueError: 
-            If the property name is already defined.
-        """
-        def decorator(method):
-            if property_name in cls._methods:
-                raise ValueError(
-                    f"Property {property_name} is already defined.")
-            cls._methods[property_name] = method
-            return method
-        return decorator
-
-    @property
-    def methods(self) -> list:
-        """Returns a list of property names that have been registered."""
-        return list(self._methods.keys())
-
-    def gather(self, param: Union[str, List[str]]) -> dict:
-        """
-        Extracts the desired parameter(s) for all nodes in the graph, and includes node names/IDs.
-
-        Parameters:
-            param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
-
-        Returns:
-            dict: A dictionary containing the extracted parameters, plus a 'nodes' key with a list of node names/IDs.
-        """
-        if isinstance(param, str):
-            param = [param]
-
-        result = {p: [] for p in param}
-
-        for p in param:
-            if p not in self._methods:
-                raise ValueError(
-                    f'{p} is not a valid method. Valid methods are: {self.methods}')
-
-            method = self._methods[p]
-            method_result = method(self)
-            # Use None or a default value for missing data
-            result[p].append(method_result)
-
-        transformed_result = {}
-
-        # Assuming all parameters have the same nodes, sort them once
-        nodes = sorted(next(iter(result.values()))[0].keys())
-        transformed_result['nodes'] = nodes
-
-        # Iterate over each parameter in the result
-        for parameter, values in result.items():
-            # Get the first dictionary in the list (assuming each parameter has a list with a single dictionary)
-            node_value_dict = values[0]
-
-            # Extract the values for the sorted nodes
-            sorted_values = [node_value_dict.get(node, None) for node in nodes]
-
-            # Store in the transformed result
-            transformed_result[parameter] = sorted_values
-
-        return transformed_result
-
-    def gather_everything(self) -> dict:
-        return self.gather(self._methods.keys())
-
-    @abstractmethod
-    def merge(self, nodes: (List[dict])) -> dict:
-        """
-        Abstract method to gather properties or parameters for a merged node based on input nodes.
-
-        Parameters:
-            nodes (List[dict]): A list of nodes to merge.
-
-        Returns:
-            dict: Dictionary with merged node attributes.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-
-class DefaultNodeGatherer(NodeGatherer):
-    """
-    Default implementation of the NodeGatherer. This class provides methods to extract default parameters from nodes
-    within a graph.
-    """
-
-    def merge(self, nodes: List[dict]) -> dict:
-        """
-        Merges given nodes and computes combined attributes such as 'inner_opinions', 'cluster_size', and 'label'.
-
-        Parameters:
-            nodes (List[dict]): A list of node dictionaries, each containing node attributes.
-
-        Returns:
-            dict: A dictionary with merged node attributes.
-        """
-        if not nodes:
-            raise ValueError("The input list of nodes must not be empty.")
-
-        size = sum(node.get('cluster_size', len(
-            node.get('label', [0, ]))) for node in nodes)
-
-        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
-        inner_opinions = {}
-
-        for node in nodes:
-            node_label = node.get('label', None)
-            if node_label is not None:
-                # Check if node has 'inner_opinions', if not, create one
-                if 'inner_opinions' in node:
-                    inner_opinions.update(node['inner_opinions'])
-                else:
-                    if len(node_label) != 1:
-                        warnings.warn(
-                            f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
-                    for i in node_label:
-                        inner_opinions[i] = node['opinion']
-
-        return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-            'label': [id for node in nodes for id in node['label']],
-            'inner_opinions': inner_opinions
-        }
-
-    @NodeGatherer.parameter("opinion")
-    def opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to their respective opinions."""
-        return self.G.opinions
-
-    @NodeGatherer.parameter("cluster_size")
-    def cluster_size(self) -> dict:
-        """Returns a dictionary mapping node IDs to their cluster sizes."""
-        return {node: self.G.nodes[node].get('cluster_size', len(
-            self.G.nodes[node].get('label', [0, ]))) for node in sorted(self.G.nodes)}
-
-    @NodeGatherer.parameter("importance")
-    def importance(self) -> dict:
-        """Returns a dictionary mapping node IDs to their importance based on influence and size."""
-        importance_dict = {}
-        size_dict = self.cluster_size()
-
-        for node in self.G.nodes:
-            influences_sum = sum(data['influence']
-                                 for _, _, data in self.G.edges(node, data=True))
-            importance_dict[node] = influences_sum / \
-                size_dict[node] if size_dict[node] != 0 else 0
-
-        return importance_dict
-
-    @NodeGatherer.parameter("label")
-    def label(self) -> dict:
-        """Returns a dictionary mapping node IDs to their labels or node IDs if label is missing."""
-        return {node: self.G.nodes[node]['label'] for node in self.G.nodes}
-
-    @NodeGatherer.parameter("neighbor_mean_opinion")
-    def neighbor_mean_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the mean opinion of their neighbors."""
-        data = {}
-        opinions = self.G.opinions
-        for node in self.G.nodes():
-            node_opinion = opinions[node]
-            neighbors = list(self.G.neighbors(node))
-            if neighbors:
-                mean_neighbor_opinion = sum(
-                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                data[node] = mean_neighbor_opinion
-            else:
-                data[node] = np.nan
-
-        return data
-
-    @NodeGatherer.parameter('activity')
-    def activity(self) -> dict:
-        """Returns a dictionary mapping node IDs to their activity levels."""
-        return {node: self.G.nodes[node].get('activity', np.nan) for node in self.G.nodes}
-
-    @NodeGatherer.parameter('inner_opinions')
-    def inner_opinions(self) -> dict:
-        """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
-        return {node: self.G.nodes[node].get('inner_opinions', {idx: self.G.nodes[node]['opinion'] for idx in self.G.nodes[node]['label']}) for node in self.G.nodes}
-
-    @NodeGatherer.parameter('max_opinion')
-    def max_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the maximum opinion value among their inner opinions."""
-        return {node: max((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
-
-    @NodeGatherer.parameter('min_opinion')
-    def min_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the minimum opinion value among their inner opinions."""
-        return {node: min((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
+from .node_gatherer import DefaultNodeGatherer
 
 
 class HariGraph(nx.DiGraph):
@@ -244,38 +25,25 @@ class HariGraph(nx.DiGraph):
 
     def __init__(self, incoming_graph_data=None, **attr):
         super().__init__(incoming_graph_data, **attr)
-        self.generate_labels()
         self.similarity_function = self.default_similarity_function
-        self.node_parameter_gatherer = self.default_node_parameter_gatherer
         self.gatherer = DefaultNodeGatherer(self)
 
-    def generate_labels(self):
-        """
-        Generates labels for the nodes if they don't exist.
-        Ensures that each node in the graph has a unique label. If a node lacks a label, its ID will be used.
-        """
-        if not self.nodes:
-            return
-        if 'label' not in self.nodes[next(iter(self.nodes))]:
-            for i in self.nodes:
-                self.nodes[i]['label'] = [i]
-
-    def add_parameters_to_nodes(self, node_ids=None):
+    def add_parameters_to_nodes(self, nodes: Union[List[Tuple[int]], None] = None):
         """
         Appends or updates node attributes based on predefined criteria.
 
         Parameters:
-            node_ids (Optional[List[int]]): List of node IDs to which parameters will be added. 
+            node_ids (Optional[List[Tuple[int]]): List of node IDs to which parameters will be added. 
                 If None, all nodes will be considered.
         """
-        if node_ids is None:
-            node_ids = list(self.nodes)
+        if nodes is None:
+            nodes = list(self.nodes)
 
-        for node_id in node_ids:
-            # Gather parameters for the node
-            parameters = self.gatherer.merge([self.nodes[node_id]])
-            # Update the node's attributes with the gathered parameters
-            self.nodes[node_id].update(parameters)
+        parameters = self.gatherer.gather_everything()
+        # Update the node's attributes with the gathered parameters
+        for key, value in parameters.items():
+            for node in nodes:
+                self.nodes[node][key] = value[node]
 
     def has_self_loops(self):
         """
@@ -391,104 +159,98 @@ class HariGraph(nx.DiGraph):
         return mean_graph
 
     @classmethod
-    def read_network(cls, network_file: str, opinion_file: str) -> HariGraph:
-        """
-        Class method to create an instance of HariGraph from the provided files.
+    def read_network(cls, network_file: str, opinion_file: str) -> 'HariGraph':
+        G = cls()  # Instantiate HariGraph
 
-        Parameters:
-            network_file (str): The path to the network file.
-            opinion_file (str): The path to the opinion file.
+        # Check if '&' is present in the network file
+        with open(network_file, 'r') as f:
+            content = f.read()
+            has_tuples = '&' in content
 
-        Returns:
-            HariGraph: An instance of HariGraph.
-        """
-        # Create an instance of HariGraph
-        G = cls()
+        # Define parsing function based on presence of '&'
+        if has_tuples:
+            def parse_node_id(node_id_str):
+                if '&' in node_id_str:
+                    return tuple(map(int, node_id_str.split('&')))
+                else:
+                    return (int(node_id_str),)
+        else:
+            def parse_node_id(node_id_str):
+                return (int(node_id_str),)
 
-        # Read network file and add nodes and edges to the graph
+        # Process the network file
         with open(network_file, 'r') as f:
             next(f)  # Skip header line
             for line in f:
-                # Split using either space or comma as delimiter
-                parts = re.split(r'[ ,]+', line.strip())
-                idx_agent = int(parts[0])
+                line = line.strip()
+                if not line:
+                    continue
+
+                parts = line.split(',')
+                idx_agent = parse_node_id(parts[0].strip())
                 n_neighbors = int(parts[1])
-                indices_neighbors = map(int, parts[2:2 + n_neighbors])
-                weights = map(float, parts[2 + n_neighbors:])
 
-                # Add nodes with initial opinion 0, opinion will be updated
-                # from opinion_file
-                G.add_node(idx_agent, opinion=0)
+                for i in range(n_neighbors):
+                    neighbor_id = parse_node_id(parts[2 + i].strip())
+                    weight = float(parts[2 + n_neighbors + i])
+                    G.add_edge(idx_agent, neighbor_id, influence=weight)
 
-                # Add edges with weights
-                for neighbor, weight in zip(indices_neighbors, weights):
-                    G.add_edge(neighbor, idx_agent, influence=weight)
-
-        # Read opinion file and update node opinions in the G
+        # Process the opinion file
         with open(opinion_file, 'r') as f:
             next(f)  # Skip header line
             for line in f:
-                # Split using either space or comma as delimiter
-                parts = re.split(r'[ ,]+', line.strip())
-                idx_agent = int(parts[0])
+                parts = line.split(',')
+                idx_agent = parse_node_id(parts[0].strip())
                 opinion = float(parts[1])
-                # Check if node exists, if not, add it
+
+                # Add node if it doesn't exist
                 if not G.has_node(idx_agent):
                     G.add_node(idx_agent)
-                # Update node opinion
-                G.nodes[idx_agent]['opinion'] = opinion
-                if len(parts) == 3:
-                    G.nodes[idx_agent]['activity'] = float(parts[2])
 
-        # G.remove_self_loops()
-        G.generate_labels()
-        G.add_parameters_to_nodes()
+                # Set node attributes for opinion
+                G.nodes[idx_agent]['opinion'] = opinion
+
+                # Optional: set activity level if provided
+                if len(parts) > 2:
+                    activity = float(parts[2])
+                    G.nodes[idx_agent]['activity'] = activity
 
         return G
 
     def write_network(self, network_file: str, opinion_file: str, delimiter=','):
-        '''
-        Save the network structure and node opinions to separate files.
-        Attention! This save loses the information about the labels.
-
-        :param network_file: The name of the file to write the network structure to.
-        :param opinion_file: The name of the file to write the node opinions to.
-        :param delimiter: Delimiter used to separate the opinions in the file (default is comma).
-        '''
-        # Gather node opinions
         opinions = self.gatherer.gather('opinion')
 
-        # Save network structure
         with open(network_file, 'w') as f:
-            # Write header
             f.write(
                 f"# idx_agent{delimiter}n_neighbors_in{delimiter}indices_neighbors_in[...]{delimiter}weights_in[...]\n")
+            # Inside the for loop for writing network data to file
             for node in self.nodes:
-                # Get incoming neighbors
                 neighbors = list(self.predecessors(node))
                 weights = [self[neighbor][node]['influence']
                            for neighbor in neighbors]
-                # Write each node's information in a separate line
-                f.write(
-                    f"{node}{delimiter}{len(neighbors)}{delimiter}{delimiter.join(map(str, neighbors))}{delimiter}{delimiter.join(map(str, weights))}\n")
 
-        # Save node opinions
+                # Convert node from tuple to "a&b&c..." format
+                node_output = '&'.join(map(str, node))
+
+                # Prepare neighbors' output, converting tuples to "a&b&c..." format
+                neighbors_output = ['&'.join(map(str, neighbor))
+                                    for neighbor in neighbors]
+
+                f.write(
+                    f"{node_output}{delimiter}{len(neighbors)}{delimiter}{delimiter.join(neighbors_output)}{delimiter}{delimiter.join(map(str, weights))}\n")
+
         with open(opinion_file, 'w') as f:
-            # Write header
             f.write(f"# idx_agent{delimiter}opinion[...]\n")
             for node_id in opinions['nodes']:
-                # Write each node's opinion opinion in a separate line
                 opinion = opinions['opinion'][opinions['nodes'].index(node_id)]
-                f.write(f"{node_id}{delimiter}{opinion}\n")
+
+                # Convert node_id from tuple to "a&b&c..." format
+                node_id_output = '&'.join(map(str, node_id))
+
+                f.write(f"{node_id_output}{delimiter}{opinion}\n")
 
     @classmethod
     def read_json(cls, filename: str) -> HariGraph:
-        """
-        Reads a HariGraph from a JSON file.
-
-        :param filename (str): The name of the file to read from.
-        :return: A new HariGraph instance.
-        """
         if not os.path.exists(filename):
             raise FileNotFoundError(f"{filename} does not exist.")
 
@@ -497,16 +259,18 @@ class HariGraph(nx.DiGraph):
 
         G = cls()
         for node in graph_dict["nodes"]:
-            G.add_node(node["id"], opinion=node["opinion"],
-                       # defaulting to opinion if not present
-                       min_opinion=node.get('min_opinion', node["opinion"]),
-                       # defaulting to opinion if not present
-                       max_opinion=node.get('max_opinion', node["opinion"]),
-                       label=node.get('label', [node["id"]]))
+            # Convert ID to tuple if necessary
+            node_id = tuple(node["id"]) if isinstance(
+                node["id"], list) else (node["id"],)
+            G.add_node(node_id, opinion=node["opinion"])
 
         for edge in graph_dict["edges"]:
-            G.add_edge(edge["source"], edge["target"],
-                       influence=edge["influence"])
+            # Convert source and target to tuples if necessary
+            source_id = tuple(edge["source"]) if isinstance(
+                edge["source"], list) else (edge["source"],)
+            target_id = tuple(edge["target"]) if isinstance(
+                edge["target"], list) else (edge["target"],)
+            G.add_edge(source_id, target_id, influence=edge["influence"])
 
         return G
 
@@ -516,28 +280,40 @@ class HariGraph(nx.DiGraph):
 
         :param filename (str): The name of the file to write to.
         """
-        params_to_save = ['opinion', 'cluster_size',
-                          'activity', 'inner_opinions']
+        params_to_save = ['opinion']
 
-        # Gathering all parameters at once
+        # Check conditions for 'cluster_size' and 'inner_opinions'
+        if any(size > 1 for size in self.gatherer.gather('cluster_size')['cluster_size']):
+            params_to_save.extend(['cluster_size', 'inner_opinions'])
+
+        # Check condition for 'activity'
+        if not np.all(np.isnan(self.gatherer.gather('activity')['activity'])):
+            params_to_save.append('activity')
+
+        # Gathering all parameters that met the conditions
         gathered_data = self.gatherer.gather(params_to_save)
+
+        # Convert tuples in 'inner_opinions' to strings if 'inner_opinions' is in the gathered data
+        if 'inner_opinions' in gathered_data:
+            gathered_data['inner_opinions'] = [
+                {key[0]: value for key, value in d.items()} for d in gathered_data['inner_opinions']]
 
         # Construct node data
         graph_dict = {
             "nodes": [
-                {"id": node_id, **
-                    {prop: gathered_data[prop][i] for prop in params_to_save}}
+                {"id": list(node_id) if isinstance(node_id, tuple) else node_id,
+                 **{prop: gathered_data[prop][i] for prop in params_to_save}}
                 for i, node_id in enumerate(gathered_data['nodes'])
             ],
             "edges": [
-                {"source": u, "target": v,
-                    "influence": self[u][v]["influence"]}
+                {"source": list(u) if isinstance(u, tuple) else u, "target": list(
+                    v) if isinstance(v, tuple) else v, "influence": self[u][v]["influence"]}
                 for u, v in self.edges()
             ]
         }
 
         with open(filename, 'w') as file:
-            json.dump(graph_dict, file)
+            json.dump(graph_dict, file, ensure_ascii=False, indent=4)
 
     @classmethod
     def guaranteed_connected(cls, n: int) -> HariGraph:
@@ -567,7 +343,6 @@ class HariGraph(nx.DiGraph):
                 if random.choice([True, False]) and not G.has_edge(v, u):
                     G.add_edge(v, u, influence=random.random())
 
-        G.generate_labels()
         G.add_parameters_to_nodes()
 
         return G
@@ -588,17 +363,16 @@ class HariGraph(nx.DiGraph):
 
         G = cls()
         for i in range(n):
-            G.add_node(i, opinion=random.random())
+            G.add_node((i,), opinion=random.random())
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    G.add_edge(i, j, influence=random.random())
+                    G.add_edge((i,), (j,), influence=random.random())
 
         edges_to_remove = random.sample(
             G.edges, int(len(G.edges) * (1 - factor)))
         G.remove_edges_from(edges_to_remove)
 
-        G.generate_labels()
         G.add_parameters_to_nodes()
 
         return G
@@ -668,12 +442,12 @@ class HariGraph(nx.DiGraph):
         opinion_idx = 0
         for size in cluster_sizes:
             for i in range(start, start + size):
-                G.add_node(i, opinion=opinions[opinion_idx])
+                G.add_node((i,), opinion=opinions[opinion_idx])
                 opinion_idx += 1
             for i in range(start, start + size):
                 for j in range(i + 1, start + size):
-                    G.add_edge(i, j)
-                    G.add_edge(j, i)
+                    G.add_edge((i,), (j,))
+                    G.add_edge((j,), (i,))
             start += size
 
         # Step 3: Add inter-cluster edges based on the meta-graph connections
@@ -686,13 +460,12 @@ class HariGraph(nx.DiGraph):
                     range(cluster_starts[u], cluster_starts[u] + cluster_sizes[u]))
                 target_node = random.choice(
                     range(cluster_starts[v], cluster_starts[v] + cluster_sizes[v]))
-                G.add_edge(source_node, target_node)
+                G.add_edge((source_node,), (target_node,))
 
         # Assign random influences to the edges of the graph
         G.assign_random_influences(
             mean_influence=0.1, influence_range=0.1, seed=seed)
 
-        G.generate_labels()
         G.add_parameters_to_nodes()
 
         return G
@@ -702,7 +475,7 @@ class HariGraph(nx.DiGraph):
         G_copy = HariGraph(G_copy) if not isinstance(
             G_copy, HariGraph) else G_copy
         G_copy.similarity_function = self.similarity_function
-        G_copy.node_parameter_gatherer = self.node_parameter_gatherer
+        # G_copy.node_parameter_gatherer = self.node_parameter_gatherer
         G_copy.gatherer = type(self.gatherer)(G_copy)
         return G_copy
 
@@ -734,28 +507,27 @@ class HariGraph(nx.DiGraph):
         for i, vi in updated_opinions.items():
             self.nodes[i]['opinion'] = vi
 
-    def merge_nodes(self, i: int, j: int):
+    def merge_nodes(self, i: Tuple[int], j: Tuple[int]):
         """
         Merges two nodes in the graph into a new node.
 
         The new node's opinion is a weighted average of the opinions of
-        the merged nodes, and its label is the concatenation of the labels
+        the merged nodes, and its name is the concatenation of the names
         of the merged nodes. The edges are reconnected to the new node,
         and the old nodes are removed.
 
         Parameters:
-            i (int): The identifier for the first node to merge.
-            j (int): The identifier for the second node to merge.
+            i Tuple[int]: The identifier for the first node to merge.
+            j Tuple[int]: The identifier for the second node to merge.
         """
-        # Get node data for merging
-        node_i_data = self.nodes[i]
-        node_j_data = self.nodes[j]
+        if not (isinstance(i, tuple) and isinstance(j, tuple)):
+            raise TypeError('Incorrect node format')
 
         # Merge nodes using the gatherer's merge method
-        merged_data = self.gatherer.merge([node_i_data, node_j_data])
+        merged_data = self.gatherer.merge([i, j])
 
         # Generate a new node ID
-        new_node_id = max(self.nodes) + 1
+        new_node_id = tuple(sorted(i+j))
 
         # Add the new merged node to the graph
         self.add_node(new_node_id, **merged_data)
@@ -813,7 +585,7 @@ class HariGraph(nx.DiGraph):
 
                     vi = self.nodes[node]['opinion']
                     vj = self.nodes[neighbor]['opinion']
-                    size_i = len(self.nodes[node].get('label', [node]))
+                    size_i = self.nodes[node].get('cluster_size', len(node))
 
                     if self.has_edge(node, neighbor):
                         influence_ij = self[node][neighbor]['influence']
@@ -863,29 +635,20 @@ class HariGraph(nx.DiGraph):
                 if lower_bound <= data['opinion'] < upper_bound:
                     cluster.append(node)
             if len(cluster) > 0:
-                clusters.append(set(cluster))
+                clusters.append(cluster)
 
         # Merge the clusters
         if clusters:
             self.merge_clusters(clusters)
 
-    def get_cluster_mapping(self) -> Dict[int, Set[int]]:
+    def get_cluster_mapping(self) -> List[List[Tuple[int]]]:
         """
-        Generates a mapping of current clusters in the graph.
-
-        The method returns a dictionary where the key is the ID of a current node
-        and the opinion is a set containing the IDs of the original nodes that were merged
-        to form that node.
-
-        :return: A dictionary representing the current clusters in the graph.
+        Generates a list of nodes in the unclustered graph to be clustered to get the current graph
+        :return: A list representing the current clusters in the graph.
         """
-        cluster_mapping = {}
-        for node in self.nodes:
-            label = self.nodes[node].get('label', [node])
-            cluster_mapping[node] = set(label)
-        return cluster_mapping
+        return sorted([sorted([(element,) for element in node]) for node in self.nodes])
 
-    def merge_clusters(self, clusters: Union[List[Set[int]], Dict[int, int]], merge_remaining=False):
+    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
         """
         Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
 
@@ -895,51 +658,41 @@ class HariGraph(nx.DiGraph):
                                     to new node IDs.
             merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
         """
-        # Handle clusters input
-        if isinstance(clusters, dict):
-            cluster_sets = [set(group) for group in clusters.values()]
-        elif isinstance(clusters, list):
-            cluster_sets = clusters
-        else:
-            raise ValueError(
-                "clusters must be a list of sets or a dictionary.")
-
-        # All nodes in the graph
-        all_nodes = set(self.nodes)
-
-        # Record all nodes that are part of the specified clusters
-        clustered_nodes = set(
-            node for cluster in cluster_sets for node in cluster)
+        labels = labels if labels is not None else [None]*len(clusters)
 
         # Remaining nodes not in any cluster
         if merge_remaining:
+            # All nodes in the graph
+            all_nodes = set(self.nodes)
+
+            # Record all nodes that are part of the specified clusters
+            clustered_nodes = set(
+                node for cluster in clusters for node in cluster)
             remaining_nodes = all_nodes - clustered_nodes
             if remaining_nodes:
-                cluster_sets.append(remaining_nodes)
+                clusters.append(list(remaining_nodes))
+                labels.append(None)
 
-        # Generate new IDs for the merged nodes
-        new_id_start = max(self.nodes) + 1
-
-        for i, cluster in enumerate(cluster_sets):
-            # Create new node ID
-            new_id = new_id_start + i
-
-            # Gather and merge node attributes in the cluster
-            node_attributes = [self.nodes[node_id] for node_id in cluster]
-            merged_attributes = self.gatherer.merge(node_attributes)
-            self.add_node(new_id, **merged_attributes)
+        for cluster, label in zip(clusters, labels):
+            new_node_name = tuple(sorted(sum(cluster, ())))
+            merged_attributes = self.gatherer.merge(cluster)
+            self.add_node(new_node_name, **merged_attributes)
+            if label is not None:
+                self.nodes[new_node_name]['label'] = label
 
             # Reconnect edges
             for old_node_id in cluster:
                 for successor in list(self.successors(old_node_id)):
                     if successor not in cluster:
                         influence = self[old_node_id][successor]['influence']
-                        self.add_edge(new_id, successor, influence=influence)
+                        self.add_edge(new_node_name, successor,
+                                      influence=influence)
 
                 for predecessor in list(self.predecessors(old_node_id)):
                     if predecessor not in cluster:
                         influence = self[predecessor][old_node_id]['influence']
-                        self.add_edge(predecessor, new_id, influence=influence)
+                        self.add_edge(predecessor, new_node_name,
+                                      influence=influence)
 
                 # Remove old node
                 self.remove_node(old_node_id)
@@ -949,13 +702,13 @@ class HariGraph(nx.DiGraph):
         Simplifies the graph by one iteration.
 
         In each iteration, it finds the pair of nodes with the maximum similarity
-        and merges them. If labels are not initialized, it initializes them.
+        and merges them. 
         If there is only one node left, no further simplification is possible.
 
         Returns:
             HariGraph: The simplified graph.
         """
-        self.generate_labels()
+        # self.generate_labels()
 
         if self.number_of_nodes() <= 1:
             warnings.warn(
@@ -1070,66 +823,66 @@ class HariGraph(nx.DiGraph):
         # Combine the impacts
         return opinion_proximity + extreme_proximity + influence + size_impact
 
-    @staticmethod
-    def default_node_parameter_gatherer(nodes):
-        """
-        Gathers default parameters for a node that is a result of merging given nodes.
+    # @staticmethod
+    # def default_node_parameter_gatherer(nodes):
+    #     """
+    #     Gathers default parameters for a node that is a result of merging given nodes.
 
-        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-        :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
-        """
-        if not nodes:
-            raise ValueError("The input list of nodes must not be empty.")
+    #     :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
+    #     :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
+    #     """
+    #     if not nodes:
+    #         raise ValueError("The input list of nodes must not be empty.")
 
-        size = sum(node.get('cluster_size', len(
-            node.get('label', [0, ]))) for node in nodes)
+    #     size = sum(node.get('cluster_size', len(
+    #         node.get('label', [0, ]))) for node in nodes)
 
-        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
-        inner_opinions = {}
+    #     # Gather all opinions of the nodes being merged using node labels/identifiers as keys
+    #     inner_opinions = {}
 
-        for node in nodes:
-            node_label = node.get('label', None)
-            if node_label is not None:
-                # Check if node has 'inner_opinions', if not, create one
-                if 'inner_opinions' in node:
-                    inner_opinions.update(node['inner_opinions'])
-                else:
-                    if len(node_label) != 1:
-                        warnings.warn(
-                            f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
-                    for i in node_label:
-                        inner_opinions[i] = node['opinion']
+    #     for node in nodes:
+    #         node_label = node.get('label', None)
+    #         if node_label is not None:
+    #             # Check if node has 'inner_opinions', if not, create one
+    #             if 'inner_opinions' in node:
+    #                 inner_opinions.update(node['inner_opinions'])
+    #             else:
+    #                 if len(node_label) != 1:
+    #                     warnings.warn(
+    #                         f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
+    #                 for i in node_label:
+    #                     inner_opinions[i] = node['opinion']
 
-        return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-            'label': [id for node in nodes for id in node['label']],
-            'inner_opinions': inner_opinions
-        }
+    #     return {
+    #         'cluster_size': size,
+    #         'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
+    #         'label': [id for node in nodes for id in node['label']],
+    #         'inner_opinions': inner_opinions
+    #     }
 
-    @staticmethod
-    def min_max_node_parameter_gatherer(nodes):
-        """
-        Gathers default parameters for a node that is a result of merging given nodes.
+    # @staticmethod
+    # def min_max_node_parameter_gatherer(nodes):
+    #     """
+    #     Gathers default parameters for a node that is a result of merging given nodes.
 
-        :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-        :return: Dict, a dictionary with calculated 'max_opinion' and 'min_opinion'.
-        """
-        if not nodes:
-            raise ValueError("The input list of nodes must not be empty.")
+    #     :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
+    #     :return: Dict, a dictionary with calculated 'max_opinion' and 'min_opinion'.
+    #     """
+    #     if not nodes:
+    #         raise ValueError("The input list of nodes must not be empty.")
 
-        size = sum(node.get('cluster_size', len(
-            node.get('label', [0, ]))) for node in nodes)
+    #     size = sum(node.get('cluster_size', len(
+    #         node.get('label', [0, ]))) for node in nodes)
 
-        return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-            'label': [id for node in nodes for id in node['label']],
-            'max_opinion': max(node.get('max_opinion', node['opinion']) for node in nodes),
-            'min_opinion': min(node.get('min_opinion', node['opinion']) for node in nodes)
-        }
+    #     return {
+    #         'cluster_size': size,
+    #         'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
+    #         'label': [id for node in nodes for id in node['label']],
+    #         'max_opinion': max(node.get('max_opinion', node['opinion']) for node in nodes),
+    #         'min_opinion': min(node.get('min_opinion', node['opinion']) for node in nodes)
+    #     }
 
-    def compute_similarity(self, i, j, similarity_function=None):
+    def compute_similarity(self, i: Tuple[int], j: Tuple[int], similarity_function=None):
         """
         Computes the similarity between two nodes in the graph.
 
@@ -1152,8 +905,8 @@ class HariGraph(nx.DiGraph):
         vi = self.nodes[i]['opinion']
         vj = self.nodes[j]['opinion']
 
-        size_i = len(self.nodes[i].get('label', [i]))
-        size_j = len(self.nodes[j].get('label', [j]))
+        size_i = len(i)
+        size_j = len(j)
 
         edge_influence = self[i][j]['influence'] if self.has_edge(
             i, j) else None
@@ -1222,33 +975,49 @@ class HariGraph(nx.DiGraph):
         return {node: self.nodes[node]["opinion"] for node in self.nodes}
 
     @opinions.setter
-    def opinions(self, values):
-        """
-        Sets the opinions of the nodes based on the provided value(s).
-        Value(s) can be a single float, a list of floats, or a dictionary with node IDs as keys.
-        """
-        if isinstance(values, (int, float)):  # Single value provided
+    def opinions(self, values: Union[int, float, Dict[Tuple[int]:float]]):
+        if isinstance(values, (int, float)):
             for node in self.nodes:
                 self.nodes[node]["opinion"] = values
-
-        elif isinstance(values, list):  # List of values provided
-            if len(values) != len(self.nodes):
-                raise ValueError(
-                    "Length of provided list does not match the number of nodes in the graph.")
-            for node, opinion in zip(self.nodes, values):
-                self.nodes[node]["opinion"] = opinion
-
-        elif isinstance(values, dict):  # Dictionary provided
+        elif isinstance(values, dict):
             for node, opinion in values.items():
                 if node in self.nodes:
                     self.nodes[node]["opinion"] = opinion
                 else:
                     raise ValueError(
                         f"Node {node} does not exist in the graph.")
-
         else:
             raise TypeError(
-                "Invalid type for opinions. Expected int, float, list, or dict.")
+                f'Values input type for the opinions {type(values)} is not supported')
+
+    # @opinions.setter
+    # def opinions(self, values):
+    #     """
+    #     Sets the opinions of the nodes based on the provided value(s).
+    #     Value(s) can be a single float, a list of floats, or a dictionary with node IDs as keys.
+    #     """
+    #     if isinstance(values, (int, float)):  # Single value provided
+    #         for node in self.nodes:
+    #             self.nodes[node]["opinion"] = values
+
+    #     elif isinstance(values, list):  # List of values provided
+    #         if len(values) != len(self.nodes):
+    #             raise ValueError(
+    #                 "Length of provided list does not match the number of nodes in the graph.")
+    #         for node, opinion in zip(self.nodes, values):
+    #             self.nodes[node]["opinion"] = opinion
+
+    #     elif isinstance(values, dict):  # Dictionary provided
+    #         for node, opinion in values.items():
+    #             if node in self.nodes:
+    #                 self.nodes[node]["opinion"] = opinion
+    #             else:
+    #                 raise ValueError(
+    #                     f"Node {node} does not exist in the graph.")
+
+    #     else:
+    #         raise TypeError(
+    #             "Invalid type for opinions. Expected int, float, list, or dict.")
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"

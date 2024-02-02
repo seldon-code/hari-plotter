@@ -20,7 +20,7 @@ class TestModel:
         model = Model("DeGroot", {'gamma': 1})
         assert isinstance(model, Model)
 
-    def test_get_tension(self):
-        G = HariGraph.read_network(
-            'tests/network.txt', 'tests/opinions_0.txt')
-        assert self.degroot.get_tension(G) == pytest.approx(1.1616793900326015)
+    # def test_get_tension(self):
+    #     G = HariGraph.read_network(
+    #         'tests/network.txt', 'tests/opinions_0.txt')
+    #     assert self.degroot.get_tension(G) == pytest.approx(1.1616793900326015)

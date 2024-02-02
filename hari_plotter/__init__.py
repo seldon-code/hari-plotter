@@ -6,3 +6,4 @@ from .model import Model
 from .plotter import Plotter
 from .simulation import Simulation
 from .group import Group
+from .plot import Plot

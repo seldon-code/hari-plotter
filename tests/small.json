@@ -1,0 +1,72 @@
+{
+    "nodes": [
+        {
+            "id": [
+                0
+            ],
+            "opinion": -4.0,
+            "cluster_size": 1,
+            "inner_opinions": {
+                "0": -1
+            }
+        },
+        {
+            "id": [
+                1
+            ],
+            "opinion": 0.0,
+            "cluster_size": 1,
+            "inner_opinions": {
+                "1": 0
+            }
+        },
+        {
+            "id": [
+                2
+            ],
+            "opinion": 1.0,
+            "cluster_size": 1,
+            "inner_opinions": {
+                "2": 1
+            }
+        }
+    ],
+    "edges": [
+        {
+            "source": [
+                0
+            ],
+            "target": [
+                2
+            ],
+            "influence": 1.0
+        },
+        {
+            "source": [
+                1
+            ],
+            "target": [
+                2
+            ],
+            "influence": 2.0
+        },
+        {
+            "source": [
+                2
+            ],
+            "target": [
+                1
+            ],
+            "influence": 3.0
+        },
+        {
+            "source": [
+                2
+            ],
+            "target": [
+                0
+            ],
+            "influence": 4.0
+        }
+    ]
+}

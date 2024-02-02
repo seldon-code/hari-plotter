@@ -1,6 +1,6 @@
 import numpy as np
 
-from hari_plotter import HariDynamics
+from hari_plotter import HariDynamics, HariGraph
 
 
 class TestHariDynamics:
@@ -13,6 +13,10 @@ class TestHariDynamics:
     def test_initialize(self):
         self.HD.mean_opinion
         assert all(H.is_initialized for H in self.HD)
+
+    def test_getgraph(self):
+        H = self.HD[-1].get_graph()
+        assert isinstance(H, HariGraph)
 
     def test_getitem(self):
         self.HD[-1].mean_opinion

@@ -102,7 +102,7 @@ class Group:
         else:
             return self.cluster()
 
-    def cluster_graph(self, merge_remaining: bool = True,  **cluster_settings) -> HariGraph:
+    def cluster_graph(self, merge_remaining: bool = False,  **cluster_settings) -> HariGraph:
 
         cluster_key = self.request_to_tuple(cluster_settings)
 
@@ -112,10 +112,11 @@ class Group:
         cluster = self.cluster(**cluster_settings)
 
         cluster_nodes = cluster.get_cluster_mapping()
+        cluster_labels = cluster.cluster_labels
 
         cluster_graph = self.mean_graph.copy()
         cluster_graph.merge_clusters(
-            cluster_nodes, merge_remaining=merge_remaining)
+            cluster_nodes, labels=cluster_labels, merge_remaining=merge_remaining)
         # print(f'{cluster_graph = }')
         self.clusters[cluster_key]['graph'] = cluster_graph
 
