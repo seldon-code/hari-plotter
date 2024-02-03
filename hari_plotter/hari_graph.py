@@ -479,9 +479,9 @@ class HariGraph(nx.DiGraph):
         G_copy.gatherer = type(self.gatherer)(G_copy)
         return G_copy
 
-    # ---- Clusterization Methods ----
+    # ---- Dynamics example ----
 
-    def dynamics_step(self, t: float):
+    def dynamics_example_step(self, t: float):
         """
         Updates the opinion of each node in the HariGraph instance based on the opinions of its predecessors.
 
@@ -506,6 +506,15 @@ class HariGraph(nx.DiGraph):
         # Update the opinions in the graph with the calculated updated opinions
         for i, vi in updated_opinions.items():
             self.nodes[i]['opinion'] = vi
+
+    # ---- Merge Methods ----
+
+    def get_cluster_mapping(self) -> List[List[Tuple[int]]]:
+        """
+        Generates a list of nodes in the unclustered graph to be clustered to get the current graph
+        :return: A list representing the current clusters in the graph.
+        """
+        return sorted([sorted([(element,) for element in node]) for node in self.nodes])
 
     def merge_nodes(self, i: Tuple[int], j: Tuple[int]):
         """
@@ -548,6 +557,57 @@ class HariGraph(nx.DiGraph):
         # Remove the original nodes
         self.remove_node(i)
         self.remove_node(j)
+
+    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
+        """
+        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
+
+        Parameters:
+            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
+                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
+                                    to new node IDs.
+            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
+        """
+        labels = labels if labels is not None else [None]*len(clusters)
+
+        # Remaining nodes not in any cluster
+        if merge_remaining:
+            # All nodes in the graph
+            all_nodes = set(self.nodes)
+
+            # Record all nodes that are part of the specified clusters
+            clustered_nodes = set(
+                node for cluster in clusters for node in cluster)
+            remaining_nodes = all_nodes - clustered_nodes
+            if remaining_nodes:
+                clusters.append(list(remaining_nodes))
+                labels.append(None)
+
+        for cluster, label in zip(clusters, labels):
+            new_node_name = tuple(sorted(sum(cluster, ())))
+            merged_attributes = self.gatherer.merge(cluster)
+            self.add_node(new_node_name, **merged_attributes)
+            if label is not None:
+                self.nodes[new_node_name]['label'] = label
+
+            # Reconnect edges
+            for old_node_id in cluster:
+                for successor in list(self.successors(old_node_id)):
+                    if successor not in cluster:
+                        influence = self[old_node_id][successor]['influence']
+                        self.add_edge(new_node_name, successor,
+                                      influence=influence)
+
+                for predecessor in list(self.predecessors(old_node_id)):
+                    if predecessor not in cluster:
+                        influence = self[predecessor][old_node_id]['influence']
+                        self.add_edge(predecessor, new_node_name,
+                                      influence=influence)
+
+                # Remove old node
+                self.remove_node(old_node_id)
+
+    # ---- Clusterization Methods ----
 
     def find_clusters(self, max_opinion_difference: float = 0.1, min_influence: float = 0.1):
         """
@@ -640,62 +700,6 @@ class HariGraph(nx.DiGraph):
         # Merge the clusters
         if clusters:
             self.merge_clusters(clusters)
-
-    def get_cluster_mapping(self) -> List[List[Tuple[int]]]:
-        """
-        Generates a list of nodes in the unclustered graph to be clustered to get the current graph
-        :return: A list representing the current clusters in the graph.
-        """
-        return sorted([sorted([(element,) for element in node]) for node in self.nodes])
-
-    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
-        """
-        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
-
-        Parameters:
-            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
-                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
-                                    to new node IDs.
-            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
-        """
-        labels = labels if labels is not None else [None]*len(clusters)
-
-        # Remaining nodes not in any cluster
-        if merge_remaining:
-            # All nodes in the graph
-            all_nodes = set(self.nodes)
-
-            # Record all nodes that are part of the specified clusters
-            clustered_nodes = set(
-                node for cluster in clusters for node in cluster)
-            remaining_nodes = all_nodes - clustered_nodes
-            if remaining_nodes:
-                clusters.append(list(remaining_nodes))
-                labels.append(None)
-
-        for cluster, label in zip(clusters, labels):
-            new_node_name = tuple(sorted(sum(cluster, ())))
-            merged_attributes = self.gatherer.merge(cluster)
-            self.add_node(new_node_name, **merged_attributes)
-            if label is not None:
-                self.nodes[new_node_name]['label'] = label
-
-            # Reconnect edges
-            for old_node_id in cluster:
-                for successor in list(self.successors(old_node_id)):
-                    if successor not in cluster:
-                        influence = self[old_node_id][successor]['influence']
-                        self.add_edge(new_node_name, successor,
-                                      influence=influence)
-
-                for predecessor in list(self.predecessors(old_node_id)):
-                    if predecessor not in cluster:
-                        influence = self[predecessor][old_node_id]['influence']
-                        self.add_edge(predecessor, new_node_name,
-                                      influence=influence)
-
-                # Remove old node
-                self.remove_node(old_node_id)
 
     def simplify_graph_one_iteration(self):
         """
@@ -822,65 +826,6 @@ class HariGraph(nx.DiGraph):
 
         # Combine the impacts
         return opinion_proximity + extreme_proximity + influence + size_impact
-
-    # @staticmethod
-    # def default_node_parameter_gatherer(nodes):
-    #     """
-    #     Gathers default parameters for a node that is a result of merging given nodes.
-
-    #     :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-    #     :return: Dict, a dictionary with calculated 'inner_opinions', 'cluster_size', and 'label'.
-    #     """
-    #     if not nodes:
-    #         raise ValueError("The input list of nodes must not be empty.")
-
-    #     size = sum(node.get('cluster_size', len(
-    #         node.get('label', [0, ]))) for node in nodes)
-
-    #     # Gather all opinions of the nodes being merged using node labels/identifiers as keys
-    #     inner_opinions = {}
-
-    #     for node in nodes:
-    #         node_label = node.get('label', None)
-    #         if node_label is not None:
-    #             # Check if node has 'inner_opinions', if not, create one
-    #             if 'inner_opinions' in node:
-    #                 inner_opinions.update(node['inner_opinions'])
-    #             else:
-    #                 if len(node_label) != 1:
-    #                     warnings.warn(
-    #                         f"The length of the label in the node is higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention. Found in node: {node_label}")
-    #                 for i in node_label:
-    #                     inner_opinions[i] = node['opinion']
-
-    #     return {
-    #         'cluster_size': size,
-    #         'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-    #         'label': [id for node in nodes for id in node['label']],
-    #         'inner_opinions': inner_opinions
-    #     }
-
-    # @staticmethod
-    # def min_max_node_parameter_gatherer(nodes):
-    #     """
-    #     Gathers default parameters for a node that is a result of merging given nodes.
-
-    #     :param nodes: List[Dict], a list of node dictionaries, each containing node attributes.
-    #     :return: Dict, a dictionary with calculated 'max_opinion' and 'min_opinion'.
-    #     """
-    #     if not nodes:
-    #         raise ValueError("The input list of nodes must not be empty.")
-
-    #     size = sum(node.get('cluster_size', len(
-    #         node.get('label', [0, ]))) for node in nodes)
-
-    #     return {
-    #         'cluster_size': size,
-    #         'opinion': sum(node.get('cluster_size', len(node.get('label', [0, ]))) * node['opinion'] for node in nodes) / size,
-    #         'label': [id for node in nodes for id in node['label']],
-    #         'max_opinion': max(node.get('max_opinion', node['opinion']) for node in nodes),
-    #         'min_opinion': min(node.get('min_opinion', node['opinion']) for node in nodes)
-    #     }
 
     def compute_similarity(self, i: Tuple[int], j: Tuple[int], similarity_function=None):
         """

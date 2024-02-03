@@ -12,6 +12,8 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
+from .hari_graph import HariGraph
+
 
 class Cluster(ABC):
     """
@@ -23,32 +25,10 @@ class Cluster(ABC):
         labels (np.ndarray): An array indicating the label of each data point.
         parameters (List[str]): A list of parameter names used for clustering.
     """
-
     clusterization_methods = {}
-    scale_funcs = {
-        'linear': {'direct': lambda x: x, 'inverse': lambda x: x},
-        'tanh': {'direct': np.tanh, 'inverse': np.arctanh}
-    }
 
-    def __init__(self, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
-        """
-        Initializes the Cluster object with cluster data.
-
-        Args:
-            clustered_data (List[np.ndarray]): Shape NxM where N is number of points and M number of parameters
-            cluster_indexes: A numpy array of length N shows what cluster each point from data belongs to
-            original_labels (np.ndarray): A numpy array of length N representing original labels for each data point. 
-            parameters (List[str]): A list of strings length M, representing the names of the parameters 
-                                    or features used in clustering. These names correspond to the 
-                                    dimensions/features in the data points. 
-            scales (List[str]): A list of strings representing the names of the scales used for clustering. More in scale_funcs
-        """
-        self.data = data
-        self.cluster_indexes = cluster_indexes
-        self.original_labels = original_labels
-        self.parameters = parameters
-        self.scales = scales
-        self._cluster_labels = None
+    def __init__(self, G: HariGraph):
+        self.G = G
 
     @property
     def cluster_labels(self) -> List[str]:
@@ -68,36 +48,18 @@ class Cluster(ABC):
         current_labels = self.cluster_labels
         self._cluster_labels = [current_labels[i] for i in new_order]
 
-    def centroids(self, keep_scale: bool = False):
-        centroids = self.unscaled_centroids
-        if not keep_scale:
-            for i, sc in enumerate(self.scales):
-                centroids[:, i] = self.scale_funcs[sc]['inverse'](
-                    centroids[:, i])
-        return centroids
-
-    @abstractproperty
-    def unscaled_centroids(self) -> List[np.ndarray]:
-        """
-        A numpy array representing the centroids of the clusters.
-        Each row in this array corresponds to a centroid.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
     def __init_subclass__(cls, **kwargs):
         super().__init_subclass__(**kwargs)
         # Register each subclass in the clusterization_methods dictionary
         cls.clusterization_methods[cls.__name__] = cls
 
     @abstractclassmethod
-    def from_data(cls, data: Dict[str, Dict[int, List[float]]], scale: Dict[str, Callable[[float], float]] = None, clusterization_parameters:  Union[Tuple(str) | None] = None) -> Cluster:
+    def from_graph(cls, G: HariGraph, **kwargs) -> Cluster:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
     @classmethod
-    def create_cluster(cls, data: Dict[str, Dict[int, List[float]]], cluster_type: str = 'KMeansCluster',
-                       scale: Dict[str, Callable[[float], float]] = None, clusterization_parameters:  Union[Tuple(str) | None] = None, **kwargs) -> Cluster:
+    def create_cluster(cls, G: HariGraph, cluster_type: str = 'KMeansCluster', **kwargs) -> Cluster:
         """
         Factory method that creates an instance of a subclass of `Cluster` based on the provided method name
         and applies specified scaling functions to the data before clustering.
@@ -123,7 +85,7 @@ class Cluster(ABC):
         method_cls = cls.clusterization_methods[cluster_type]
 
         # Create an instance of the subclass from the data, applying any specified scaling functions
-        return method_cls.from_data(data=data, scale=scale, clusterization_parameters=clusterization_parameters, **kwargs)
+        return method_cls.from_graph(G=G,  **kwargs)
 
     @abstractmethod
     def get_number_of_clusters(self) -> int:
@@ -132,6 +94,54 @@ class Cluster(ABC):
         """
         pass
 
+    @property
+    def available_clusterization_methods(self):
+        return list(self.clusterization_methods.keys())
+
+
+class parameterBasedCluster(Cluster):
+    scale_funcs = {
+        'linear': {'direct': lambda x: x, 'inverse': lambda x: x},
+        'tanh': {'direct': np.tanh, 'inverse': np.arctanh}
+    }
+
+    def __init__(self, G: HariGraph, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+        """
+        Initializes the Cluster object with cluster data.
+
+        Args:
+            clustered_data (List[np.ndarray]): Shape NxM where N is number of points and M number of parameters
+            cluster_indexes: A numpy array of length N shows what cluster each point from data belongs to
+            original_labels (np.ndarray): A numpy array of length N representing original labels for each data point. 
+            parameters (List[str]): A list of strings length M, representing the names of the parameters 
+                                    or features used in clustering. These names correspond to the 
+                                    dimensions/features in the data points. 
+            scales (List[str]): A list of strings representing the names of the scales used for clustering. More in scale_funcs
+        """
+        super().__init__(G)
+        self.cluster_indexes = cluster_indexes
+        self.original_labels = original_labels
+        self.parameters = parameters
+        self.scales = scales
+        self._cluster_labels = None
+
+    def centroids(self, keep_scale: bool = False):
+        centroids = self.unscaled_centroids
+        if not keep_scale:
+            for i, sc in enumerate(self.scales):
+                centroids[:, i] = self.scale_funcs[sc]['inverse'](
+                    centroids[:, i])
+        return centroids
+
+    @abstractproperty
+    def unscaled_centroids(self) -> List[np.ndarray]:
+        """
+        A numpy array representing the centroids of the clusters.
+        Each row in this array corresponds to a centroid.
+        """
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
     @abstractmethod
     def predict_cluster(self, data_point: List[float]) -> int:
         """
@@ -139,12 +149,21 @@ class Cluster(ABC):
         """
         pass
 
-    @abstractmethod
     def degree_of_membership(self, data_point: List[float]) -> List[float]:
         """
-        Abstract method to predict the 'probability' of belonging to each cluster for a new data point.
+        Predicts the 'probability' of belonging to each cluster for a new data point.
+
+        If the clustering method does not provide probabilities, this method
+        will return a list with a 1 at the index of the assigned cluster and 0s elsewhere.
+
+        Args:
+            data_point: The new data point's parameter values as a list of floats.
+
+        Returns:
+            List[float]: A list of zeros and one one, indicating the cluster assignment.
         """
-        pass
+        nearest_cluster_index = self.predict_cluster(data_point)
+        return [nearest_cluster_index == i for i in range(self.get_number_of_clusters())]
 
     @abstractmethod
     def reorder_clusters(self, new_order: List[int]):
@@ -167,7 +186,7 @@ class Cluster(ABC):
             keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
 
         Returns:
-            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster 
+            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
                               and contains the values of the specified parameter(s) for each point in that cluster.
         """
         if isinstance(key, str):
@@ -222,8 +241,13 @@ class Cluster(ABC):
             return [self.parameters[index] for index in indices]
 
 
-class KMeansCluster(Cluster):
+class KMeansCluster(parameterBasedCluster):
     """A KMeans clustering representation, extending the generic Cluster class."""
+
+    def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+
+        super().__init__(G, original_labels, parameters, scales, cluster_indexes)
+        self.data = data
 
     @property
     def unscaled_centroids(self) -> np.ndarray:
@@ -278,14 +302,14 @@ class KMeansCluster(Cluster):
         return nearest_centroid_indices
 
     @classmethod
-    def from_data(cls, data: Dict[str, List[float]], scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2, clusterization_parameters:  Union[Tuple(str) | None] = None) -> Cluster:
+    def from_graph(cls, G: HariGraph, clusterization_parameters:  Union[Tuple(str) | List(str)],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Cluster:
         """
         Creates an instance of KMeansCluster from a structured data dictionary,
         applying specified scaling to each parameter if needed.
 
         Args:
-            data: A dictionary mapping parameter names to their corresponding list of float values,
-                    and 'nodes' to a list of node names/IDs.
+            G: HariGraph.
+            clusterization_parameters: list of clusterization parameters
             scale: An optional dictionary where keys are parameter names and 
                 values are functions ('linear' or 'tanh') to be applied to 
                 the parameter values before clustering.
@@ -300,9 +324,9 @@ class KMeansCluster(Cluster):
                         an unknown scaling function is specified.
         """
 
+        data = G.gatherer.gather(clusterization_parameters)
+
         # Extract nodes and parameter names
-        if 'nodes' not in data:
-            raise ValueError("data must include a 'nodes' key.")
         nodes = data['nodes']
         parameter_names = clusterization_parameters if clusterization_parameters is not None else [
             key for key in data.keys() if key != 'nodes']
@@ -336,7 +360,7 @@ class KMeansCluster(Cluster):
             data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
 
         # Perform clustering
-        cluster = cls(data=data, original_labels=original_labels, parameters=parameter_names,
+        cluster = cls(G=G, data=data, original_labels=original_labels, parameters=parameter_names,
                       scales=scale, cluster_indexes=np.zeros(data.shape[0]))
         cluster.recluster(n_clusters=n_clusters)
 
@@ -348,22 +372,6 @@ class KMeansCluster(Cluster):
         kmeans.fit(self.data)
         self._centroids = kmeans.cluster_centers_
         self.cluster_indexes = kmeans.labels_
-
-    def degree_of_membership(self, data_point: List[float]) -> List[float]:
-        """
-        Predicts the 'probability' of belonging to each cluster for a new data point.
-
-        Since KMeans does not provide probabilities but hard assignments, this method
-        will return a list with a 1 at the index of the assigned cluster and 0s elsewhere.
-
-        Args:
-            data_point: The new data point's parameter values as a list of floats.
-
-        Returns:
-            List[float]: A list of zeros and one one, indicating the cluster assignment.
-        """
-        nearest_cluster_index = self.predict_cluster(data_point)
-        return [nearest_cluster_index == i for i in range(self.get_number_of_clusters())]
 
     def reorder_clusters(self, new_order: List[int]):
         """

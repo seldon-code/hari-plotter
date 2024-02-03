@@ -243,8 +243,7 @@ class Plotter:
         plot = self._plot_methods[plot_type](**plot_arguments)
 
         # Initialize the cell with an empty list if it's None
-        if self.plots[row][col] is None:
-            self.plots[row][col] = []
+        self.plots[row][col] = self.plots[row][col] or []
 
         # Append the new plot to the cell's list
         self.plots[row][col].append(plot)

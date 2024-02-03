@@ -108,7 +108,7 @@ class plot_histogram(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -210,7 +210,7 @@ class plot_hexbin(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm', show_colorbar: bool = False):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -325,7 +325,7 @@ class plot_scatter(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str] = 'blue', marker: str = 'o',):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -413,7 +413,7 @@ class plot_cluster_centroids(Plot):
             self.cluster_settings['clusterization_parameters'] = self.parameters
 
         # print(f'{self.cluster_settings = }')
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -488,7 +488,7 @@ class plot_cluster_scatter(Plot):
         if 'clusterization_parameters' not in self.cluster_settings:
             self.cluster_settings['clusterization_parameters'] = self.parameters
 
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -551,7 +551,7 @@ class plot_cluster_fill(Plot):
         if 'clusterization_parameters' not in self.cluster_settings:
             self.cluster_settings['clusterization_parameters'] = self.parameters
 
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -601,9 +601,9 @@ class plot_cluster_fill(Plot):
         default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
         default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
 
-        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
+        x_lim = self.x_lim or axis_limits.get(
             'x', default_x_lim)
-        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
+        y_lim = self.y_lim or axis_limits.get(
             'y', default_y_lim)
 
         return x_lim, y_lim
@@ -620,7 +620,7 @@ class plot_cluster_degree_of_membership(Plot):
         if 'clusterization_parameters' not in self.cluster_settings:
             self.cluster_settings['clusterization_parameters'] = self.parameters
 
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -667,9 +667,9 @@ class plot_cluster_degree_of_membership(Plot):
         default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
         default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
 
-        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
+        x_lim = self.x_lim or axis_limits.get(
             'x', default_x_lim)
-        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
+        y_lim = self.y_lim or axis_limits.get(
             'y', default_y_lim)
 
         return x_lim, y_lim
@@ -686,7 +686,7 @@ class plot_cluster_sns(Plot):
         if 'clusterization_parameters' not in self.cluster_settings:
             self.cluster_settings['clusterization_parameters'] = self.parameters
 
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -747,10 +747,8 @@ class plot_cluster_sns(Plot):
         default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
         default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
 
-        x_lim = self.x_lim if self.x_lim is not None else axis_limits.get(
-            'x', default_x_lim)
-        y_lim = self.y_lim if self.y_lim is not None else axis_limits.get(
-            'y', default_y_lim)
+        x_lim = self.x_lim or axis_limits.get('x', default_x_lim)
+        y_lim = self.y_lim or axis_limits.get('y', default_y_lim)
 
         return x_lim, y_lim
 
@@ -773,7 +771,7 @@ class draw(Plot):
                  min_line_width: float = 0.1,
                  max_line_width: float = 3.0,
                  seed: Optional[int] = None):
-        self.parameters = tuple(parameters) if parameters is not None else ()
+        self.parameters = tuple(parameters or ())
 
         self.pos = pos
         self.node_attributes = node_attributes
@@ -803,8 +801,7 @@ class draw(Plot):
         image = dynamic_data_cache[self.data_key]
 
         # Use the specified or default positions for nodes
-        if self.pos is None:
-            self.pos = image.position_nodes(seed=self.seed)
+        self.pos = self.pos or image.position_nodes(seed=self.seed)
 
         # Prepare Node Labels
         node_labels = self._prepare_node_labels(image)
@@ -913,7 +910,7 @@ class plot_time_line(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -959,7 +956,7 @@ class plot_node_lines(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1042,7 +1039,7 @@ class plot_graph_line(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
         self.parameters = tuple(parameters)
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1109,8 +1106,8 @@ class plot_fill_between(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.functions = functions if functions is not None else ['min', 'max']
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.functions = functions or ['min', 'max']
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1186,7 +1183,7 @@ class plot_cluster_line(Plot):
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
         self.cluster_settings = cluster_settings
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1255,7 +1252,7 @@ class plot_fill_between_cluster(Plot):
 
         self.parameters = tuple(parameters)
         self.cluster_settings = cluster_settings
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1339,7 +1336,7 @@ class plot_opinions(Plot):
                  min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
 
         self.cluster_settings = cluster_settings
-        self.scale = tuple(('linear', 'linear') if scale is None else scale)
+        self.scale = scale or tuple('linear', 'linear')
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim

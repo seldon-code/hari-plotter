@@ -80,16 +80,8 @@ class Group:
         if cluster_key in self.clusters:
             return self.clusters[cluster_key]['cluster']
 
-        # Check if 'clusterization_parameters' is provided in cluster_settings
-        # print(f'{cluster_settings = }')
-        if 'clusterization_parameters' in cluster_settings:
-            # Calculate node values for the given clusterization_parameters
-            group_data = self.calculate_node_values(
-                cluster_settings['clusterization_parameters'])
-            cluster_settings['data'] = group_data
-
         # Create a new cluster instance
-        cluster = Cluster.create_cluster(**cluster_settings)
+        cluster = Cluster.create_cluster(G=self.mean_graph, **cluster_settings)
 
         # Cache the newly created cluster
         self.clusters[cluster_key] = {'cluster': cluster}
