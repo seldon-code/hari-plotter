@@ -62,6 +62,9 @@ class Plot(ABC):
     @staticmethod
     def transform_data(data_list, transform_parameter: str = 'nodes'):
         # Extract unique transform_parameter's and sort them
+        # print(f'{list(data_list[0].keys()) = }')
+        # print(f'{transform_parameter = }')
+        # print(f'{data_list[0][transform_parameter] = }')
         transform_parameter_values = sorted(
             {transform_parameter_value for data in data_list for transform_parameter_value in data[transform_parameter]})
         transform_parameter_value_index = {transform_parameter_value: i for i,

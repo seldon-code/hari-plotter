@@ -130,6 +130,9 @@ class Simulation:
         with open(filename, 'w') as f:
             toml.dump(data, f)
 
+    def __len__(self) -> int:
+        return len(self.dynamics)
+
     def __repr__(self) -> str:
         """
         Return a string representation of the Simulation instance.

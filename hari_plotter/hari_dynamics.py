@@ -247,6 +247,9 @@ class HariDynamics:
         print(f'{mapping = }')
         self.merge_nodes_by_mapping(mapping)
 
+    def __len__(self) -> int:
+        return len(self.lazy_hari_graphs)
+
     def __str__(self):
         initialized_count = sum(
             1 for lazy_graph in self.lazy_hari_graphs if lazy_graph.is_initialized)

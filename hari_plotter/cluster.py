@@ -84,7 +84,7 @@ class Clustering(ABC):
         """
         if clustering_type not in cls._clustering_methods:
             raise ValueError(f"Clustering method '{clustering_type}' not recognized. "
-                             f"Available methods: {list(cls._clustering_methods.keys())}")
+                             f"Available methods: {cls.available_clustering_methods()}")
 
         # Get the subclass corresponding to the method name
         method_cls = cls._clustering_methods[clustering_type]
@@ -99,7 +99,7 @@ class Clustering(ABC):
         """
         pass
 
-    @property
+    @classmethod
     def available_clustering_methods(self):
         return list(self._clustering_methods.keys())
 
