@@ -9,7 +9,7 @@ import numpy as np
 from itertools import combinations
 
 
-from .cluster import Cluster
+from .cluster import Clustering
 from .hari_graph import HariGraph
 
 
@@ -46,7 +46,7 @@ class Group:
 
         self._mean_graph = None
 
-        self.clusters = dict()
+        self.clusterings = dict()
 
     @staticmethod
     def request_to_tuple(request):
@@ -73,50 +73,51 @@ class Group:
     def initialize_mean_graph(self):
         self._mean_graph = HariGraph.mean_graph(self.images)
 
-    def cluster(self, **cluster_settings):
+    def clustering(self, **clustering_settings):
         # Convert settings to a sorted tuple of pairs to ensure consistent ordering
-        cluster_key = Group.request_to_tuple(cluster_settings)
+        clustering_key = Group.request_to_tuple(clustering_settings)
 
-        if cluster_key in self.clusters:
-            return self.clusters[cluster_key]['cluster']
+        if clustering_key in self.clusterings:
+            return self.clusterings[clustering_key]['clustering']
 
-        # Create a new cluster instance
-        cluster = Cluster.create_cluster(G=self.mean_graph, **cluster_settings)
+        # Create a new clustering instance
+        clustering = Clustering.create_clustering(
+            G=self.mean_graph, **clustering_settings)
 
-        # Cache the newly created cluster
-        self.clusters[cluster_key] = {'cluster': cluster}
-        return cluster
+        # Cache the newly created clustering
+        self.clusterings[clustering_key] = {'clustering': clustering}
+        return clustering
 
-    def get_cluster(self, **settings):
+    def get_clustering(self, **settings):
         # print(f'{settings = }')
-        if 'cluster_settings' in settings:
-            return self.cluster(**(settings['cluster_settings']))
+        if 'clustering_settings' in settings:
+            return self.clustering(**(settings['clustering_settings']))
         else:
-            return self.cluster()
+            return self.clustering()
 
-    def cluster_graph(self, merge_remaining: bool = False,  **cluster_settings) -> HariGraph:
+    def clustering_graph(self, merge_remaining: bool = False,  **clustering_settings) -> HariGraph:
 
-        cluster_key = self.request_to_tuple(cluster_settings)
+        clustering_key = self.request_to_tuple(clustering_settings)
 
-        if cluster_key in self.clusters and 'graph' in self.clusters[cluster_key]:
-            return self.clusters[cluster_key]['graph']
+        if clustering_key in self.clusterings and 'graph' in self.clusterings[clustering_key]:
+            return self.clusterings[clustering_key]['graph']
 
-        cluster = self.cluster(**cluster_settings)
+        clustering = self.clustering(**clustering_settings)
 
-        cluster_nodes = cluster.get_cluster_mapping()
-        cluster_labels = cluster.cluster_labels
+        clustering_nodes = clustering.get_cluster_mapping()
+        cluster_labels = clustering.cluster_labels
 
-        cluster_graph = self.mean_graph.copy()
-        cluster_graph.merge_clusters(
-            cluster_nodes, labels=cluster_labels, merge_remaining=merge_remaining)
-        # print(f'{cluster_graph = }')
-        self.clusters[cluster_key]['graph'] = cluster_graph
+        clustering_graph = self.mean_graph.copy()
+        clustering_graph.merge_clusters(
+            clustering_nodes, labels=cluster_labels, merge_remaining=merge_remaining)
+        # print(f'{clustering_graph = }')
+        self.clusterings[clustering_key]['graph'] = clustering_graph
 
-        return cluster_graph
+        return clustering_graph
 
-    def cluster_graph_values(self, parameters: Tuple[str], cluster_settings: tuple,  **settings) -> Dict[str, np.ndarray]:
+    def clustering_graph_values(self, parameters: Tuple[str], clustering_settings: tuple,  **settings) -> Dict[str, np.ndarray]:
 
-        graph = self.cluster_graph(**cluster_settings)
+        graph = self.clustering_graph(**clustering_settings)
         # print(str(graph))
 
         params_no_time = [param for param in parameters if param != 'time']

@@ -15,7 +15,7 @@ from sklearn.metrics import silhouette_score
 from .hari_graph import HariGraph
 
 
-class Cluster(ABC):
+class Clustering(ABC):
     """
     Abstract base class representing a cluster. It provides a template for clustering algorithms.
 
@@ -25,7 +25,7 @@ class Cluster(ABC):
         labels (np.ndarray): An array indicating the label of each data point.
         parameters (List[str]): A list of parameter names used for clustering.
     """
-    clusterization_methods = {}
+    _clustering_methods = {}
 
     def __init__(self, G: HariGraph):
         self.G = G
@@ -48,41 +48,46 @@ class Cluster(ABC):
         current_labels = self.cluster_labels
         self._cluster_labels = [current_labels[i] for i in new_order]
 
-    def __init_subclass__(cls, **kwargs):
-        super().__init_subclass__(**kwargs)
-        # Register each subclass in the clusterization_methods dictionary
-        cls.clusterization_methods[cls.__name__] = cls
+    @classmethod
+    def clustering_type(cls, clustering_name):
+        def decorator(clustering_func):
+            if clustering_name in cls._clustering_methods:
+                raise ValueError(
+                    f"clustering type {clustering_name} is already defined.")
+            cls._clustering_methods[clustering_name] = clustering_func
+            return clustering_func
+        return decorator
 
     @abstractclassmethod
-    def from_graph(cls, G: HariGraph, **kwargs) -> Cluster:
+    def from_graph(cls, G: HariGraph, **kwargs) -> Clustering:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
     @classmethod
-    def create_cluster(cls, G: HariGraph, cluster_type: str = 'KMeansCluster', **kwargs) -> Cluster:
+    def create_clustering(cls, G: HariGraph, clustering_type: str = 'K-Means Clustering', **kwargs) -> Clustering:
         """
-        Factory method that creates an instance of a subclass of `Cluster` based on the provided method name
+        Factory method that creates an instance of a subclass of `Clustering` based on the provided method name
         and applies specified scaling functions to the data before clustering.
 
         Args:
-            cluster_type: The name of the clusterization method corresponding to a subclass of `Cluster`.
+            clustering_type: The name of the clustering method corresponding to a subclass of `Clustering`.
             data: The data to be clustered, structured as a dictionary with the key 'data' and value as another
                 dictionary mapping integers to lists of float values.
             scale: An optional dictionary where keys are parameter names and values are functions ('linear' or 'tanh')
                 to be applied to the parameter values before clustering. If not provided, no scaling is applied.
 
         Returns:
-            An instance of the subclass of `Cluster` that corresponds to the given method name.
+            An instance of the subclass of `Clustering` that corresponds to the given method name.
 
         Raises:
-            ValueError: If the method name is not recognized (i.e., not found in the `clusterization_methods`).
+            ValueError: If the method name is not recognized (i.e., not found in the `clustering_methods`).
         """
-        if cluster_type not in cls.clusterization_methods:
-            raise ValueError(f"Clusterization method '{cluster_type}' not recognized. "
-                             f"Available methods: {list(cls.clusterization_methods.keys())}")
+        if clustering_type not in cls._clustering_methods:
+            raise ValueError(f"Clustering method '{clustering_type}' not recognized. "
+                             f"Available methods: {list(cls._clustering_methods.keys())}")
 
         # Get the subclass corresponding to the method name
-        method_cls = cls.clusterization_methods[cluster_type]
+        method_cls = cls._clustering_methods[clustering_type]
 
         # Create an instance of the subclass from the data, applying any specified scaling functions
         return method_cls.from_graph(G=G,  **kwargs)
@@ -95,11 +100,11 @@ class Cluster(ABC):
         pass
 
     @property
-    def available_clusterization_methods(self):
-        return list(self.clusterization_methods.keys())
+    def available_clustering_methods(self):
+        return list(self._clustering_methods.keys())
 
 
-class parameterBasedCluster(Cluster):
+class parameterBasedClustering(Clustering):
     scale_funcs = {
         'linear': {'direct': lambda x: x, 'inverse': lambda x: x},
         'tanh': {'direct': np.tanh, 'inverse': np.arctanh}
@@ -241,8 +246,18 @@ class parameterBasedCluster(Cluster):
             return [self.parameters[index] for index in indices]
 
 
-class KMeansCluster(parameterBasedCluster):
-    """A KMeans clustering representation, extending the generic Cluster class."""
+@Clustering.clustering_type("Value Intervals Clustering")
+class valueIntervalsClustering(parameterBasedClustering):
+    """A KMeans clustering representation, extending the generic Clustering class."""
+
+    def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+
+        super().__init__(G, original_labels, parameters, scales, cluster_indexes)
+
+
+@Clustering.clustering_type("K-Means Clustering")
+class kMeansClustering(parameterBasedClustering):
+    """A KMeans clustering representation, extending the generic Clustering class."""
 
     def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
 
@@ -302,21 +317,21 @@ class KMeansCluster(parameterBasedCluster):
         return nearest_centroid_indices
 
     @classmethod
-    def from_graph(cls, G: HariGraph, clusterization_parameters:  Union[Tuple(str) | List(str)],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Cluster:
+    def from_graph(cls, G: HariGraph, clustering_parameters:  Union[Tuple(str) | List(str)],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
         """
-        Creates an instance of KMeansCluster from a structured data dictionary,
+        Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
 
         Args:
             G: HariGraph.
-            clusterization_parameters: list of clusterization parameters
+            clustering_parameters: list of clustering parameters
             scale: An optional dictionary where keys are parameter names and 
                 values are functions ('linear' or 'tanh') to be applied to 
                 the parameter values before clustering.
             n_clusters: The number of clusters to form.
 
         Returns:
-            KMeansCluster: An instance of KMeansCluster with clusters, centroids, 
+            KMeansClustering: An instance of KMeansClustering with clusters, centroids, 
                         and labels determined from the data.
 
         Raises:
@@ -324,11 +339,11 @@ class KMeansCluster(parameterBasedCluster):
                         an unknown scaling function is specified.
         """
 
-        data = G.gatherer.gather(clusterization_parameters)
+        data = G.gatherer.gather(clustering_parameters)
 
         # Extract nodes and parameter names
         nodes = data['nodes']
-        parameter_names = clusterization_parameters if clusterization_parameters is not None else [
+        parameter_names = clustering_parameters if clustering_parameters is not None else [
             key for key in data.keys() if key != 'nodes']
 
         # Validate and process scale argument
@@ -395,8 +410,8 @@ class KMeansCluster(parameterBasedCluster):
         self.reorder_labels(new_order)
 
 
-# class KMeansCluster(Cluster):
-#     """A KMeans clustering representation, extending the generic Cluster class."""
+# class KMeansClustering(Clustering):
+#     """A KMeans clustering representation, extending the generic Clustering class."""
 
 #     def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, parameters: List[str]):
 #         super().__init__(clusters, centroids, labels, parameters)
@@ -497,7 +512,7 @@ class KMeansCluster(parameterBasedCluster):
 #         Returns:
 #             Tuple[List[np.ndarray], np.ndarray, np.ndarray]: The clusters, centroids, and labels.
 #         """
-#         if KMeansCluster.is_single_cluster(points):
+#         if KMeansClustering.is_single_cluster(points):
 #             # Assuming points.shape[0] is the number of data points.
 #             # Create a single centroid that is the mean of all points
 #             # and assign all points to a single cluster with label 0.
@@ -522,7 +537,7 @@ class KMeansCluster(parameterBasedCluster):
 #         kmeans = KMeans(n_clusters=n, init='k-means++',
 #                         n_init='auto', random_state=42)
 #         kmeans.fit(points)
-#         labels, centroids = KMeansCluster.merge_close_clusters(
+#         labels, centroids = KMeansClustering.merge_close_clusters(
 #             kmeans.cluster_centers_, kmeans.labels_, min_distance)
 
 #         unique_labels = np.unique(labels)
@@ -532,9 +547,9 @@ class KMeansCluster(parameterBasedCluster):
 
 #     @classmethod
 #     def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
-#                   scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
+#                   scale: Dict[str, Callable[[float], float]] = None) -> Clustering:
 #         """
-#         Creates an instance of KMeansCluster from a structured data dictionary,
+#         Creates an instance of KMeansClustering from a structured data dictionary,
 #         applying specified scaling to each parameter if needed.
 
 #         Args:
@@ -546,7 +561,7 @@ class KMeansCluster(parameterBasedCluster):
 #                 the parameter values before clustering.
 
 #         Returns:
-#             KMeansCluster: An instance of KMeansCluster with clusters, centroids,
+#             KMeansClustering: An instance of KMeansClustering with clusters, centroids,
 #                         and labels determined from the data.
 
 #         Raises:
@@ -591,7 +606,7 @@ class KMeansCluster(parameterBasedCluster):
 #         # Proceed with clustering if points has data left
 #         if points.size > 0:
 #             clusters, centroids, labels = cls.optimal_clusters(points)
-#             # Create an instance of KMeansCluster with clusters, centroids, labels, and parameter names
+#             # Create an instance of KMeansClustering with clusters, centroids, labels, and parameter names
 #             return cls(clusters, centroids, labels, parameter_names)
 #         else:
 #             raise ValueError(
@@ -634,7 +649,7 @@ class KMeansCluster(parameterBasedCluster):
 #         self.labels = np.array([label_mapping[label] for label in self.labels])
 
 
-# class FuzzyCMeanCluster(Cluster):
+# class FuzzyCMeanClustering(Clustering):
 #     def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, fuzzy_membership: np.ndarray, parameters: List[str]):
 #         super().__init__(clusters, centroids, labels, parameters)
 #         self.fuzzy_membership = fuzzy_membership
@@ -701,9 +716,9 @@ class KMeansCluster(parameterBasedCluster):
 
 #     @classmethod
 #     def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
-#                   scale: Dict[str, Callable[[float], float]] = None) -> Cluster:
+#                   scale: Dict[str, Callable[[float], float]] = None) -> Clustering:
 #         """
-#         Creates an instance of FuzzyCMeanCluster from a structured data dictionary,
+#         Creates an instance of FuzzyCMeanClustering from a structured data dictionary,
 #         applying specified scaling to each parameter if needed.
 
 #         Args:
@@ -715,7 +730,7 @@ class KMeansCluster(parameterBasedCluster):
 #                    the parameter values before clustering.
 
 #         Returns:
-#             FuzzyCMeanCluster: An instance of FuzzyCMeanCluster with clusters, centroids,
+#             FuzzyCMeanClustering: An instance of FuzzyCMeanClustering with clusters, centroids,
 #                                labels, and fuzzy memberships determined from the data.
 
 #         Raises:
@@ -770,7 +785,7 @@ class KMeansCluster(parameterBasedCluster):
 #         labels = np.argmax(u, axis=0)
 #         clusters = [points[labels == k] for k in range(2)]
 
-#         # Create an instance of FuzzyCMeanCluster with clusters, centroids, labels, fuzzy memberships, and parameter names
+#         # Create an instance of FuzzyCMeanClustering with clusters, centroids, labels, fuzzy memberships, and parameter names
 #         return cls(clusters, cntr, labels, u, parameter_names)
 
 #     def predict_cluster(self, data_point: List[float]) -> int:

@@ -1,4 +1,4 @@
-from .cluster import Cluster
+from .cluster import Clustering
 from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
 from .interface import Interface

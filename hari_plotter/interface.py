@@ -243,7 +243,7 @@ class Interface(ABC):
             return intersection / union if union != 0 else 0
 
         print(f'{cluster_settings = }')
-        clusters_dynamics = [list(group.cluster(
+        clusters_dynamics = [list(group.clustering(
             **cluster_settings).get_cluster_mapping()) for group in self.groups()]
         print(f'{clusters_dynamics = }')
         print(
@@ -255,14 +255,14 @@ class Interface(ABC):
         if tracked_clusters[-1] != list(range(len(tracked_clusters[-1]))):
             raise ValueError('Clusters not clustering:(')
 
-        correct_labels = self.group(-1).cluster(**
-                                                cluster_settings).cluster_labels
+        correct_labels = self.group(-1).clustering(**
+                                                   cluster_settings).cluster_labels
 
         for group, ordering in zip(self.groups(), tracked_clusters):
             new_labels = [correct_labels[i] for i in ordering]
             print(f'{new_labels = }')
 
-            group.cluster(
+            group.clustering(
                 **cluster_settings).cluster_labels = new_labels
 
         # print(f'{[list(tc.keys()) for tc in tracked_clusters] = }')

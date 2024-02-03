@@ -96,7 +96,7 @@ class Plot(ABC):
     def get_dynamic_plot_requests(self):
         return []
 
-    def get_track_clusters_requests(self):
+    def get_track_clusterings_requests(self):
         return []
 
 
@@ -400,19 +400,19 @@ class plot_scatter(Plot):
                 y_parameter, y_parameter))
 
 
-@Plotter.plot_type("Cluster: Centroids")
-class plot_cluster_centroids(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Clustering: Centroids")
+class plot_clustering_centroids(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
-        if 'clusterization_parameters' not in self.cluster_settings:
-            self.cluster_settings['clusterization_parameters'] = self.parameters
+        self.clustering_settings = clustering_settings
+        if 'clustering_parameters' not in self.clustering_settings:
+            self.clustering_settings['clustering_parameters'] = self.parameters
 
-        # print(f'{self.cluster_settings = }')
+        # print(f'{self.clustering_settings = }')
         self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
@@ -425,14 +425,13 @@ class plot_cluster_centroids(Plot):
             self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
-        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         """
-        Plots the decision boundaries for a 2D slice of the cluster object's data.
+        Plots the decision boundaries for a 2D slice of the clustering object's data.
 
         Args:
-        - values (Cluster): A Cluster object with fitted clusters.
         - x_feature_index (int): The index of the feature to be plotted on the x-axis.
         - y_feature_index (int): The index of the feature to be plotted on the y-axis.
         - plot_limits (tuple): A tuple containing the limits of the plot: (x_min, x_max, y_min, y_max).
@@ -443,15 +442,15 @@ class plot_cluster_centroids(Plot):
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        cluster = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.data_key]
 
         x_feature_name, y_feature_name = self.parameters
 
-        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+        x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
         # Plot centroids if they are 2D
-        centroids = cluster.centroids()
+        centroids = clustering.centroids()
         if centroids.shape[1] == 2:
             centroids_x = centroids[:, x_feature_index]
             centroids_y = centroids[:, y_feature_index]
@@ -467,7 +466,7 @@ class plot_cluster_centroids(Plot):
                        )
         else:
             warnings.warn(
-                f'centroids.shape[1] != 2, it is {centroids.shape[1]}. Cluster centroids are not shown on a plot')
+                f'centroids.shape[1] != 2, it is {centroids.shape[1]}. Clusters centroids are not shown on a plot')
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -477,16 +476,16 @@ class plot_cluster_centroids(Plot):
                 self.parameters[1], self.parameters[1]))
 
 
-@Plotter.plot_type("Cluster: Scatter")
-class plot_cluster_scatter(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Clustering: Scatter")
+class plot_clustering_scatter(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
-        if 'clusterization_parameters' not in self.cluster_settings:
-            self.cluster_settings['clusterization_parameters'] = self.parameters
+        self.clustering_settings = clustering_settings
+        if 'clustering_parameters' not in self.clustering_settings:
+            self.clustering_settings['clustering_parameters'] = self.parameters
 
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
@@ -499,22 +498,22 @@ class plot_cluster_scatter(Plot):
             self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
-        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         """
-        Plots the decision scatter for a 2D slice of the cluster object's data.
+        Plots the decision scatter for a 2D slice of the clustering object's data.
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        cluster = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.data_key]
 
         x_feature_name, y_feature_name = self.parameters
 
-        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+        x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
-        data = cluster.get_values([x_feature_name, y_feature_name])
+        data = clustering.get_values([x_feature_name, y_feature_name])
 
         for i, points in enumerate(data):
             x_points = points[:, 0]
@@ -540,16 +539,16 @@ class plot_cluster_scatter(Plot):
                 self.parameters[1], self.parameters[1]))
 
 
-@Plotter.plot_type("Cluster: Fill")
-class plot_cluster_fill(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Clustering: Fill")
+class plot_clustering_fill(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
-        if 'clusterization_parameters' not in self.cluster_settings:
-            self.cluster_settings['clusterization_parameters'] = self.parameters
+        self.clustering_settings = clustering_settings
+        if 'clustering_parameters' not in self.clustering_settings:
+            self.clustering_settings['clustering_parameters'] = self.parameters
 
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
@@ -562,14 +561,14 @@ class plot_cluster_fill(Plot):
             self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
-        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        cluster = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.data_key]
 
         x_feature_name, y_feature_name = self.parameters
-        x_feature_index, y_feature_index = cluster.get_indices_from_parameters(
+        x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
         xx, yy = np.meshgrid(
@@ -584,7 +583,7 @@ class plot_cluster_fill(Plot):
         if self.scale[1] == 'tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
-        Z = cluster.predict_cluster(mesh_points_scaled)
+        Z = clustering.predict_clustering(mesh_points_scaled)
         Z = Z.reshape(xx.shape)
 
         im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
@@ -609,16 +608,16 @@ class plot_cluster_fill(Plot):
         return x_lim, y_lim
 
 
-@Plotter.plot_type("Cluster: Degree of Membership")
-class plot_cluster_degree_of_membership(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Clustering: Degree of Membership")
+class plot_clustering_degree_of_membership(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
-        if 'clusterization_parameters' not in self.cluster_settings:
-            self.cluster_settings['clusterization_parameters'] = self.parameters
+        self.clustering_settings = clustering_settings
+        if 'clustering_parameters' not in self.clustering_settings:
+            self.clustering_settings['clustering_parameters'] = self.parameters
 
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
@@ -631,11 +630,11 @@ class plot_cluster_degree_of_membership(Plot):
             self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
-        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        cluster = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.data_key]
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -649,12 +648,12 @@ class plot_cluster_degree_of_membership(Plot):
         if self.scale[1] == 'tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
-        Z = np.array(cluster.degree_of_membership(mesh_points_scaled))
+        Z = np.array(clustering.degree_of_membership(mesh_points_scaled))
         Z = Z.max(axis=0)
         Z = Z.reshape(xx.shape)
 
         ax.contourf(xx, yy, Z, alpha=0.5,
-                    levels=np.linspace(0, 1, 11), cmap='viridis')
+                    levels=np.linspace(0, 1, 11), cmap='coolwarm')
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -675,16 +674,16 @@ class plot_cluster_degree_of_membership(Plot):
         return x_lim, y_lim
 
 
-@Plotter.plot_type("Cluster: sns")
-class plot_cluster_sns(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Clustering: sns")
+class plot_clustering_sns(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
-        if 'clusterization_parameters' not in self.cluster_settings:
-            self.cluster_settings['clusterization_parameters'] = self.parameters
+        self.clustering_settings = clustering_settings
+        if 'clustering_parameters' not in self.clustering_settings:
+            self.clustering_settings['clustering_parameters'] = self.parameters
 
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
@@ -697,11 +696,11 @@ class plot_cluster_sns(Plot):
             self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
-        return [{'method': 'get_cluster', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        cluster = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.data_key]
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -715,7 +714,7 @@ class plot_cluster_sns(Plot):
         if self.scale[1] == 'tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
-        Z = np.array(cluster.degree_of_membership(mesh_points_scaled))
+        Z = np.array(clustering.degree_of_membership(mesh_points_scaled))
         Z = Z.reshape(-1, *xx.shape)
         Z_index = Z.argmax(axis=0)
         Z_flat = Z.max(axis=0).ravel()
@@ -1175,14 +1174,14 @@ class plot_fill_between(Plot):
                 y_parameter, y_parameter))
 
 
-@Plotter.plot_type("Static: Cluster Line")
-class plot_cluster_line(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Static: Clustering Line")
+class plot_clustering_line(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
+        self.clustering_settings = clustering_settings
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -1195,7 +1194,7 @@ class plot_cluster_line(Plot):
             self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
-        return [{'method': 'cluster_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def data(self, static_data_cache: List[dict]):
         if self._static_data is not None:
@@ -1241,9 +1240,9 @@ class plot_cluster_line(Plot):
                 self.parameters[1], self.parameters[1]))
 
 
-@Plotter.plot_type("Static: Cluster Range")
-class plot_fill_between_cluster(Plot):
-    def __init__(self, parameters: tuple[str], cluster_settings: dict = {},
+@Plotter.plot_type("Static: Clustering Range")
+class plot_fill_between_clustering(Plot):
+    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -1251,7 +1250,7 @@ class plot_fill_between_cluster(Plot):
             parameters) == 3, "Three parameters are required, with the last or first being 'time'."
 
         self.parameters = tuple(parameters)
-        self.cluster_settings = cluster_settings
+        self.clustering_settings = clustering_settings
         self.scale = tuple(scale or ('linear', 'linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -1264,7 +1263,7 @@ class plot_fill_between_cluster(Plot):
             self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
-        return [{'method': 'cluster_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def data(self, static_data_cache: List[dict]):
         if self._static_data is not None:
@@ -1329,13 +1328,13 @@ class plot_fill_between_cluster(Plot):
 
 @Plotter.plot_type("Static: Opinions")
 class plot_opinions(Plot):
-    def __init__(self, cluster_settings: dict = {},
+    def __init__(self, clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
 
-        self.cluster_settings = cluster_settings
+        self.clustering_settings = clustering_settings
         self.scale = scale or tuple('linear', 'linear')
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -1354,10 +1353,10 @@ class plot_opinions(Plot):
         self.min_value = None
 
     def get_static_plot_requests(self):
-        return [{'method': 'cluster_graph_values', 'settings': {'parameters': ('time', 'min_opinion', 'opinion', 'max_opinion', 'cluster_size', 'label'), 'scale': self.scale, 'cluster_settings': self.cluster_settings}}]
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('time', 'min_opinion', 'opinion', 'max_opinion', 'cluster_size', 'label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-    def get_track_clusters_requests(self):
-        return [self.cluster_settings]
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings]
 
     def data(self, static_data_cache: List[dict]) -> dict:
         if self._static_data is not None:

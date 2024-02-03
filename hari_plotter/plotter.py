@@ -17,7 +17,7 @@ import networkx as nx
 import numpy as np
 import seaborn as sns
 
-from .cluster import Cluster
+from .cluster import Clustering
 from .hari_graph import HariGraph
 from .interface import Interface
 
@@ -200,16 +200,7 @@ class Plotter:
         def decorator(plot_func):
             if plot_name in cls._plot_methods:
                 raise ValueError(f"Plot type {plot_name} is already defined.")
-
-            # sig = inspect.signature(plot_func)
-            # method_parameters = {name: param.default for name,
-            #                      param in sig.parameters.items() if name != 'ax'}
-
             cls._plot_methods[plot_name] = plot_func
-            # cls._plot_methods[plot_name] = {plot_func,
-            #     'method_parameters': method_parameters,
-            #     'instructions': instructions
-            # }
             return plot_func
         return decorator
 
@@ -240,6 +231,9 @@ class Plotter:
 
     def add_plot(self, plot_type, plot_arguments, row: int = 0, col: int = 0):
         self.expand_plot_grid(row, col)
+        if plot_type not in self.available_plot_types:
+            raise ValueError(f"Plot type '{plot_type}' not recognized. "
+                             f"Available methods: {self.available_plot_types}")
         plot = self._plot_methods[plot_type](**plot_arguments)
 
         # Initialize the cell with an empty list if it's None
@@ -260,7 +254,7 @@ class Plotter:
 
             # Data fetching for static plots
             track_clusters_requests = [item for i in range(self.num_rows) for j in range(
-                self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusters_requests()]
+                self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
             static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
                 self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
             dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
