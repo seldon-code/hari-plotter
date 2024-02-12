@@ -103,16 +103,33 @@ class HariDynamics:
 
         return dynamics_instance
 
-    def __getitem__(self, index: int) -> LazyHariGraph:
-        if index < 0:
-            # Adjust the index for negative values
-            index += len(self.lazy_hari_graphs)
+    def __getitem__(self, index):
+        # Handle slices
+        if isinstance(index, slice):
+            return [self.lazy_hari_graphs[i] for i in range(*index.indices(len(self.lazy_hari_graphs)))]
 
-        if index < 0 or index >= len(self.lazy_hari_graphs):
-            raise IndexError(
-                "Index out of range of available LazyHariGraph objects.")
+        # Handle lists of integers
+        elif isinstance(index, list):
+            # Ensure all elements in the list are integers
+            if not all(isinstance(i, int) for i in index):
+                raise TypeError("All indices must be integers")
+            return [self.lazy_hari_graphs[i] for i in index]
 
-        return self.lazy_hari_graphs[index]
+        # Handle single integer
+        elif isinstance(index, int):
+            if index < 0:
+                # Adjust the index for negative values
+                index += len(self.lazy_hari_graphs)
+
+            if index < 0 or index >= len(self.lazy_hari_graphs):
+                raise IndexError(
+                    "Index out of range of available LazyHariGraph objects.")
+
+            return self.lazy_hari_graphs[index]
+
+        else:
+            raise TypeError(
+                "Invalid index type. Must be an integer, slice, or list of integers.")
 
     def __iter__(self) -> LazyHariGraph:
         return iter(self.lazy_hari_graphs)
