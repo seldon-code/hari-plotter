@@ -21,6 +21,9 @@ from .cluster import Clustering
 from .hari_graph import HariGraph
 from .interface import Interface
 
+plt.rcParams['axes.xmargin'] = 0
+plt.rcParams['axes.ymargin'] = 0
+
 
 class PlotSaver:
     """
@@ -242,7 +245,7 @@ class Plotter:
         # Append the new plot to the cell's list
         self.plots[row][col].append(plot)
 
-    def plot(self, mode: str = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram') -> None:
+    def plot(self, mode: str = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
         """
@@ -260,7 +263,7 @@ class Plotter:
             dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
                 self.num_cols) for plot in self.plots[i][j] for item in plot.get_dynamic_plot_requests()]
 
-            print(f'{track_clusters_requests = }')
+            # print(f'{track_clusters_requests = }')
 
             for request in track_clusters_requests:
                 self.interface.track_clusters(**request)
@@ -277,7 +280,7 @@ class Plotter:
                 if data_key not in static_data_cache:
                     # Fetch and cache the data for each group
                     data_for_all_groups = []
-                    for group in self.interface.groups():
+                    for group in self.interface.groups:
                         data = getattr(group, method_name)(**settings)
                         # print(f'{data = }')
                         data_for_all_groups.append(data)
@@ -294,7 +297,7 @@ class Plotter:
 
             # print(f'{static_data_cache = }')
 
-            for group in self.interface.groups():
+            for group in self.interface.groups:
 
                 dynamic_data_cache = {}
                 axis_limits = dict()
@@ -334,6 +337,9 @@ class Plotter:
                         ax.grid(False)
                         ax.axis('off')
                         ax.set_visible(False)
+
+                if preview:
+                    break
 
     def _determine_plot_order(self):
         """
