@@ -65,15 +65,22 @@ class Plot(ABC):
         # print(f'{list(data_list[0].keys()) = }')
         # print(f'{transform_parameter = }')
         # print(f'{data_list[0][transform_parameter] = }')
-        transform_parameter_values = sorted(
-            {transform_parameter_value for data in data_list for transform_parameter_value in data[transform_parameter]})
+        transform_parameter_values = {
+            transform_parameter_value for data in data_list for transform_parameter_value in data[transform_parameter]}
+        transform_parameter_values = {
+            elem for elem in transform_parameter_values if elem is not None}
+        # print(f'{transform_parameter_values = }')
+        transform_parameter_values = sorted(transform_parameter_values)
+        # print(f'{transform_parameter_values = }')
         transform_parameter_value_index = {transform_parameter_value: i for i,
                                            transform_parameter_value in enumerate(transform_parameter_values)}
+        # print(f'{transform_parameter_value_index = }')
 
         # Extract time steps
         time_steps = [data['time'] for data in data_list]
 
         # Initialize parameters dictionary
+        # print(f'{list(data_list[0].keys()) = }')
         params = {key: np.full((len(transform_parameter_values), len(time_steps)), np.nan)
                   for key in data_list[0] if key not in [transform_parameter, 'time', 'nodes']}
 
@@ -83,9 +90,14 @@ class Plot(ABC):
                 if param in data and param != 'nodes':
                     # Map each transform_parameter_value's value to the corresponding row in the parameter's array
                     for transform_parameter_value, value in zip(data[transform_parameter], data[param]):
-                        idx = transform_parameter_value_index[transform_parameter_value]
-                        print(f'{param = } {idx = } { t = } {value = }')
-                        params[param][idx, t] = value
+                        if transform_parameter_value is not None:
+                            # print(f'{transform_parameter_value = }')
+                            idx = transform_parameter_value_index[transform_parameter_value]
+                            # print(f'{param = } {idx = } { t = } {value = }')
+                            params[param][idx, t] = value
+                        else:
+                            pass
+                            # print(f'{param = } {value = } ')
 
         return {
             'time': np.array(time_steps),
@@ -592,6 +604,8 @@ class plot_clustering_fill(Plot):
         im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
                        origin='lower', aspect='auto', alpha=0.4, interpolation='nearest')
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
                 self.parameters[0], self.parameters[0]))
@@ -657,6 +671,8 @@ class plot_clustering_degree_of_membership(Plot):
 
         ax.contourf(xx, yy, Z, alpha=0.5,
                     levels=np.linspace(0, 1, 11), cmap='coolwarm')
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -737,6 +753,8 @@ class plot_clustering_sns(Plot):
             alpha=0.5,
             cmap="mako"
         )
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1026,6 +1044,8 @@ class plot_node_lines(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
                 self.parameters[0], self.parameters[0]))
@@ -1092,6 +1112,8 @@ class plot_graph_line(Plot):
             ax.set_xlim(*x_lim)
         if y_lim is not None:
             ax.set_ylim(*y_lim)
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1169,6 +1191,8 @@ class plot_fill_between(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
                 x_parameter, x_parameter))
@@ -1217,6 +1241,8 @@ class plot_clustering_line(Plot):
             x_values = np.tanh(x_values)
         if self.scale[1] == 'tanh':
             y_values = np.tanh(y_values)
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         self._static_data = {'x': x_values, 'y': y_values}
         return self._static_data
@@ -1320,6 +1346,8 @@ class plot_fill_between_clustering(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         # Setting labels
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1368,7 +1396,7 @@ class plot_opinions(Plot):
         data = static_data_cache[self.data_key]
 
         data = self.transform_data(data, transform_parameter='label')
-        print(f'{data = }')
+        # print(f'{data = }')
 
         # Transform data to suitable format for plotting
         time = np.array(data['time'])
@@ -1402,10 +1430,10 @@ class plot_opinions(Plot):
         max_opinions = data['max_opinion']
         cluster_sizes = data['cluster_size']
 
-        print(f'{cluster_sizes.shape = }')
+        # print(f'{cluster_sizes.shape = }')
 
         # Filter clusters by size
-        valid_clusters = cluster_sizes[:, -1] >= self.min_cluster_size
+        valid_clusters = np.any(cluster_sizes >= self.min_cluster_size, axis=1)
 
         # Define a colormap
         cmap = plt.get_cmap(self.colormap)
@@ -1436,6 +1464,8 @@ class plot_opinions(Plot):
             ax.set_xlim(self.x_lim)
         if self.y_lim is not None:
             ax.set_ylim(self.y_lim)
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_colorbar:
             # Add a colorbar to indicate the mapping of the final opinion values to colors
