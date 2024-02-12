@@ -546,6 +546,8 @@ class plot_clustering_scatter(Plot):
         if self.y_lim is not None:
             ax.set_ylim(*self.y_lim)
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
                 self.parameters[0], self.parameters[0]))
