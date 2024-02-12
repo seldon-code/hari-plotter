@@ -35,6 +35,7 @@ class PlotSaver:
 
     def __init__(self, mode: Union[str, List[str]] = 'show',
                  save_path: Optional[str] = None,
+                 save_format: Optional[str] = 'image_{}',
                  gif_path: Optional[str] = None) -> None:
         """
         Initialize the PlotSaver instance.
@@ -42,12 +43,18 @@ class PlotSaver:
         Args:
             mode (Union[str, List[str]]): The mode(s) in which to operate. 
                 It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
-            save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode).
+            save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
+            save_format (Optional[str]): string with {} for formatting in the number
             gif_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
         """
         # Ensure mode is a list even if a single mode string is provided
         self.mode = mode if isinstance(mode, list) else [mode]
-        self.save_path = save_path
+        if not os.path.exists(save_path):
+            warnings.warn(f"Path {save_path} does not exist. Creating it.")
+            # Create the directory, including any necessary parent directories
+            os.makedirs(save_path, exist_ok=True)
+        self.save_path = save_path if save_path[-1] == '/' else save_path+'/'
+        self.save_format = save_format
         self.gif_path = gif_path
         self.saved_images = []
         self.temp_dir = None
@@ -86,7 +93,8 @@ class PlotSaver:
 
         # Save the figure if 'save' mode is active and save_path is provided
         if 'save' in self.mode and self.save_path:
-            path = self.save_path.format(len(self.saved_images))
+            path = self.save_path + \
+                self.save_format.format(len(self.saved_images))
             fig.savefig(path)
             self.saved_images.append(path)
         # If only 'gif' mode is selected, save figure to a temp directory
@@ -245,11 +253,12 @@ class Plotter:
         # Append the new plot to the cell's list
         self.plots[row][col].append(plot)
 
-    def plot(self, mode: str = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
+    def plot(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
+        mode : ["show", "save", "gif"]
         """
-        with PlotSaver(mode=mode, save_path=f"{save_dir}/{name}_" + "{}.png", gif_path=gif_path) as saver:
+        with PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
 
             # Determine the rendering order
             render_order = self._determine_plot_order()
@@ -337,6 +346,8 @@ class Plotter:
                         ax.grid(False)
                         ax.axis('off')
                         ax.set_visible(False)
+
+                saver.save(fig)
 
                 if preview:
                     break
