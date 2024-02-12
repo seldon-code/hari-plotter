@@ -130,6 +130,9 @@ class Simulation:
         with open(filename, 'w') as f:
             toml.dump(data, f)
 
+    def group(self, *args, **kwargs):
+        self.dynamics.group(*args, **kwargs)
+
     def __len__(self) -> int:
         return len(self.dynamics)
 
