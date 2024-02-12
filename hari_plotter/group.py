@@ -78,7 +78,11 @@ class Group:
         clustering_key = Group.request_to_tuple(clustering_settings)
 
         if clustering_key in self.clusterings:
+            # print(f'+clustering found {clustering_key} ')
             return self.clusterings[clustering_key]['clustering']
+
+        # print(f'-clustering not found {clustering_key} ')
+        # print(f'{list(self.clusterings.keys()) = }')
 
         # Create a new clustering instance
         clustering = Clustering.create_clustering(
@@ -148,7 +152,7 @@ class Group:
         self.images.append(image)
 
     def __repr__(self):
-        return f"Group(time={self.time}, images={self.images})"
+        return f"Group(id={id(self)}, time={self.time}, images={self.images})"
 
     def calculate_node_values(self, parameters: Tuple[str], **settings) -> dict:
         """

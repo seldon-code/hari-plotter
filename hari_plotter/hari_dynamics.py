@@ -261,7 +261,7 @@ class HariDynamics:
             target_lazy_graph._initialize()  # Initialize the target graph
 
         mapping = target_lazy_graph.get_cluster_mapping()
-        print(f'{mapping = }')
+        # print(f'{mapping = }')
         self.merge_nodes_by_mapping(mapping)
 
     def __len__(self) -> int:
