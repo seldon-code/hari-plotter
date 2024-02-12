@@ -103,6 +103,26 @@ class Clustering(ABC):
     def available_clustering_methods(self):
         return list(self._clustering_methods.keys())
 
+    def get_values(self, key: Union[str, List[str]]) -> List[np.ndarray]:
+        """
+        Returns the values corresponding to the given parameter(s) for all points in the clusters.
+
+        Args:
+            key (Union[str, List[str]]): The parameter name or list of parameter names.
+            keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
+
+        Returns:
+            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
+                              and contains the values of the specified parameter(s) for each point in that cluster.
+        """
+        if isinstance(key, str):
+            # Single parameter requested
+            key = [key]
+
+        data = self.G.gatherer.gather(param=key)
+
+        return [np.array([[data[k][data['nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
+
 
 class parameterBasedClustering(Clustering):
     scale_funcs = {
@@ -182,39 +202,6 @@ class parameterBasedClustering(Clustering):
     def get_cluster_mapping(self) -> List[list]:
         pass
 
-    def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
-        """
-        Returns the values corresponding to the given parameter(s) for all points in the clusters.
-
-        Args:
-            key (Union[str, List[str]]): The parameter name or list of parameter names.
-            keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
-
-        Returns:
-            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
-                              and contains the values of the specified parameter(s) for each point in that cluster.
-        """
-        if isinstance(key, str):
-            # Single parameter requested
-            key = [key]
-
-        if not all(k in self.parameters for k in key):
-            raise KeyError(
-                "One or more requested parameters are not found in the cluster parameters.")
-
-        param_indices = [self.parameters.index(k) for k in key]
-
-        scaled_data = self.data[:, param_indices]
-        if not keep_scale:
-            for new_index, original_index in enumerate(param_indices):
-                used_scale = self.scales[original_index]
-                scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
-                    scaled_data[:, new_index])
-
-        unique = np.unique(self.cluster_indexes)
-
-        return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
-
     def get_indices_from_parameters(self, params: Union[str, List[str]]) -> Union[int, List[int]]:
         """
         Returns the indices corresponding to the given parameter(s).
@@ -224,11 +211,12 @@ class parameterBasedClustering(Clustering):
 
         Returns:
             Union[int, List[int]]: The index or list of indices corresponding to the given parameter(s).
+            Returns None if parameter is not present
         """
         if isinstance(params, str):
-            return self.parameters.index(params)
+            return self.parameters.index(params) if params in self.parameters else None
         else:
-            return [self.parameters.index(param) for param in params]
+            return [self.parameters.index(param) if param in self.parameters else None for param in params]
 
     def get_parameters_from_indices(self, indices: Union[int, List[int]]) -> Union[str, List[str]]:
         """
@@ -246,13 +234,220 @@ class parameterBasedClustering(Clustering):
             return [self.parameters[index] for index in indices]
 
 
-@Clustering.clustering_type("Value Intervals Clustering")
+@Clustering.clustering_type("Interval Clustering")
 class valueIntervalsClustering(parameterBasedClustering):
-    """A KMeans clustering representation, extending the generic Clustering class."""
+    """Value Intervals clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
-
+    def __init__(self, G: HariGraph, data: np.ndarray, parameter_boundaries: List[List[float]], original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
         super().__init__(G, original_labels, parameters, scales, cluster_indexes)
+        self.parameter_boundaries = parameter_boundaries
+        self.data = data
+        self.indices_mapping = {}
+        self.n_clusters = 0
+
+    def get_number_of_clusters(self) -> int:
+        return self.n_clusters  # Assuming self.n_clusters tracks the number of clusters
+
+    def get_cluster_mapping(self) -> List[list]:
+        """
+        Maps each node to a cluster based on the parameter boundaries.
+
+        Returns:
+        - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.
+        """
+        cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
+
+        for i, point in enumerate(self.data):
+            cluster_index = self.find_cluster_index(point)
+            if cluster_index is not None:  # Point falls within defined boundaries
+                cluster_nodes[cluster_index].append(
+                    tuple(self.original_labels[i]))
+
+        return cluster_nodes
+
+    def find_cluster_indices(self, point: np.ndarray) -> np.ndarray:
+        """
+        Determines the indices of the clusters a point belongs to based on parameter boundaries.
+
+        Args:
+        - point: The data point's parameter values as a numpy array.
+
+        Returns:
+        - np.ndarray: An array of the indices of the clusters the point belongs to.
+        """
+        cluster_indices = np.zeros(len(self.parameter_boundaries), dtype=int)
+        for i, boundaries in enumerate(self.parameter_boundaries):
+            cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
+        return tuple(cluster_indices)
+
+    def find_cluster_index(self, point):
+        cluster_indices = self.find_cluster_indices(point)
+        return self.indices_mapping.get(cluster_indices, None)
+
+    # def flatten_cluster_indices(self, cluster_indices: np.ndarray) -> int:
+    #     """
+    #     Flattens the array of cluster indices into a single cluster index.
+
+    #     Args:
+    #     - cluster_indices: An array of cluster indices for each parameter.
+
+    #     Returns:
+    #     - int: The flattened cluster index representing the specific cluster across all parameters.
+    #     """
+    #     cluster_sizes = np.array(
+    #         [len(b) + 1 for b in self.parameter_boundaries])
+    #     weights = np.append(1, np.cumprod(cluster_sizes[:-1]))
+    #     return np.dot(cluster_indices, weights)
+
+    @classmethod
+    def from_graph(cls, G: HariGraph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'valueIntervalsClustering':
+        """
+        Creates an instance of valueIntervalsClustering from a HariGraph.
+
+        Args:
+            G: HariGraph.
+            parameter_boundaries: List of lists, each containing the boundaries for a parameter.
+            clustering_parameters: List of parameter names.
+            scale: Optional scaling functions for the clustering_parameters.
+
+        Returns:
+            valueIntervalsClustering: An instance with nodes assigned to clusters based on the parameter boundaries.
+
+        Raises:
+            ValueError: If the number of clustering_parameters does not match the number of parameter boundaries.
+        """
+        if len(clustering_parameters) != len(parameter_boundaries):
+            raise ValueError(
+                "The number of clustering_parameters must match the number of parameter boundaries.")
+
+        data = G.gatherer.gather(clustering_parameters)
+
+        # Validate and process scale argument
+        if isinstance(scale, dict):
+            scale = [scale.get(param, 'linear')
+                     for param in clustering_parameters]
+        elif isinstance(scale, list) and len(scale) != len(clustering_parameters):
+            raise ValueError('Length mismatch in scale list')
+        elif scale is None:
+            scale = ['linear'] * len(clustering_parameters)
+
+        # Prepare data array
+        data_array = np.array(
+            [data[param] for param in clustering_parameters if param not in ['time', 'nodes']]).T
+
+        # Remove NaN values
+        valid_indices = ~np.isnan(data_array).any(axis=1)
+        data_array = data_array[valid_indices]
+        original_labels = np.array(data['nodes'])[valid_indices]
+
+        if data_array.size == 0:
+            raise ValueError(
+                "No data points remain after removing NaN values.")
+
+        # Apply scaling to the clustering_parameters
+        for i, sc in enumerate(scale):
+            data_array[:, i] = cls.scale_funcs[sc]['direct'](data_array[:, i])
+
+        # Initialize the clustering
+        clustering = cls(G=G, data=data_array, original_labels=original_labels, parameters=clustering_parameters,
+                         scales=scale, cluster_indexes=np.nan*np.zeros(data_array.shape[0]), parameter_boundaries=parameter_boundaries)
+        clustering.recluster()
+        return clustering
+
+    def recluster(self):
+        """
+        Recalculates the cluster indices for each data point based on the current parameter boundaries.
+        """
+        # Iterate over each data point
+        self.indices_mapping = {}
+        self.n_clusters = 0
+
+        for i, point in enumerate(self.data):
+            # Determine the cluster indices for the current point across all parameters
+            cluster_indices = self.find_cluster_indices(point)
+            if cluster_indices not in self.indices_mapping:
+                self.indices_mapping[cluster_indices] = self.n_clusters
+                self.n_clusters += 1
+
+            # Flatten these indices into a single cluster index
+            # flat_cluster_index = self.flatten_cluster_indices(cluster_indices)
+
+            # Update the cluster index for the current point
+            self.cluster_indexes[i] = self.indices_mapping[cluster_indices]
+
+    def reorder_clusters(self, new_order: List[int]):
+        # Implement the logic to reorder the clusters
+        pass
+
+    @property
+    def unscaled_centroids(self) -> np.ndarray:
+        # Implement the logic to return centroids or representative points of clusters
+        pass
+
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+        """
+        Predicts the cluster indices to which new data points belong based on the centroids.
+
+        Args:
+            data_points: The new data points' parameter values as a numpy array.
+
+        Returns:
+            np.ndarray: An array of indices of the closest cluster centroid to each data point.
+
+        Raises:
+            ValueError: If the dimensionality of the data points does not match that of the centroids.
+        """
+        # Check if the data points are of the correct dimension
+        if data_points.shape[1] != len(self.parameters):
+            raise ValueError(
+                "Data points dimensionality does not match number of parameters")
+        scaled_points = np.array(data_points)
+
+        if not points_scaled:
+            for i, sc in enumerate(self.scales):
+                scaled_points[:, i] = self.scale_funcs[sc]['direct'](
+                    scaled_points[:, i])
+
+        cluster_indexes = []
+
+        for i, point in enumerate(data):
+            # Determine the cluster indices for the current point across all parameters
+            cluster_indexes.append(self.find_cluster_index(point))
+
+        return cluster_indexes
+
+    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
+    #     """
+    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
+
+    #     Args:
+    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
+    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
+
+    #     Returns:
+    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
+    #                           and contains the values of the specified parameter(s) for each point in that cluster.
+    #     """
+    #     if isinstance(key, str):
+    #         # Single parameter requested
+    #         key = [key]
+
+    #     if not all(k in self.parameters for k in key):
+    #         raise KeyError(
+    #             f"One or more requested parameters {key} are not found in the cluster parameters {self.parameters}.")
+
+    #     param_indices = [self.parameters.index(k) for k in key]
+
+    #     scaled_data = self.data[:, param_indices]
+    #     if not keep_scale:
+    #         for new_index, original_index in enumerate(param_indices):
+    #             used_scale = self.scales[original_index]
+    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
+    #                 scaled_data[:, new_index])
+
+    #     unique = np.unique(self.cluster_indexes)
+
+    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
 
 
 @Clustering.clustering_type("K-Means Clustering")
@@ -375,11 +570,11 @@ class kMeansClustering(parameterBasedClustering):
             data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
 
         # Perform clustering
-        cluster = cls(G=G, data=data, original_labels=original_labels, parameters=parameter_names,
-                      scales=scale, cluster_indexes=np.zeros(data.shape[0]))
-        cluster.recluster(n_clusters=n_clusters)
+        clustering = cls(G=G, data=data, original_labels=original_labels, parameters=parameter_names,
+                         scales=scale, cluster_indexes=np.zeros(data.shape[0]))
+        clustering.recluster(n_clusters=n_clusters)
 
-        return cluster
+        return clustering
 
     def recluster(self, n_clusters):
         kmeans = KMeans(n_clusters=n_clusters, init='k-means++',
@@ -409,388 +604,35 @@ class kMeansClustering(parameterBasedClustering):
         self.labels = np.array([label_mapping[label] for label in self.labels])
         self.reorder_labels(new_order)
 
-
-# class KMeansClustering(Clustering):
-#     """A KMeans clustering representation, extending the generic Clustering class."""
-
-#     def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, parameters: List[str]):
-#         super().__init__(clusters, centroids, labels, parameters)
-
-#     def get_number_of_clusters(self) -> int:
-#         """
-#         Get the number of clusters.
-
-#         Returns:
-#         - int : The number of clusters.
-#         """
-#         return len(self.centroids)
-
-#     def predict_cluster(self, data_point: List[float]) -> int:
-#         """
-#         Predicts the cluster index to which a new data point belongs based on the centroids.
-
-#         Args:
-#             data_point: The new data point's parameter values as a list of floats.
-
-#         Returns:
-#             int: The index of the closest cluster centroid to the data point.
-
-#         Raises:
-#             ValueError: If the dimensionality of the data point does not match that of the centroids.
-#         """
-#         # Check if the data point is of the correct dimension
-#         if len(data_point) != self.centroids.shape[1]:
-#             raise ValueError(
-#                 "Data point dimensionality does not match number of features in centroids.")
-
-#         # Convert the data point to a numpy array and reshape for cdist
-#         data_point_np = np.array(data_point).reshape(1, -1)
-
-#         # Calculate the distance from this point to each centroid
-#         distances = cdist(data_point_np, self.centroids, 'euclidean').flatten()
-
-#         # Find the index of the nearest centroid
-#         nearest_centroid_index = np.argmin(distances)
-#         return nearest_centroid_index
-
-#     @staticmethod
-#     def is_single_cluster(points: np.ndarray):
-#         """
-#         Check if the given data represents a single cluster.
-
-#         Parameters:
-#         - points : np.ndarray
-#             n-dimensional data points.
-
-#         Returns:
-#         - bool : True if data likely represents a single cluster, False otherwise.
-#         """
-#         kmeans = KMeans(n_clusters=2, init='k-means++',
-#                         n_init='auto', random_state=42)
-#         kmeans.fit(points)
-#         cluster_labels = kmeans.labels_
-#         two_cluster_score = silhouette_score(points, cluster_labels)
-
-#         return two_cluster_score < 0.75
-
-#     @staticmethod
-#     def merge_close_clusters(centroids, labels, min_distance):
-#         """
-#         Merges clusters that are closer than a specified minimum distance.
-
-#         Args:
-#             centroids: Array containing centroids of clusters.
-#             labels: Labels assigned to each data point.
-#             min_distance: The minimum distance below which clusters are merged.
-
-#         Returns:
-#             Tuple[np.ndarray, np.ndarray]: The updated labels and centroids after merging.
-#         """
-#         distance_matrix = cdist(centroids, centroids, 'euclidean')
-#         np.fill_diagonal(distance_matrix, np.inf)
-
-#         while np.min(distance_matrix) < min_distance:
-#             i, j = np.unravel_index(
-#                 distance_matrix.argmin(), distance_matrix.shape)
-#             labels[labels == j] = i
-#             labels[labels > j] -= 1
-#             centroids = np.delete(centroids, j, 0)
-#             distance_matrix = cdist(centroids, centroids, 'euclidean')
-#             np.fill_diagonal(distance_matrix, np.inf)
-
-#         return labels, centroids
-
-#     @staticmethod
-#     def optimal_clusters(points: np.ndarray, min_distance=1e-2):
-#         """
-#         Finds the optimal clustering of data points and merges close clusters.
-
-#         Args:
-#             points: A NumPy array of n-dimensional data points.
-#             min_distance: The minimum distance between centroids to consider clusters separate.
-
-#         Returns:
-#             Tuple[List[np.ndarray], np.ndarray, np.ndarray]: The clusters, centroids, and labels.
-#         """
-#         if KMeansClustering.is_single_cluster(points):
-#             # Assuming points.shape[0] is the number of data points.
-#             # Create a single centroid that is the mean of all points
-#             # and assign all points to a single cluster with label 0.
-#             centroid = np.mean(points, axis=0).reshape(
-#                 1, -1)  # single centroid
-#             # all points labeled as 0
-#             labels = np.zeros(points.shape[0], dtype=int)
-#             # all points in one cluster
-#             clusters = [list(range(points.shape[0]))]
-#             return clusters, centroid, labels
-
-#         wcss = []
-#         for i in range(1, 11):
-#             kmeans = KMeans(n_clusters=i, init='k-means++',
-#                             n_init='auto', random_state=42)
-#             kmeans.fit(points)
-#             wcss.append(kmeans.inertia_)
-
-#         deltas = np.diff(wcss)
-#         n = np.where(deltas == np.min(deltas))[0][0] + 2
-
-#         kmeans = KMeans(n_clusters=n, init='k-means++',
-#                         n_init='auto', random_state=42)
-#         kmeans.fit(points)
-#         labels, centroids = KMeansClustering.merge_close_clusters(
-#             kmeans.cluster_centers_, kmeans.labels_, min_distance)
-
-#         unique_labels = np.unique(labels)
-#         clusters = [points[labels == label] for label in unique_labels]
-
-#         return clusters, centroids, labels  # Ensure three values are returned here
-
-#     @classmethod
-#     def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
-#                   scale: Dict[str, Callable[[float], float]] = None) -> Clustering:
-#         """
-#         Creates an instance of KMeansClustering from a structured data dictionary,
-#         applying specified scaling to each parameter if needed.
-
-#         Args:
-#             data_dict: A dictionary with a 'data' key whose value is another
-#                     dictionary mapping integer node numbers to another dictionary of
-#                     parameter names and their corresponding list of float values.
-#             scale: An optional dictionary where keys are parameter names and
-#                 values are functions ('linear' or 'tanh') to be applied to
-#                 the parameter values before clustering.
-
-#         Returns:
-#             KMeansClustering: An instance of KMeansClustering with clusters, centroids,
-#                         and labels determined from the data.
-
-#         Raises:
-#             ValueError: If no data points remain after removing NaN values or if
-#                         an unknown scaling function is specified.
-#         """
-#         if scale is None:
-#             scale = {}
-
-#         # Define the scaling functions
-#         scale_funcs = {
-#             'linear': lambda x: x,
-#             'tanh': np.tanh
-#         }
-
-#         # Ensure scale contains known functions only
-#         for param, func in scale.items():
-#             if func not in scale_funcs:
-#                 raise ValueError(
-#                     f"Unknown scale function '{func}' for parameter '{param}'.")
-
-#         # Retrieve parameter names and initialize points array
-#         parameter_names = list(next(iter(data_dict['data'].values())).keys())
-#         points = []
-
-#         # Extract and flatten data points from the nested dictionary
-#         for node_data in data_dict['data'].values():
-#             node_values = [node_data[param] for param in parameter_names]
-#             points.append(node_values)
-#         points = np.array(points).reshape(-1, len(parameter_names))
-
-#         # Remove NaN values
-#         if np.isnan(points).any():
-#             points = points[~np.isnan(points).any(axis=1)]
-
-#         # Apply scaling to the appropriate parameters
-#         for i, parameter_name in enumerate(parameter_names):
-#             if parameter_name in scale:
-#                 func = scale_funcs[scale[parameter_name]]
-#                 points[:, i] = func(points[:, i])
-
-#         # Proceed with clustering if points has data left
-#         if points.size > 0:
-#             clusters, centroids, labels = cls.optimal_clusters(points)
-#             # Create an instance of KMeansClustering with clusters, centroids, labels, and parameter names
-#             return cls(clusters, centroids, labels, parameter_names)
-#         else:
-#             raise ValueError(
-#                 "After removing NaN values, no data points remain for clustering.")
-
-#     def degree_of_membership(self, data_point: List[float]) -> List[float]:
-#         """
-#         Predicts the 'probability' of belonging to each cluster for a new data point.
-
-#         Since KMeans does not provide probabilities but hard assignments, this method
-#         will return a list with a 1 at the index of the assigned cluster and 0s elsewhere.
-
-#         Args:
-#             data_point: The new data point's parameter values as a list of floats.
-
-#         Returns:
-#             List[float]: A list of zeros and one one, indicating the cluster assignment.
-#         """
-#         nearest_cluster_index = self.predict_cluster(data_point)
-#         return [1.0 if i == nearest_cluster_index else 0.0 for i in range(len(self.centroids))]
-
-#     def reorder_clusters(self, new_order: List[int]):
-#         """
-#         Reorders clusters and associated information based on a new order.
-
-#         Args:
-#             new_order: A list containing the indices of the clusters in their new order.
-
-#         Raises:
-#             ValueError: If new_order does not contain all existing cluster indices.
-#         """
-#         if set(new_order) != set(range(len(self.centroids))):
-#             raise ValueError(
-#                 "New order must contain all existing cluster indices.")
-
-#         self.centroids = self.centroids[new_order]
-#         self.clusters = [self.clusters[i] for i in new_order]
-#         # Create a mapping from old to new labels
-#         label_mapping = {old: new for new, old in enumerate(new_order)}
-#         self.labels = np.array([label_mapping[label] for label in self.labels])
-
-
-# class FuzzyCMeanClustering(Clustering):
-#     def __init__(self, clusters: List[np.ndarray], centroids: np.ndarray, labels: np.ndarray, fuzzy_membership: np.ndarray, parameters: List[str]):
-#         super().__init__(clusters, centroids, labels, parameters)
-#         self.fuzzy_membership = fuzzy_membership
-
-#     def calculate_fpc(self) -> float:
-#         """
-#         Calculates the Fuzzy Partition Coefficient (FPC) for the clustering.
-
-#         Returns:
-#             float: The FPC value.
-#         """
-#         return np.mean(np.sum(self.fuzzy_membership ** 2, axis=0) / self.fuzzy_membership.shape[1])
-
-#     def get_number_of_clusters(self) -> int:
-#         """
-#         Get the number of clusters.
-
-#         Returns:
-#         - int : The number of clusters.
-#         """
-#         return len(self.centroids)
-
-#     def degree_of_membership(self, data_point: List[float]) -> List[float]:
-#         """
-#         Predicts the fuzzy membership values for each cluster for a new data point.
-
-#         Args:
-#             data_point: The new data point's parameter values as a list of floats.
-
-#         Returns:
-#             List[float]: A list of fuzzy membership values indicating the degree of belonging to each cluster.
-#         """
-#         # Predict the fuzzy membership values for the data point
-#         u, _, _, _, _, _ = fuzz.cluster.cmeans_predict(
-#             np.array([data_point]).T, self.centroids, 2, error=0.005, maxiter=1000)
-
-#         # Return the membership values for each cluster
-#         return u.flatten().tolist()
-
-#     def reorder_clusters(self, new_order: List[int]):
-#         """
-#         Reorders clusters, centroids, labels, and fuzzy membership matrix based on a new order.
-
-#         Args:
-#             new_order: A list containing the indices of the clusters in their new order.
-
-#         Raises:
-#             ValueError: If new_order does not contain all existing cluster indices.
-#         """
-#         if set(new_order) != set(range(len(self.centroids))):
-#             raise ValueError(
-#                 "New order must contain all existing cluster indices.")
-
-#         # Reorder the centroids and fuzzy memberships
-#         self.centroids = self.centroids[new_order, :]
-#         self.fuzzy_membership = self.fuzzy_membership[new_order, :]
-
-#         # Update clusters and labels based on the new order
-#         self.clusters = [self.clusters[i] for i in new_order]
-#         label_mapping = {old: new for new, old in enumerate(new_order)}
-#         self.labels = np.array([label_mapping[label] for label in self.labels])
-
-#         # Since fuzzy memberships are not a hard assignment, we do not need to update the fuzzy_membership array
-
-#     @classmethod
-#     def from_data(cls, data_dict: Dict[str, Dict[int, List[float]]],
-#                   scale: Dict[str, Callable[[float], float]] = None) -> Clustering:
-#         """
-#         Creates an instance of FuzzyCMeanClustering from a structured data dictionary,
-#         applying specified scaling to each parameter if needed.
-
-#         Args:
-#             data_dict: A dictionary with a 'data' key whose value is another
-#                        dictionary mapping integer node numbers to another dictionary
-#                        of parameter names and their corresponding list of float values.
-#             scale: An optional dictionary where keys are parameter names and
-#                    values are functions ('linear' or 'tanh') to be applied to
-#                    the parameter values before clustering.
-
-#         Returns:
-#             FuzzyCMeanClustering: An instance of FuzzyCMeanClustering with clusters, centroids,
-#                                labels, and fuzzy memberships determined from the data.
-
-#         Raises:
-#             ValueError: If no data points remain after removing NaN values or if
-#                         an unknown scaling function is specified.
-#         """
-#         if scale is None:
-#             scale = {}
-
-#         # Define the scaling functions
-#         scale_funcs = {
-#             'linear': lambda x: x,
-#             'tanh': np.tanh
-#         }
-
-#         # Ensure scale contains known functions only
-#         for param, func in scale.items():
-#             if func not in scale_funcs:
-#                 raise ValueError(
-#                     f"Unknown scale function '{func}' for parameter '{param}'.")
-
-#         # Retrieve parameter names and initialize points array
-#         parameter_names = list(next(iter(data_dict.values())).keys())
-#         points = []
-
-#         # Extract and flatten data points from the nested dictionary
-#         for node_data in data_dict.values():
-#             node_values = [node_data[param] for param in parameter_names]
-#             points.append(node_values)
-#         points = np.array(points).reshape(-1, len(parameter_names))
-
-#         # Remove NaN values
-#         if np.isnan(points).any():
-#             points = points[~np.isnan(points).any(axis=1)]
-
-#         # Apply scaling to the appropriate parameters
-#         for i, parameter_name in enumerate(parameter_names):
-#             if parameter_name in scale:
-#                 func = scale_funcs[scale[parameter_name]]
-#                 points[:, i] = func(points[:, i])
-
-#         # Ensure there is data to cluster
-#         if not points.size:
-#             raise ValueError("No data points remain after preprocessing.")
-
-#         # Perform Fuzzy C-Means clustering, assuming 2 clusters
-#         cntr, u, _, _, _, _, _ = fuzz.cluster.cmeans(
-#             points.T, 2, 2, error=0.005, maxiter=1000, init=None
-#         )
-
-#         # Determine cluster membership
-#         labels = np.argmax(u, axis=0)
-#         clusters = [points[labels == k] for k in range(2)]
-
-#         # Create an instance of FuzzyCMeanClustering with clusters, centroids, labels, fuzzy memberships, and parameter names
-#         return cls(clusters, cntr, labels, u, parameter_names)
-
-#     def predict_cluster(self, data_point: List[float]) -> int:
-#         # In Fuzzy C-Means, the prediction would return the cluster with the highest membership.
-#         u, u0, d, jm, p, fpc = fuzz.cluster.cmeans_predict(
-#             np.array([data_point]).T, self.centroids, 2, error=0.005, maxiter=1000)
-
-#         return np.argmax(u, axis=0)[0]
+    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
+    #     """
+    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
+
+    #     Args:
+    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
+    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
+
+    #     Returns:
+    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
+    #                           and contains the values of the specified parameter(s) for each point in that cluster.
+    #     """
+    #     if isinstance(key, str):
+    #         # Single parameter requested
+    #         key = [key]
+
+    #     if not all(k in self.parameters for k in key):
+    #         raise KeyError(
+    #             "One or more requested parameters are not found in the cluster parameters.")
+
+    #     param_indices = [self.parameters.index(k) for k in key]
+
+    #     scaled_data = self.data[:, param_indices]
+    #     if not keep_scale:
+    #         for new_index, original_index in enumerate(param_indices):
+    #             used_scale = self.scales[original_index]
+    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
+    #                 scaled_data[:, new_index])
+
+    #     unique = np.unique(self.cluster_indexes)
+
+    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
