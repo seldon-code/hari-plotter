@@ -37,6 +37,9 @@ class Clustering(ABC):
                 self.get_number_of_clusters())]
         return self._cluster_labels
 
+    def get_cluster_labels(self, **kwargs):
+        return self.cluster_labels
+
     @cluster_labels.setter
     def cluster_labels(self, labels: List[str]):
         if len(labels) != self.get_number_of_clusters():
