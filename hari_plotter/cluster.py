@@ -127,7 +127,7 @@ class Clustering(ABC):
         return [np.array([[data[k][data['nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
 
 
-class parameterBasedClustering(Clustering):
+class ParameterBasedClustering(Clustering):
     scale_funcs = {
         'linear': {'direct': lambda x: x, 'inverse': lambda x: x},
         'tanh': {'direct': np.tanh, 'inverse': np.arctanh}
@@ -238,7 +238,7 @@ class parameterBasedClustering(Clustering):
 
 
 @Clustering.clustering_type("Interval Clustering")
-class valueIntervalsClustering(parameterBasedClustering):
+class ValueIntervalsClustering(ParameterBasedClustering):
     """Value Intervals clustering representation, extending the generic Clustering class."""
 
     def __init__(self, G: HariGraph, data: np.ndarray, parameter_boundaries: List[List[float]], original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
@@ -413,7 +413,7 @@ class valueIntervalsClustering(parameterBasedClustering):
 
         cluster_indexes = []
 
-        for i, point in enumerate(data):
+        for i, point in enumerate(data_points):
             # Determine the cluster indices for the current point across all parameters
             cluster_indexes.append(self.find_cluster_index(point))
 
@@ -454,7 +454,7 @@ class valueIntervalsClustering(parameterBasedClustering):
 
 
 @Clustering.clustering_type("K-Means Clustering")
-class kMeansClustering(parameterBasedClustering):
+class KMeansClustering(ParameterBasedClustering):
     """A KMeans clustering representation, extending the generic Clustering class."""
 
     def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
