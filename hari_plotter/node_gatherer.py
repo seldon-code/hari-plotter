@@ -211,11 +211,6 @@ class DefaultNodeGatherer(NodeGatherer):
 
         return data
 
-    @NodeGatherer.parameter('activity')
-    def activity(self) -> dict:
-        """Returns a dictionary mapping node IDs to their activity levels."""
-        return {node: self.G.nodes[node].get('activity', np.nan) for node in self.G.nodes}
-
     @NodeGatherer.parameter('inner_opinions')
     def inner_opinions(self) -> dict:
         """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
@@ -234,3 +229,48 @@ class DefaultNodeGatherer(NodeGatherer):
     @NodeGatherer.parameter('label')
     def min_opinion(self) -> dict:
         return {node: self.G.nodes[node].get("label", None) for node in self.G.nodes}
+
+
+class ActivityDefaultNodeGatherer(DefaultNodeGatherer):
+    def merge(self, node_ids: List[dict]) -> dict:
+        """
+        Merges given nodes and computes combined attributes such as 'inner_opinions', 'cluster_size', and 'label'.
+
+        Parameters:
+            node_ids (List[dict]): A list of node dictionaries, each containing node attributes.
+
+        Returns:
+            dict: A dictionary with merged node attributes.
+        """
+        if not node_ids:
+            raise ValueError("The input list of nodes must not be empty.")
+
+        nodes = [self.G.nodes[node_id] for node_id in node_ids]
+
+        size = sum(node.get('cluster_size', len(node)) for node in nodes)
+
+        activity = sum(node.get('activity', np.nan) for node in nodes)
+
+        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
+        inner_opinions = {}
+
+        for node, node_id in zip(nodes, node_ids):
+            # Check if node has 'inner_opinions', if not, create one
+            if 'inner_opinions' in node:
+                inner_opinions.update(node['inner_opinions'])
+            else:
+                if len(node_id) != 1:
+                    warnings.warn(
+                        f"The size of the node {node_id} is {size}, higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention.")
+                inner_opinions[node_id[0]] = node['opinion']
+
+        return {
+            'cluster_size': size,
+            'opinion': sum(node.get('cluster_size', len(node)) * node['opinion'] for node in nodes) / size,
+            'inner_opinions': inner_opinions,
+            'activity': activity
+        }
+
+    @NodeGatherer.parameter('activity')
+    def activity(self) -> dict:
+        return {node: self.G.nodes[node].get("activity", np.nan) for node in self.G.nodes}

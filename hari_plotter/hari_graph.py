@@ -12,7 +12,7 @@ import networkx as nx
 import numpy as np
 
 from .distributions import generate_mixture_of_gaussians
-from .node_gatherer import DefaultNodeGatherer
+from .node_gatherer import NodeGatherer, DefaultNodeGatherer, ActivityDefaultNodeGatherer
 
 
 class HariGraph(nx.DiGraph):
@@ -27,6 +27,9 @@ class HariGraph(nx.DiGraph):
         super().__init__(incoming_graph_data, **attr)
         self.similarity_function = self.default_similarity_function
         self.gatherer = DefaultNodeGatherer(self)
+
+    def set_gatherer(self, new_gatherer: type[NodeGatherer]):
+        self.gatherer = new_gatherer(self)
 
     def add_parameters_to_nodes(self, nodes: Union[List[Tuple[int]], None] = None):
         """
@@ -195,6 +198,7 @@ class HariGraph(nx.DiGraph):
                     weight = float(parts[2 + n_neighbors + i])
                     G.add_edge(idx_agent, neighbor_id, influence=weight)
 
+        has_activity = False
         # Process the opinion file
         with open(opinion_file, 'r') as f:
             next(f)  # Skip header line
@@ -212,8 +216,12 @@ class HariGraph(nx.DiGraph):
 
                 # Optional: set activity level if provided
                 if len(parts) > 2:
+                    has_activity = True
                     activity = float(parts[2])
                     G.nodes[idx_agent]['activity'] = activity
+
+        if has_activity:
+            G.set_gatherer(ActivityDefaultNodeGatherer)
 
         return G
 
@@ -476,7 +484,7 @@ class HariGraph(nx.DiGraph):
             G_copy, HariGraph) else G_copy
         G_copy.similarity_function = self.similarity_function
         # G_copy.node_parameter_gatherer = self.node_parameter_gatherer
-        G_copy.gatherer = type(self.gatherer)(G_copy)
+        G_copy.set_gatherer(type(self.gatherer))
         return G_copy
 
     # ---- Dynamics example ----
