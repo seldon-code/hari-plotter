@@ -42,6 +42,82 @@ class Interface(ABC):
         self._group_cache = [None]*group_length
         self.groups = self.GroupIterable(self)
 
+        self.track_clusters_requests = []
+        self.static_data_cache_requests = []
+        self.dynamic_data_cache_requests = []
+
+        self.static_data_cache = self.StaticDataCache(self)
+        self.dynamic_data_cache = [self.DynamicDataCache(
+            self, i) for i in range(len(self.groups))]
+
+    # def collect_static_data(self):
+    #     self.static_data_cache = {}
+    #     for request in self.static_data_cache_requests:
+    #         method_name = request['method']
+    #         settings = request['settings']
+    #         data_key = Interface.request_to_tuple(request)
+    #         if data_key not in self.static_data_cache:
+    #             # Fetch and cache the data for each group
+    #             data_for_all_groups = []
+    #             for group in self.groups:
+    #                 data = getattr(group, method_name)(**settings)
+    #                 data_for_all_groups.append(data)
+    #             self.static_data_cache[data_key] = data_for_all_groups
+
+    # def collect_dynamic_data(self, i: int):
+    #     self.dynamic_data_cache = {}
+    #     for request in self.dynamic_data_cache_requests:
+    #         method_name = request['method']
+    #         settings = request['settings']
+    #         # print(f'{request = }')
+    #         data_key = Interface.request_to_tuple(request)
+    #         if data_key not in self.dynamic_data_cache:
+    #             self.dynamic_data_cache[data_key] = getattr(
+    #                 self.groups[i], method_name)(**settings)
+
+    class StaticDataCache:
+        def __init__(self, interface_instance):
+            self._interface = interface_instance
+            self.cache = {}
+
+        def __getitem__(self, request):
+            method_name = request['method']
+            settings = request['settings']
+            data_key = Interface.request_to_tuple(request)
+            if data_key not in self.cache:
+                data_for_all_groups = []
+                for group in self._interface.groups:
+                    data = getattr(group, method_name)(**settings)
+                    data_for_all_groups.append(data)
+                self.cache[data_key] = data_for_all_groups
+            return self.cache[data_key]
+
+        def clean(self):
+            self.cache = {}
+
+    class DynamicDataCache:
+        def __init__(self, interface_instance, i: int):
+            self._interface = interface_instance
+            self.i = i
+            self.cache = {}
+
+        def __getitem__(self, request):
+            method_name = request['method']
+            settings = request['settings']
+            data_key = Interface.request_to_tuple(request)
+            if data_key not in self.cache:
+                self.cache[data_key] = getattr(
+                    self._interface.groups[self.i], method_name)(**settings)
+            return self.cache[data_key]
+
+        def clean(self):
+            self.cache = {}
+
+    def clean_cache(self):
+        self.static_data_cache.clean()
+        for c in self.dynamic_data_cache:
+            c.clean()
+
     class GroupIterable:
         def __init__(self, interface_instance):
             self._interface = interface_instance
@@ -129,113 +205,6 @@ class Interface(ABC):
             [f"{key.__name__} -> {value.__name__}" for key, value in cls.available_classes.items()])
         return f"Available Classes: {mappings}"
 
-    # @abstractmethod
-    # def images(self):
-    #     """Return an iterator of image data."""
-    #     raise NotImplementedError(
-    #         "This method must be implemented in subclasses")
-
-    # def _calculate_mean_node_values(self, group: Group, params: List[str]) -> dict:
-    #     """
-    #     Calculate the mean node values based on parameters.
-
-    #     Args:
-    #         group (Group): Group of images of the dynamics
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing mean node values.
-    #     """
-    #     node_values_accumulator = defaultdict(lambda: defaultdict(list))
-    #     results = defaultdict(list)
-
-    #     # Process each image in the group
-    #     for image in group:
-    #         node_values = self.get_node_values(image, params)
-
-    #         # Accumulate the parameter values for each node
-    #         for node, parameters in node_values.items():
-    #             for param, value in parameters.items():
-    #                 node_values_accumulator[node][param].append(value)
-
-    #     # Calculate results for each node and parameter
-    #     for node, parameters in node_values_accumulator.items():
-    #         results['node'].append(node)
-    #         for param, values in parameters.items():
-    #             if param.startswith("max_"):
-    #                 # Compute max value for parameters starting with 'max_'
-    #                 results[param].append(max(values))
-    #             elif param.startswith("min_"):
-    #                 # Compute min value for parameters starting with 'min_'
-    #                 results[param].append(min(values))
-    #             else:
-    #                 # Compute mean value for other parameters
-    #                 results[param].append(np.mean(values))
-
-    #     return results
-
-    # def _calculate_node_values(self, group: Group, params: List[str]) -> dict:
-    #     """
-    #     Calculate node values based on parameters.
-
-    #     Args:
-    #         group (Group): Group of images of the dynamics
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing node values.
-    #     """
-    #     node_values_accumulator = defaultdict(lambda: defaultdict(list))
-    #     results = defaultdict(lambda: defaultdict(list))
-
-    #     # Process each image in the group
-    #     for image in group:
-    #         node_values = self.get_node_values(image, params)
-
-    #         # print(f'{len(node_values.keys()) = }')
-    #         # print(f'{node_values[0].keys() = }')
-    #         # print(f'{node_values[0]["neighbor_mean_opinion"] = }')
-
-    #         # Accumulate the parameter values for each node
-    #         for node, parameters in node_values.items():
-    #             for param, value in parameters.items():
-    #                 node_values_accumulator[node][param].append(value)
-
-    #     # Transfer values from the accumulator to the results
-    #     for node, parameters in node_values_accumulator.items():
-    #         for param, values in parameters.items():
-    #             results[node][param] = values
-
-    #     return results
-
-    # @abstractmethod
-    # def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Abstract method to fetch mean node values based on parameters.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         Iterator[dict]: An iterator containing dictionaries of mean node values.
-    #     """
-    #     raise NotImplementedError(
-    #         "This method must be implemented in subclasses")
-
-    # @abstractmethod
-    # def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Abstract method to fetch node values based on parameters.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         Iterator[dict]: An iterator containing dictionaries of node values.
-    #     """
-    #     raise NotImplementedError(
-    #         "This method must be implemented in subclasses")
-
     @abstractproperty
     def available_parameters(self) -> list:
         raise NotImplementedError(
@@ -302,33 +271,52 @@ class Interface(ABC):
 
         return G
 
-    def track_clusters(self, **cluster_settings):
-        # Extract the dynamics of clusters across frames
-        clusters_dynamics = [list(group.clustering(
-            **cluster_settings).get_cluster_mapping()) for group in self.groups]
+    def track_clusters(self, clusterization_settings: Union[dict, List[dict]]):
 
-        G = self.cluster_graph(
-            clusters_dynamics=clusters_dynamics, **cluster_settings)
-        # Step 5: Extract updated labels
-        updated_labels = {}
-        for frame_index in range(len(clusters_dynamics)):
-            frame_labels = []
-            for cluster_index in range(len(clusters_dynamics[frame_index])):
-                node_id = f"{frame_index}-{cluster_index}"
-                label = G.nodes[node_id]['label']
-                frame_labels.append(label)
-            updated_labels[frame_index] = frame_labels
+        clusterization_settings_list = [clusterization_settings] if isinstance(
+            clusterization_settings, dict) else clusterization_settings
 
-        # Apply updated labels
-        for frame_index, labels in updated_labels.items():
-            group = self.groups[frame_index]
-            group.clustering(**cluster_settings).cluster_labels = labels
+        updated_labels_list = []
+        for clust_settings in clusterization_settings_list:
+            # Extract the dynamics of clusters across frames
+            clusters_dynamics = [list(group.clustering(
+                **clust_settings).get_cluster_mapping()) for group in self.groups]
 
-        return updated_labels
+            G = self.cluster_graph(
+                clusters_dynamics=clusters_dynamics, **clust_settings)
+            # Step 5: Extract updated labels
+            updated_labels = {}
+            for frame_index in range(len(clusters_dynamics)):
+                frame_labels = []
+                for cluster_index in range(len(clusters_dynamics[frame_index])):
+                    node_id = f"{frame_index}-{cluster_index}"
+                    label = G.nodes[node_id]['label']
+                    frame_labels.append(label)
+                updated_labels[frame_index] = frame_labels
+
+            # Apply updated labels
+            for frame_index, labels in updated_labels.items():
+                group = self.groups[frame_index]
+                group.clustering(**clust_settings).cluster_labels = labels
+
+            updated_labels_list.append(updated_labels)
+        return updated_labels_list
 
     @abstractmethod
     def __len__(self):
         pass
+
+    @staticmethod
+    def request_to_tuple(request):
+        def convert(item):
+            if isinstance(item, dict):
+                return tuple(sorted((k, convert(v)) for k, v in item.items()))
+            elif isinstance(item, list):
+                return tuple(convert(v) for v in item)
+            else:
+                return item
+
+        return convert(request)
 
 
 class HariGraphInterface(Interface):
@@ -342,97 +330,9 @@ class HariGraphInterface(Interface):
     def __len__(self):
         return 1
 
-    # def images(self) -> Iterator[dict]:
-    #     """
-    #     Return an iterator of image data for the HariGraph.
-
-    #     Yields:
-    #         dict: The image data for the HariGraph with an assigned time of 0.
-    #     """
-    #     image = self.data.copy()
-    #     time = 0
-    #     yield {'image': image, 'time': time}
-
     def _initialize_group(self, i: int = 0) -> Group:
         assert i == 0
         return Group([self.data], time=np.array([0]))
-
-    # def groups(self) -> List[Group]:
-    #     return [self.group(0)]
-
-    # def get_node_values(self, image: Any, params: List[str]) -> dict:
-    #     """
-    #     Fetch the values for the given nodes based on provided parameters.
-
-    #     Args:
-    #         image (Any): The image data or identifier for which node values are fetched.
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing node values based on provided parameters.
-    #     """
-    #     return self.data.gatherer.gather(params)
-
-    # def mean_group_values(self, params: List[str]) -> dict:
-    #     """
-    #     Fetch the mean values for nodes based on provided parameters for the HariGraph.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing mean node values and the time stamp.
-    #     """
-
-    #     data = {'data': self._calculate_mean_node_values(
-    #         [None], params)}  # No group for single image
-    #     data['time'] = 0
-    #     return data
-
-    # def group_values(self, params: List[str]) -> dict:
-    #     """
-    #     Fetch the node values based on provided parameters for the HariGraph.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing node values and the time stamp.
-    #     """
-    #     data = {'data': self._calculate_node_values(
-    #         [None], params)}  # No group for single image
-    #     data['time'] = 0
-    #     return data
-
-    # def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the mean values for groups based on provided parameters for the HariGraph.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing mean node values and the time stamp.
-    #     """
-    #     data = {'data': self._calculate_mean_node_values(
-    #         [None], params)}  # No group for single image
-    #     data['time'] = 0
-    #     yield data
-
-    # def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the node values based on provided parameters for the HariGraph.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing node values and the time stamp.
-    #     """
-    #     data = {'data': self._calculate_node_values(
-    #         [None], params)}  # No group for single image
-    #     data['time'] = 0
-    #     yield data
 
     @property
     def available_parameters(self) -> list:
@@ -456,107 +356,9 @@ class HariDynamicsInterface(Interface):
     def __len__(self):
         return len(self.data.groups)
 
-    # def images(self) -> Iterator[dict]:
-    #     """
-    #     Return an iterator of image data for the HariDynamics.
-
-    #     Iterates over the groups present in the data and yields the last image
-    #     from each group along with its corresponding time.
-
-    #     Yields:
-    #         dict: Dictionary containing the image data and its associated time.
-    #     """
-    #     for group in self.data.groups:
-    #         image = self.data[group[-1]].copy()
-    #         time = group[-1]
-    #         yield {'image': image, 'time': time}
-
     def _initialize_group(self, i: int) -> Group:
         group = self.data.groups[i]
         return Group([self.data[j] for j in group], time=np.array(group))
-
-    # def groups(self) -> List[Group]:
-    #     return [self.data.group(i) for i in range(len(self.data.groups))]
-
-    # def get_node_values(self, image: Any, params: List[str]) -> dict:
-    #     """
-    #     Fetch the values for the given nodes based on provided parameters.
-
-    #     Args:
-    #         image (Any): The image data or identifier for which node values are fetched.
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing node values based on provided parameters.
-    #     """
-    #     return self.data[image].gatherer.gather(params)
-
-    # def mean_group_values(self, params: List[str], i: int) -> dict:
-    #     """
-    #     Fetch the mean values for nodes based on provided parameters for a specific group in the HariDynamics.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-    #         i (int): Index of the group.
-
-    #     Returns:
-    #         dict: A dictionary containing mean node values and the time stamp for the specified group.
-    #     """
-    #     group = self.data.groups[i]
-    #     data = {'data': self._calculate_mean_node_values(group, params)}
-    #     data['time'] = group[-1]
-    #     return data
-
-    # def group_values(self, params: List[str], i: int) -> dict:
-    #     """
-    #     Fetch the node values based on provided parameters for a specific group in the HariDynamics.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-    #         i (int): Index of the group.
-
-    #     Returns:
-    #         dict: A dictionary containing node values and the time stamp for the specified group.
-    #     """
-    #     group = self.data.groups[i]
-    #     data = {'data': self._calculate_node_values(group, params)}
-    #     data['time'] = group[-1]
-    #     return data
-
-    # def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the mean values for nodes based on provided parameters for the HariDynamics.
-
-    #     Iterates over the groups present in the data, calculates mean values for each
-    #     group and yields the results.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing mean node values and the time stamp.
-    #     """
-    #     for group in self.data.groups:
-    #         data = {'data': self._calculate_mean_node_values(group, params)}
-    #         data['time'] = group[-1]
-    #         yield data
-
-    # def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the node values based on provided parameters for the HariDynamics.
-
-    #     Iterates over the groups present in the data and yields node values for each group.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing node values and the time stamp.
-    #     """
-    #     for group in self.data.groups:
-    #         data = {'data': self._calculate_node_values(group, params)}
-    #         data['time'] = group[-1]
-    #         yield data
 
     @property
     def available_parameters(self) -> list:
@@ -580,111 +382,9 @@ class SimulationInterface(Interface):
     def __len__(self):
         return len(self.data.dynamics.groups)
 
-    # def images(self) -> Iterator[dict]:
-    #     """
-    #     Return an iterator of image data for the Simulation.
-
-    #     Iterates over the groups present in the dynamics data and yields the last
-    #     image from each group along with its corresponding adjusted time.
-
-    #     Yields:
-    #         dict: Dictionary containing the image data and its associated time.
-
-    #     Note:
-    #         Are self-loops good?
-    #     """
-    #     for group in self.data.dynamics.groups:
-    #         image = self.data.dynamics[group[-1]].copy()
-    #         time = group[-1] * self.data.model.params.get("dt", 1)
-    #         yield {'image': image, 'time': time}
-
     def _initialize_group(self, i: int) -> Group:
         group = self.data.dynamics.groups[i]
         return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.model.params.get("dt", 1))
-
-    # def groups(self) -> List[Group]:
-    #     return [self.group(i) for i in range(len(self.data.dynamics.groups))]
-
-    # def get_node_values(self, image: Any, params: List[str]) -> dict:
-    #     """
-    #     Fetch the values for the given nodes based on provided parameters for the Simulation.
-
-    #     Args:
-    #         image (Any): The image data or identifier for which node values are fetched.
-    #         params (List[str]): List of parameter names.
-
-    #     Returns:
-    #         dict: A dictionary containing node values based on provided parameters.
-    #     """
-    #     return self.data.dynamics[image].gatherer.gather(params)
-
-    # def mean_group_values(self, params: List[str], i: int) -> dict:
-    #     """
-    #     Fetch the mean values for nodes based on provided parameters for a specific group in the Simulation.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-    #         i (int): Index of the group.
-
-    #     Returns:
-    #         dict: A dictionary containing mean node values and the adjusted time stamp for the specified group.
-    #     """
-    #     group = self.data.dynamics.groups[i]
-    #     data = {'data': self._calculate_mean_node_values(group, params)}
-    #     data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-    #     return data
-
-    # def group_values(self, params: List[str], i: int) -> dict:
-    #     """
-    #     Fetch the node values based on provided parameters for a specific group in the Simulation.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-    #         i (int): Index of the group.
-
-    #     Returns:
-    #         dict: A dictionary containing node values and the adjusted time stamp for the specified group.
-    #     """
-    #     group = self.data.dynamics.groups[i]
-    #     data = {'data': self._calculate_node_values(group, params)}
-    #     data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-    #     return data
-
-    # def mean_group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the mean values for nodes based on provided parameters for the Simulation.
-
-    #     Iterates over the groups present in the dynamics data, calculates mean values
-    #     for each group using the appropriate time scaling, and yields the results.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing mean node values and the adjusted time stamp.
-    #     """
-    #     for group in self.data.dynamics.groups:
-    #         data = {'data': self._calculate_mean_node_values(group, params)}
-    #         data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-    #         yield data
-
-    # def group_values_iterator(self, params: List[str]) -> Iterator[dict]:
-    #     """
-    #     Fetch the node values based on provided parameters for the Simulation.
-
-    #     Iterates over the groups present in the dynamics data and yields node values
-    #     for each group using the appropriate time scaling.
-
-    #     Args:
-    #         params (List[str]): List of parameter names.
-
-    #     Yields:
-    #         dict: A dictionary containing node values and the adjusted time stamp.
-    #     """
-    #     for group in self.data.dynamics.groups:
-    #         data = {'data': self._calculate_node_values(group, params)}
-    #         data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-    #         yield data
 
     @property
     def available_parameters(self) -> list:

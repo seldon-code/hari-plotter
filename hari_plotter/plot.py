@@ -14,6 +14,8 @@ import numpy as np
 import seaborn as sns
 
 from .plotter import Plotter
+from .color_scheme import ColorScheme
+from .interface import Interface
 
 
 class Plot(ABC):
@@ -114,6 +116,11 @@ class Plot(ABC):
     def get_track_clusterings_requests(self):
         return []
 
+    @staticmethod
+    def is_available(interface: Interface):
+        ''' Returns True if available for this interface and comment why'''
+        return True, ''
+
 
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
@@ -132,8 +139,8 @@ class plot_histogram(Plot):
 
         # print(f'{self.get_dynamic_plot_requests()[0] = }')
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -162,7 +169,7 @@ class plot_histogram(Plot):
             raise ValueError('Histogram expects only one parameter')
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        data = dynamic_data_cache[self.data_key]
+        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         parameter = self.parameters[0]
         values = np.array(data[parameter])
@@ -234,8 +241,8 @@ class plot_hexbin(Plot):
         self.colormap = colormap
         self.show_colorbar = show_colorbar
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -263,7 +270,7 @@ class plot_hexbin(Plot):
 
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.data_key]
+        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         x_parameter = self.parameters[0]
         y_parameter = self.parameters[1]
@@ -338,7 +345,7 @@ class plot_scatter(Plot):
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str] = 'blue', marker: str = 'o',):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None, color_scheme: ColorScheme = ColorScheme()):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
@@ -346,11 +353,11 @@ class plot_scatter(Plot):
         self.show_y_label = show_y_label
         self.x_lim = x_lim
         self.y_lim = y_lim
-        self.color = color
-        self.marker = marker
-
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        self.color_scheme = color_scheme
+        self.marker = marker or color_scheme.scatter_default_marker
+        self.color = color or color_scheme.scatter_default_color
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -379,7 +386,7 @@ class plot_scatter(Plot):
 
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.data_key]
+        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         x_parameter, y_parameter = self.parameters
         x_values = np.array(data[x_parameter])
@@ -436,8 +443,8 @@ class plot_clustering_centroids(Plot):
         self.y_lim = y_lim
         self.resolution = resolution
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -457,7 +464,7 @@ class plot_clustering_centroids(Plot):
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         x_feature_name, y_feature_name = self.parameters
 
@@ -496,7 +503,7 @@ class plot_clustering_scatter(Plot):
     def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100, show_clustering_labels: bool = False):
         self.parameters = tuple(parameters)
         self.clustering_settings = clustering_settings
         if 'clustering_parameters' not in self.clustering_settings:
@@ -508,9 +515,12 @@ class plot_clustering_scatter(Plot):
         self.x_lim = x_lim
         self.y_lim = y_lim
         self.resolution = resolution
+        self.show_clustering_labels = show_clustering_labels
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        self.cluster_colors = {}  # Initialize the cluster colors dictionary
+
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -521,7 +531,8 @@ class plot_clustering_scatter(Plot):
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        cluster_labels = clustering.cluster_labels
 
         x_feature_name, y_feature_name = self.parameters
 
@@ -530,15 +541,25 @@ class plot_clustering_scatter(Plot):
 
         data = clustering.get_values([x_feature_name, y_feature_name])
 
-        for i, points in enumerate(data):
+        for label, points in zip(cluster_labels, data):
             x_points = points[:, 0]
             y_points = points[:, 1]
+
             if self.scale[0] == 'tanh':
                 x_points = np.tanh(x_points)
             if self.scale[1] == 'tanh':
                 y_points = np.tanh(y_points)
 
-            ax.scatter(x_points, y_points, label=f"Cluster {i}")
+            # Assign a new color if the label is not in cluster_colors, else use the existing color
+            if label not in self.cluster_colors:
+                self.cluster_colors[label] = plt.cm.coolwarm(np.random.rand())
+            color = self.cluster_colors[label]
+
+            ax.scatter(x_points, y_points, color=color,
+                       label=label if self.show_clustering_labels else "")
+
+        if self.show_clustering_labels:
+            ax.legend()
 
         # Setting the plot limits
         if self.x_lim is not None:
@@ -574,15 +595,15 @@ class plot_clustering_fill(Plot):
         self.y_lim = y_lim
         self.resolution = resolution
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         x_feature_name, y_feature_name = self.parameters
         x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
@@ -645,15 +666,15 @@ class plot_clustering_degree_of_membership(Plot):
         self.y_lim = y_lim
         self.resolution = resolution
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -713,15 +734,15 @@ class plot_clustering_sns(Plot):
         self.y_lim = y_lim
         self.resolution = resolution
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.data_key]
+        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -809,8 +830,8 @@ class draw(Plot):
         self.max_line_width = max_line_width
         self.seed = seed
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
         self.x_lim = None
         self.y_lim = None
@@ -820,7 +841,7 @@ class draw(Plot):
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         # Fetch the HariGraph instance using the data_key
-        image = dynamic_data_cache[self.data_key]
+        image = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         # Use the specified or default positions for nodes
         self.pos = self.pos or image.position_nodes(seed=self.seed)
@@ -938,8 +959,8 @@ class plot_time_line(Plot):
         self.x_lim = x_lim
         self.y_lim = y_lim
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_dynamic_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_dynamic_plot_requests()[0])
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'mean_time', 'settings': {}}]
@@ -947,7 +968,7 @@ class plot_time_line(Plot):
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.data_key]
+        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
         x_parameter, y_parameter = self.parameters
 
@@ -987,8 +1008,8 @@ class plot_node_lines(Plot):
 
         self._static_data = None
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_static_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -997,7 +1018,7 @@ class plot_node_lines(Plot):
         if self._static_data is not None:
             return self._static_data
 
-        data_list = static_data_cache[self.data_key]
+        data_list = static_data_cache[self.get_static_plot_requests()[0]]
         self._static_data = self.transform_data(data_list)
         return self._static_data
 
@@ -1072,8 +1093,8 @@ class plot_graph_line(Plot):
 
         self._static_data = None
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_static_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
         return [{'method': 'calculate_function_of_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'function': self.function}}]
@@ -1082,7 +1103,7 @@ class plot_graph_line(Plot):
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.data_key]
+        data = static_data_cache[self.get_static_plot_requests()[0]]
 
         keys = list(data[0].keys())
 
@@ -1142,9 +1163,9 @@ class plot_fill_between(Plot):
         self._static_data = None
 
         # Generate data keys for both functions
-        self.data_key_min = Plotter.request_to_tuple(
+        self.data_key_min = Interface.request_to_tuple(
             self.get_static_plot_requests()[0])
-        self.data_key_max = Plotter.request_to_tuple(
+        self.data_key_max = Interface.request_to_tuple(
             self.get_static_plot_requests()[1])
 
     def get_static_plot_requests(self):
@@ -1219,8 +1240,8 @@ class plot_clustering_line(Plot):
 
         self._static_data = None
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_static_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
         return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -1229,7 +1250,7 @@ class plot_clustering_line(Plot):
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.data_key]
+        data = static_data_cache[self.get_static_plot_requests()[0]]
 
         data = self.transform_data(data)
 
@@ -1290,8 +1311,8 @@ class plot_fill_between_clustering(Plot):
 
         self._static_data = None
 
-        self.data_key = Plotter.request_to_tuple(
-            self.get_static_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_static_plot_requests()[0])
 
     def get_static_plot_requests(self):
         return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -1300,7 +1321,7 @@ class plot_fill_between_clustering(Plot):
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.data_key]
+        data = static_data_cache[self.get_static_plot_requests()[0]]
 
         data = self.transform_data(data)
 
@@ -1380,8 +1401,8 @@ class plot_opinions(Plot):
         self.show_legend = show_legend
 
         self._static_data = None
-        self.data_key = Plotter.request_to_tuple(
-            self.get_static_plot_requests()[0])
+        # self.data_key = Interface.request_to_tuple(
+        #     self.get_static_plot_requests()[0])
         self.max_value = None
         self.min_value = None
 
@@ -1395,7 +1416,7 @@ class plot_opinions(Plot):
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.data_key]
+        data = static_data_cache[self.get_static_plot_requests()[0]]
 
         data = self.transform_data(data, transform_parameter='label')
         # print(f'{data = }')
