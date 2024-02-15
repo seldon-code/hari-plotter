@@ -48,6 +48,8 @@ class Group:
 
         self.clusterings = dict()
 
+        self._nodes = None
+
     @staticmethod
     def request_to_tuple(request):
         def convert(item):
@@ -153,6 +155,13 @@ class Group:
 
     def __repr__(self):
         return f"Group(id={id(self)}, time={self.time}, images={self.images})"
+
+    @property
+    def nodes(self) -> set:
+        if self._nodes:
+            return self._nodes
+        self._nodes = set(self.mean_graph.nodes)
+        return self._nodes
 
     def calculate_node_values(self, parameters: Tuple[str], **settings) -> dict:
         """

@@ -50,6 +50,8 @@ class Interface(ABC):
         self.dynamic_data_cache = [self.DynamicDataCache(
             self, i) for i in range(len(self.groups))]
 
+        self._nodes = None
+
     # def collect_static_data(self):
     #     self.static_data_cache = {}
     #     for request in self.static_data_cache_requests:
@@ -74,6 +76,13 @@ class Interface(ABC):
     #         if data_key not in self.dynamic_data_cache:
     #             self.dynamic_data_cache[data_key] = getattr(
     #                 self.groups[i], method_name)(**settings)
+
+    @property
+    def nodes(self):
+        if self._nodes:
+            return self._nodes
+        self._nodes = set().union(*[group.nodes for group in self.groups])
+        return self._nodes
 
     class StaticDataCache:
         def __init__(self, interface_instance):
@@ -142,7 +151,7 @@ class Interface(ABC):
                 raise TypeError(
                     "Invalid index type. Must be an integer, slice, or list of integers.")
 
-        def _get_group(self, i):
+        def _get_group(self, i) -> Group:
             # Adjust index for negative values
             if i < 0:
                 i += len(self._interface._group_cache)
@@ -159,7 +168,7 @@ class Interface(ABC):
             for i in range(len(self._interface._group_cache)):
                 yield self[i]
 
-        def __len__(self):
+        def __len__(self) -> int:
             return len(self._interface._group_cache)
 
     @classmethod
