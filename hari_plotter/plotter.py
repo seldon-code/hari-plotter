@@ -153,7 +153,7 @@ class Plotter:
                        'max_opinion': 'Node Max Opinion',
                        'min_opinion': 'Node Min Opinion'}
 
-    _plot_methods = {}
+    _plot_types = {}
 
     def __init__(self, interface: Interface, figsize=None):
         """
@@ -170,6 +170,7 @@ class Plotter:
         self.num_rows = 1
         self.num_cols = 1
         self.size_ratios = [[1], [1]]
+        self.color_scheme = ColorScheme(self.interface)
 
     @property
     def figsize(self):
@@ -211,9 +212,9 @@ class Plotter:
         instructions (dict): Provides the information about the plot type and function that is used for creating the plot.
         """
         def decorator(plot_func):
-            if plot_name in cls._plot_methods:
+            if plot_name in cls._plot_types:
                 raise ValueError(f"Plot type {plot_name} is already defined.")
-            cls._plot_methods[plot_name] = plot_func
+            cls._plot_types[plot_name] = plot_func
             return plot_func
         return decorator
 
@@ -247,7 +248,13 @@ class Plotter:
         if plot_type not in self.available_plot_types:
             raise ValueError(f"Plot type '{plot_type}' not recognized. "
                              f"Available methods: {self.available_plot_types}")
-        plot = self._plot_methods[plot_type](**plot_arguments)
+
+        # Check if 'colorscheme' is not in plot_arguments
+        if 'color_scheme' not in plot_arguments:
+            # Add self.color_scheme to plot_arguments with the key 'colorscheme'
+            plot_arguments['color_scheme'] = self.color_scheme
+
+        plot = self._plot_types[plot_type](**plot_arguments)
 
         # Initialize the cell with an empty list if it's None
         self.plots[row][col] = self.plots[row][col] or []
@@ -255,57 +262,71 @@ class Plotter:
         # Append the new plot to the cell's list
         self.plots[row][col].append(plot)
 
-    def plot(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
+    def create_fig_and_axs(self):
+        fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
+            'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
+        # Ensure axs is a 2D array for consistency
+        if self.num_rows == 1 and self.num_cols == 1:
+            axs = [[axs]]  # Single plot
+        elif self.num_rows == 1:
+            axs = [axs]  # Single row, multiple columns
+        elif self.num_cols == 1:
+            axs = [[ax] for ax in axs]  # Multiple rows, single column
+
+        return fig, axs
+
+    def _plot(self, fig, axs: List[list], group_i: int):
+        # Data fetching for static plots
+        track_clusters_requests = [item for i in range(self.num_rows) for j in range(
+            self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
+        self.interface.track_clusters(track_clusters_requests)
+
+        # Determine the rendering order
+        render_order = self._determine_plot_order()
+        # print(f'{render_order = }')
+
+        axis_limits = dict()
+
+        for (i, j) in render_order:
+            # print(f'{i,j = }')
+            ax = axs[i][j]
+            for plot in self.plots[i][j]:
+                plot.plot(ax=ax, dynamic_data_cache=self.interface.dynamic_data_cache[group_i],
+                          static_data_cache=self.interface.static_data_cache, axis_limits=axis_limits)
+
+                # Store axis limits for future reference
+                axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
+            if not self.plots[i][j]:
+                ax.grid(False)
+                ax.axis('off')
+                ax.set_visible(False)
+
+    def plot(self, group_i: int):
+        fig, axs = self.create_fig_and_axs()
+
+        self._plot(fig, axs, group_i)
+
+    def plot_dynamics(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
         mode : ["show", "save", "gif"]
         """
         with PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
 
-            # Determine the rendering order
-            render_order = self._determine_plot_order()
-            # print(f'{render_order = }')
+            # self.interface.static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
+            #     self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
+            # self.interface.dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
+            #     self.num_cols) for plot in self.plots[i][j] for item in plot.get_dynamic_plot_requests()]
 
-            # Data fetching for static plots
-            track_clusters_requests = [item for i in range(self.num_rows) for j in range(
-                self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
-            self.interface.static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
-                self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
-            self.interface.dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
-                self.num_cols) for plot in self.plots[i][j] for item in plot.get_dynamic_plot_requests()]
-
-            self.interface.track_clusters(track_clusters_requests)
             # self.interface.collect_static_data()
 
             for group_i in range(len(self.interface.groups)):
-                axis_limits = dict()
 
                 # self.interface.collect_dynamic_data(group_i)
 
-                fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
-                    'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
+                fig, axs = self.create_fig_and_axs()
 
-                # Ensure axs is a 2D array for consistency
-                if self.num_rows == 1 and self.num_cols == 1:
-                    axs = [[axs]]  # Single plot
-                elif self.num_rows == 1:
-                    axs = [axs]  # Single row, multiple columns
-                elif self.num_cols == 1:
-                    axs = [[ax] for ax in axs]  # Multiple rows, single column
-
-                for (i, j) in render_order:
-                    # print(f'{i,j = }')
-                    ax = axs[i][j]
-                    for plot in self.plots[i][j]:
-                        plot.plot(ax=ax, dynamic_data_cache=self.interface.dynamic_data_cache[group_i],
-                                  static_data_cache=self.interface.static_data_cache, axis_limits=axis_limits)
-
-                        # Store axis limits for future reference
-                        axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
-                    if not self.plots[i][j]:
-                        ax.grid(False)
-                        ax.axis('off')
-                        ax.set_visible(False)
+                self._plot(fig, axs, group_i)
 
                 saver.save(fig)
 
@@ -393,7 +414,7 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return list(self._plot_methods.keys())
+        return list(self._plot_types.keys())
 
     @property
     def available_plot_types(self) -> list:
@@ -403,7 +424,7 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return [method_name for method_name, method in self._plot_methods.items() if method.is_available(self.interface)[0]]
+        return [method_name for method_name, method in self._plot_types.items() if method.is_available(self.interface)[0]]
 
     @property
     def available_plot_types_hint(self) -> list:
@@ -414,7 +435,7 @@ class Plotter:
             list: A list of available parameters or methods.
         """
         info_string = ''
-        for method_name, method in self._plot_methods.items():
+        for method_name, method in self._plot_types.items():
             is_available, comment = method.is_available(self.interface)
             info_string += method_name + ': '
             info_string += '+ ' if is_available else '- '

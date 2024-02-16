@@ -14,10 +14,10 @@ class NodeGatherer(ABC):
     or parameters of nodes within a graph.
 
     Attributes:
-        _methods (dict): Dictionary mapping property names to the associated method.
+        _parameters (dict): Dictionary mapping property names to the associated method.
         G (nx.Graph): The graph containing the nodes.
     """
-    _methods = {}
+    _parameters = {}
 
     def __init__(self, G):
         super().__init__()
@@ -38,18 +38,18 @@ class NodeGatherer(ABC):
         ValueError: 
             If the property name is already defined.
         """
-        def decorator(method):
-            if property_name in cls._methods:
+        def decorator(class_parameter):
+            if property_name in cls._parameters:
                 raise ValueError(
                     f"Property {property_name} is already defined.")
-            cls._methods[property_name] = method
-            return method
+            cls._parameters[property_name] = class_parameter
+            return class_parameter
         return decorator
 
     @property
-    def methods(self) -> list:
+    def parameters(self) -> list:
         """Returns a list of property names that have been registered."""
-        return list(self._methods.keys())
+        return list(self._parameters.keys())
 
     def gather_unprocessed(self, param: Union[str, List[str]]) -> dict:
         """
@@ -67,11 +67,11 @@ class NodeGatherer(ABC):
         result = dict()
 
         for p in param:
-            if p not in self._methods:
+            if p not in self._parameters:
                 raise ValueError(
                     f'{p} is not a valid method. Valid methods are: {self.methods}')
 
-            method = self._methods[p]
+            method = self._parameters[p]
             method_result = method(self)
             # Use None or a default value for missing data
             result[p] = method_result
@@ -111,7 +111,7 @@ class NodeGatherer(ABC):
         return transformed_result
 
     def gather_everything(self) -> dict:
-        return self.gather_unprocessed(self._methods.keys())
+        return self.gather_unprocessed(self._parameters.keys())
 
     @abstractmethod
     def merge(self, nodes: (List[dict])) -> dict:

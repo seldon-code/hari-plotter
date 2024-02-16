@@ -124,7 +124,7 @@ class Plot(ABC):
 
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
@@ -226,7 +226,7 @@ class plot_histogram(Plot):
 
 @Plotter.plot_type("Hexbin")
 class plot_hexbin(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
@@ -341,11 +341,11 @@ class plot_hexbin(Plot):
 
 @Plotter.plot_type("Scatter")
 class plot_scatter(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None, color_scheme: ColorScheme = ColorScheme()):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('linear', 'linear'))
         self.rotated = rotated
@@ -354,10 +354,13 @@ class plot_scatter(Plot):
         self.x_lim = x_lim
         self.y_lim = y_lim
         self.color_scheme = color_scheme
-        self.marker = marker or color_scheme.scatter_default_marker
-        self.color = color or color_scheme.scatter_default_color
+
         # self.data_key = Interface.request_to_tuple(
         #     self.get_dynamic_plot_requests()[0])
+
+    # @classmethod
+    # def style_options(cls):
+    #     return [ColorScheme.]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -391,11 +394,14 @@ class plot_scatter(Plot):
         x_parameter, y_parameter = self.parameters
         x_values = np.array(data[x_parameter])
         y_values = np.array(data[y_parameter])
+        nodes = data['nodes']
+        print(f'{nodes = }')
 
         # Remove NaN values
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
         x_values = x_values[valid_indices]
         y_values = y_values[valid_indices]
+        valid_nodes = [nodes[i] for i in np.where(valid_indices)[0]]
 
         if self.scale[0] == 'tanh':
             x_values = np.tanh(x_values)
@@ -403,7 +409,11 @@ class plot_scatter(Plot):
         if self.scale[1] == 'tanh':
             y_values = np.tanh(y_values)
 
-        ax.scatter(x_values, y_values, color=self.color, marker=self.marker)
+        colors_dict = self.color_scheme.scatter_colors_nodes()
+        colors = [colors_dict[node] for node in valid_nodes]
+        marker = self.color_scheme.scatter_marker_nodes()
+        ax.scatter(x_values, y_values,
+                   color=colors, marker=marker)
 
         # Setting the plot limits
         if x_lim is not None:
@@ -424,7 +434,7 @@ class plot_scatter(Plot):
 
 @Plotter.plot_type("Clustering: Centroids")
 class plot_clustering_centroids(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
@@ -500,7 +510,7 @@ class plot_clustering_centroids(Plot):
 
 @Plotter.plot_type("Clustering: Scatter")
 class plot_clustering_scatter(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100, show_clustering_labels: bool = False):
@@ -579,7 +589,7 @@ class plot_clustering_scatter(Plot):
 
 @Plotter.plot_type("Clustering: Fill")
 class plot_clustering_fill(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
@@ -650,7 +660,7 @@ class plot_clustering_fill(Plot):
 
 @Plotter.plot_type("Clustering: Degree of Membership")
 class plot_clustering_degree_of_membership(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
@@ -718,7 +728,7 @@ class plot_clustering_degree_of_membership(Plot):
 
 @Plotter.plot_type("Clustering: sns")
 class plot_clustering_sns(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
@@ -800,7 +810,7 @@ class plot_clustering_sns(Plot):
 
 @Plotter.plot_type("Draw")
 class draw(Plot):
-    def __init__(self, parameters: Union[tuple[str], None] = None,
+    def __init__(self, color_scheme: ColorScheme, parameters: Union[tuple[str], None] = None,
                  pos: Optional[Dict[Union[int, str], tuple]] = None,
                  node_attributes: str = "opinion",
                  edge_attributes: str = 'importance',
@@ -948,7 +958,7 @@ class draw(Plot):
 
 @Plotter.plot_type("Static: Time line")
 class plot_time_line(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -994,7 +1004,7 @@ class plot_time_line(Plot):
 
 @Plotter.plot_type("Static: Node lines")
 class plot_node_lines(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
@@ -1079,7 +1089,7 @@ class plot_node_lines(Plot):
 
 @Plotter.plot_type("Static: Graph line")
 class plot_graph_line(Plot):
-    def __init__(self, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
@@ -1148,7 +1158,7 @@ class plot_graph_line(Plot):
 
 @Plotter.plot_type("Static: Graph Range")
 class plot_fill_between(Plot):
-    def __init__(self, parameters: tuple[str], functions: Optional[List[str]] = None,
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], functions: Optional[List[str]] = None,
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -1226,7 +1236,7 @@ class plot_fill_between(Plot):
 
 @Plotter.plot_type("Static: Clustering Line")
 class plot_clustering_line(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -1294,7 +1304,7 @@ class plot_clustering_line(Plot):
 
 @Plotter.plot_type("Static: Clustering Range")
 class plot_fill_between_clustering(Plot):
-    def __init__(self, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -1382,7 +1392,7 @@ class plot_fill_between_clustering(Plot):
 
 @Plotter.plot_type("Static: Opinions")
 class plot_opinions(Plot):
-    def __init__(self, clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, clustering_settings: dict = {},
                  scale: Optional[str | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,

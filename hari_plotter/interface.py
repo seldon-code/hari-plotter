@@ -42,10 +42,11 @@ class Interface(ABC):
         self._group_cache = [None]*group_length
         self.groups = self.GroupIterable(self)
 
-        self.track_clusters_requests = []
-        self.static_data_cache_requests = []
-        self.dynamic_data_cache_requests = []
+        # self.track_clusters_requests = []
+        # self.static_data_cache_requests = []
+        # self.dynamic_data_cache_requests = []
 
+        self.track_clusters_cache = {}
         self.static_data_cache = self.StaticDataCache(self)
         self.dynamic_data_cache = [self.DynamicDataCache(
             self, i) for i in range(len(self.groups))]
@@ -288,27 +289,33 @@ class Interface(ABC):
         updated_labels_list = []
         for clust_settings in clusterization_settings_list:
             # Extract the dynamics of clusters across frames
-            clusters_dynamics = [list(group.clustering(
-                **clust_settings).get_cluster_mapping()) for group in self.groups]
+            # print(f'{clust_settings = }')
+            cluster_tuple = Interface.request_to_tuple(clust_settings)
+            if cluster_tuple not in self.track_clusters_cache:
+                clusters_dynamics = [list(group.clustering(
+                    **clust_settings).get_cluster_mapping()) for group in self.groups]
 
-            G = self.cluster_graph(
-                clusters_dynamics=clusters_dynamics, **clust_settings)
-            # Step 5: Extract updated labels
-            updated_labels = {}
-            for frame_index in range(len(clusters_dynamics)):
-                frame_labels = []
-                for cluster_index in range(len(clusters_dynamics[frame_index])):
-                    node_id = f"{frame_index}-{cluster_index}"
-                    label = G.nodes[node_id]['label']
-                    frame_labels.append(label)
-                updated_labels[frame_index] = frame_labels
+                G = self.cluster_graph(
+                    clusters_dynamics=clusters_dynamics, **clust_settings)
+                # Step 5: Extract updated labels
+                updated_labels = {}
+                for frame_index in range(len(clusters_dynamics)):
+                    frame_labels = []
+                    for cluster_index in range(len(clusters_dynamics[frame_index])):
+                        node_id = f"{frame_index}-{cluster_index}"
+                        label = G.nodes[node_id]['label']
+                        frame_labels.append(label)
+                    updated_labels[frame_index] = frame_labels
 
-            # Apply updated labels
-            for frame_index, labels in updated_labels.items():
-                group = self.groups[frame_index]
-                group.clustering(**clust_settings).cluster_labels = labels
+                # Apply updated labels
+                for frame_index, labels in updated_labels.items():
+                    group = self.groups[frame_index]
+                    group.clustering(**clust_settings).cluster_labels = labels
 
-            updated_labels_list.append(updated_labels)
+                self.track_clusters_cache[cluster_tuple] = updated_labels
+
+            updated_labels_list.append(
+                self.track_clusters_cache[cluster_tuple])
         return updated_labels_list
 
     @abstractmethod

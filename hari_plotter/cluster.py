@@ -52,7 +52,7 @@ class Clustering(ABC):
         self._cluster_labels = [current_labels[i] for i in new_order]
 
     @classmethod
-    def clustering_type(cls, clustering_name):
+    def clustering_method(cls, clustering_name):
         def decorator(clustering_func):
             if clustering_name in cls._clustering_methods:
                 raise ValueError(
@@ -67,13 +67,13 @@ class Clustering(ABC):
             "This method must be implemented in subclasses")
 
     @classmethod
-    def create_clustering(cls, G: HariGraph, clustering_type: str = 'K-Means Clustering', **kwargs) -> Clustering:
+    def create_clustering(cls, G: HariGraph, clustering_method: str = 'K-Means Clustering', **kwargs) -> Clustering:
         """
         Factory method that creates an instance of a subclass of `Clustering` based on the provided method name
         and applies specified scaling functions to the data before clustering.
 
         Args:
-            clustering_type: The name of the clustering method corresponding to a subclass of `Clustering`.
+            clustering_method: The name of the clustering method corresponding to a subclass of `Clustering`.
             data: The data to be clustered, structured as a dictionary with the key 'data' and value as another
                 dictionary mapping integers to lists of float values.
             scale: An optional dictionary where keys are parameter names and values are functions ('linear' or 'tanh')
@@ -85,12 +85,12 @@ class Clustering(ABC):
         Raises:
             ValueError: If the method name is not recognized (i.e., not found in the `clustering_methods`).
         """
-        if clustering_type not in cls._clustering_methods:
-            raise ValueError(f"Clustering method '{clustering_type}' not recognized. "
+        if clustering_method not in cls._clustering_methods:
+            raise ValueError(f"Clustering method '{clustering_method}' not recognized. "
                              f"Available methods: {cls.available_clustering_methods()}")
 
         # Get the subclass corresponding to the method name
-        method_cls = cls._clustering_methods[clustering_type]
+        method_cls = cls._clustering_methods[clustering_method]
 
         # Create an instance of the subclass from the data, applying any specified scaling functions
         return method_cls.from_graph(G=G,  **kwargs)
@@ -237,7 +237,7 @@ class ParameterBasedClustering(Clustering):
             return [self.parameters[index] for index in indices]
 
 
-@Clustering.clustering_type("Interval Clustering")
+@Clustering.clustering_method("Interval Clustering")
 class ValueIntervalsClustering(ParameterBasedClustering):
     """Value Intervals clustering representation, extending the generic Clustering class."""
 
@@ -453,7 +453,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
 
 
-@Clustering.clustering_type("K-Means Clustering")
+@Clustering.clustering_method("K-Means Clustering")
 class KMeansClustering(ParameterBasedClustering):
     """A KMeans clustering representation, extending the generic Clustering class."""
 
