@@ -1,9 +1,15 @@
+import argparse
 import sys
 
+from matplotlib.backends.backend_qt5agg import \
+    FigureCanvasQTAgg as FigureCanvas
+from matplotlib.figure import Figure
 from PyQt5.QtWidgets import (QAction, QApplication, QFileDialog, QHBoxLayout,
                              QLabel, QMainWindow, QPushButton, QTextEdit,
                              QVBoxLayout, QWidget)
 
+from hari_plotter.gui.add_plot_window import AddPlotWindow
+from hari_plotter.gui.qt_plotter import QtPlotter
 from hari_plotter.interface import Interface
 from hari_plotter.simulation import Simulation
 
@@ -23,13 +29,15 @@ class InfoWindow(QWidget):
 
 
 class MainWindow(QMainWindow):
-    def __init__(self):
+    def __init__(self, initial_dir_path=None, settings_path=None):
         super().__init__()
-        self.setWindowTitle("Interface Viewer")
+        self.setWindowTitle("Hari Plotter")
         self.setGeometry(100, 100, 800, 600)
 
-        self.interface = None  # To store the loaded interface
+        self.plotter = None  # To store the loaded interface
         self.group_index = 0  # Initialize group index
+        self.figure = Figure()
+        self.plotter = QtPlotter(None, figure=self.figure)
 
         # Main widget and layout
         self.main_widget = QWidget(self)
@@ -51,6 +59,24 @@ class MainWindow(QMainWindow):
         self.info_action.setEnabled(False)  # Disabled by default
         self.file_menu.addAction(self.info_action)
 
+        # Add Plot Action
+        self.add_plot_action = QAction("&Add Plot", self)
+        self.add_plot_action.triggered.connect(self.show_add_plot_window)
+        self.add_plot_action.setEnabled(False)  # Disabled by default
+        self.file_menu.addAction(self.add_plot_action)
+
+        # Load Settings Action
+        self.load_settings_action = QAction("&Load Settings", self)
+        self.load_settings_action.triggered.connect(self.load_plotter_settings)
+        self.load_settings_action.setEnabled(False)  # Disabled by default
+        self.file_menu.addAction(self.load_settings_action)
+
+        # Save Settings Action
+        self.save_settings_action = QAction("&Save Settings", self)
+        self.save_settings_action.triggered.connect(self.save_plotter_settings)
+        self.save_settings_action.setEnabled(False)  # Disabled by default
+        self.file_menu.addAction(self.save_settings_action)
+
         # Group navigation bar
         self.nav_bar_layout = QHBoxLayout()
         self.left_button = QPushButton("<")
@@ -71,63 +97,117 @@ class MainWindow(QMainWindow):
         # Add navigation bar to the main layout at the top
         self.layout.addLayout(self.nav_bar_layout)
 
-        # Label to display the interface string
-        self.interface_label = QLabel("No interface loaded", self)
-        self.layout.addWidget(self.interface_label)
+        self.canvas = FigureCanvas(self.figure)
+        self.layout.addWidget(self.canvas)
 
-    def open_directory_dialog(self):
-        if False:  # test mode
+        if initial_dir_path:
+            self.open_directory_dialog(initial_dir_path)
+
+        if self.plotter.is_initialized and settings_path:
+            self.load_plotter_settings(settings_path)
+
+    def open_directory_dialog(self, dir_path=None):
+        if not dir_path:
             dir_path = QFileDialog.getExistingDirectory(
                 self, "Select Directory")
-        dir_path = '/home/ivan/Science/sociophysics/ActivityDriven/0/'
+        # Check that directory was selected
         if dir_path:
             # Use the selected directory to create an Interface object
             S = Simulation.from_dir(dir_path)
             S.group(num_intervals=10, interval_size=1)
-            self.interface = Interface.create_interface(S)
+            self.plotter.update_interface(Interface.create_interface(S))
 
             # Update the interface label with the string representation of the interface
-            self.update_interface_label()
+            self.plot_current_group()
 
             # Enable the Information menu option
             self.info_action.setEnabled(True)
+            self.add_plot_action.setEnabled(True)
             self.left_button.setEnabled(True)
             self.right_button.setEnabled(True)
+            self.load_settings_action.setEnabled(True)
+            self.save_settings_action.setEnabled(True)
 
-    def update_interface_label(self):
-        self.interface_label.setText(
-            str(self.interface.groups[self.group_index]))
+    def plot_current_group(self):
+        if self.plotter.is_initialized:
+            self.plotter.plot(self.group_index)
+            self.canvas.draw_idle()  # Refresh the canvas to display the new plot
 
     def show_info_window(self):
-        if self.interface:
+        if self.plotter.is_initialized:
             # Pass self to set MainWindow as parent
             self.info_window = InfoWindow()
-            self.info_window.set_info_text(str(self.interface))
+            self.info_window.set_info_text(str(self.plotter.interface))
             self.info_window.show()
 
     def increment_group_index(self):
-        if self.interface and self.group_index < len(self.interface.groups) - 1:
+        if self.plotter.is_initialized and self.group_index < len(self.plotter.interface.groups) - 1:
             self.group_index += 1
             self.update_group_index_label()
-            self.update_interface_label()
+            self.plot_current_group()
 
     def decrement_group_index(self):
-        if self.interface and self.group_index > 0:
+        if self.plotter.is_initialized and self.group_index > 0:
             self.group_index -= 1
             self.update_group_index_label()
-            self.update_interface_label()
+            self.plot_current_group()
 
     def update_group_index_label(self):
         self.group_index_label.setText(str(self.group_index))
         # Additional functionality can be added here to update other parts of the UI based on the new group index
+
+    def show_add_plot_window(self):
+        if self.plotter.is_initialized:
+            self.add_plot_window = AddPlotWindow(self)
+            self.add_plot_window.show()
+
+    def save_plotter_settings(self):
+        # Use QFileDialog to get the filename from the user
+        options = QFileDialog.Options()
+        fileName, _ = QFileDialog.getSaveFileName(
+            self, "Save Settings", "plotter_settings", "Python Files (*.py)", options=options)
+        if fileName:
+            if not fileName.endswith('.py'):
+                fileName += '.py'  # Ensure the file has a .py extension
+            # Write the plotter settings to the file
+            with open(fileName, 'w') as file:
+                file.write(self.plotter.to_code())
+
+    def load_plotter_settings(self, settings_path=None):
+        if not settings_path:  # If no settings path is provided, open dialog
+            options = QFileDialog.Options()
+            settings_path, _ = QFileDialog.getOpenFileName(
+                self, "Load Settings", "", "Python Files (*.py)", options=options)
+
+        if settings_path:
+            with open(settings_path, 'r') as file:
+                code = file.read()
+                modified_code = code.replace('plotter.', 'self.plotter.')
+                try:
+                    exec(modified_code, {'self': self})
+                    self.plot_current_group()
+                except Exception as e:
+                    print(f"Error executing loaded settings: {e}")
 
     def closeEvent(self, event):
         QApplication.closeAllWindows()
         event.accept()
 
 
-if __name__ == '__main__':
+def main():
+    parser = argparse.ArgumentParser(description="Hari Plotter Application")
+    parser.add_argument("path", nargs='?',
+                        help="Path to the directory to load", default=None)
+    parser.add_argument("-s", "--settings",
+                        help="Path to the settings file", default=None)
+
+    args = parser.parse_args()
+
     app = QApplication(sys.argv)
-    mainWin = MainWindow()
+    mainWin = MainWindow(args.path, args.settings)
     mainWin.show()
     sys.exit(app.exec_())
+
+
+if __name__ == '__main__':
+    main()

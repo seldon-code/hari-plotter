@@ -434,6 +434,16 @@ class Plotter:
         """
         return [method_name for method_name, method in self._plot_types.items() if method.is_available(self.interface)[0]]
 
+    def get_plot_class(self, plot_type: str):
+        return self._plot_types[plot_type]
+
+    def get_plot_name(self, plot_class) -> str:
+        for key, value in self._plot_types.items():
+            if value == plot_class:
+                return key
+        warnings.warn(f'{plot_class} was not found in plot types')
+        return ''
+
     @property
     def available_plot_types_hint(self) -> list:
         """
@@ -504,3 +514,32 @@ class Plotter:
             ax.set_yticks(minor_ticks, minor=True)
             ax.set_yticklabels([], minor=True)
             ax.set_ylim([-1, 1])
+
+    def info(self):
+        info_str = ''
+        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
+            return 'Plot is empty'
+        for i, row in enumerate(self.plots):
+            for j, cell in enumerate(row):
+                info_str += f'\n{i,j}\n'
+                if len(cell) > 0:
+                    for plot in cell:
+                        info_str += str(plot) + '\n'
+                else:
+                    info_str += 'Empty cell'
+        return info_str
+
+    def to_code(self) -> str:
+        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
+            return ''
+
+        final_code = ''
+        for i, row in enumerate(self.plots):
+            for j, cell in enumerate(row):
+                if len(cell) > 0:
+                    for plot in cell:
+                        final_code += 'plotter.add_plot('
+                        final_code += f'\'{self.get_plot_name(type(plot))}\''
+                        final_code += ',{' + plot.settings_to_code() + '},'
+                        final_code += f'row={i},col={j},)\n'
+        return final_code

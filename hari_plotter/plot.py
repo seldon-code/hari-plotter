@@ -19,16 +19,88 @@ from .interface import Interface
 
 
 class Parameter:
-    pass
+    @abstractclassmethod
+    def validate(self) -> bool:
+        pass
 
 
 class ListParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, arguments: List, comment: str = '') -> None:
+    def __init__(self, name: str, parameter_name: str, arguments: List[str], comment: str = '') -> None:
         super().__init__()
         self.name = name
         self.parameter_name = parameter_name
         self.arguments = arguments
         self.comment = comment
+
+    def validate(self, value: str) -> bool:
+        return isinstance(value, str)
+
+
+class BoolParameter(Parameter):
+    def __init__(self, name: str, parameter_name: str, default_value: False, comment: str = '') -> None:
+        super().__init__()
+        self.name = name
+        self.parameter_name = parameter_name
+        self.default_value = default_value
+        self.comment = comment
+
+    def validate(self, value: bool) -> bool:
+        return isinstance(value, bool)
+
+
+class FloatParameter(Parameter):
+    def __init__(self, name: str, parameter_name: str, default_value: float = 0.0, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
+        super().__init__()
+        self.name = name
+        self.parameter_name = parameter_name
+        self.default_value = default_value
+        self.limits = limits
+        self.comment = comment
+
+    def validate(self, value: float) -> bool:
+        return isinstance(value, float) and (self.limits[0] is None or self.limits[0] <= value) and (self.limits[1] is None or self.limits[1] >= value)
+
+
+class NoneOrFloatParameter(Parameter):
+    def __init__(self, name: str, parameter_name: str, default_value: Union[float, None] = None, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
+        super().__init__()
+        self.name = name
+        self.parameter_name = parameter_name
+        self.default_value = default_value
+        self.limits = limits
+        self.comment = comment
+
+    def validate(self, value: Union[float, None]) -> bool:
+        return value is None or (isinstance(value, float) and (self.limits[0] is None or self.limits[0] <= value) and (self.limits[1] is None or self.limits[1] >= value))
+
+
+class NoneRangeParameter(Parameter):
+    def __init__(self, name: str, parameter_name: str, default_min_value: Union[float, None] = None, default_max_value: Union[float, None] = None, limits: Tuple[float] = (None, None), comment: str = ''):
+        super().__init__()
+        self.name = name
+        self.parameter_name = parameter_name
+        self.default_min_value = default_min_value
+        self.default_max_value = default_max_value
+        self.limits = limits
+        self.comment = comment
+
+    def validate(self, value: Tuple[float, None]) -> bool:
+        min_value, max_value = value
+        # Check if both min and max values are None, floats, or one is None and the other is float
+        if not ((min_value is None or isinstance(min_value, float)) and (max_value is None or isinstance(max_value, float))):
+            return False
+
+        # If both min and max values are not None, check that max is greater than min
+        if min_value is not None and max_value is not None and max_value <= min_value:
+            return False
+
+        # Check that min and max values fall within the specified limits, if they are not None
+        if min_value is not None and (self.limits[0] is not None and min_value < self.limits[0]):
+            return False
+        if max_value is not None and (self.limits[1] is not None and max_value > self.limits[1]):
+            return False
+
+        return True
 
 
 class Plot(ABC):
@@ -57,7 +129,7 @@ class Plot(ABC):
     def plot_dependencies(self):
         dependencies = {'before': [], 'after': []}
 
-        for value in [self.x_lim, self.y_lim]:
+        for value in [self._x_lim, self._y_lim]:
             if isinstance(value, str):
                 # Assuming format is 'x(y)@row,col'
                 ref_plot = tuple(map(int, value[2:].split(',')))
@@ -67,8 +139,12 @@ class Plot(ABC):
 
     def get_limits(self, axis_limits: dict):
         final_limits = []
-        for i_lim in (self.x_lim, self.y_lim):
-            if isinstance(i_lim, str):
+        for i_lim, scale in zip((self._x_lim, self._y_lim), self.scale):
+            if scale == 'Tanh':
+                final_limits.append((-1., 1.))
+            elif i_lim is None:
+                final_limits.append((None, None))
+            elif isinstance(i_lim, str):
                 ref_axis, ref_row, ref_col = self._parse_axis_limit_reference(
                     i_lim)
                 if (ref_row, ref_col) in axis_limits:
@@ -141,11 +217,14 @@ class Plot(ABC):
         ''' Returns True if available for this interface and comment why'''
         return True, ''
 
+    def settings_to_code(self) -> str:
+        return ''
+
 
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
@@ -154,20 +233,37 @@ class plot_histogram(Plot):
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
 
-        # print(f'{self.get_dynamic_plot_requests()[0] = }')
-
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def settings_to_code(self) -> str:
+        return ('\'parameters\':'+str(self.parameters) +
+                ',\'scale\':'+str(self.scale) +
+                ',\'rotated\':'+str(self.rotated) +
+                ',\'show_x_label\':'+str(self.show_x_label) +
+                ',\'show_y_label\':'+str(self.show_y_label) +
+                ',\'x_lim\':'+str(self._x_lim) +
+                ',\'y_lim\':'+str(self._y_lim))
 
     @staticmethod
     def settings(interface: Interface):
-        return [ListParameter('Parameter', 'parameter', interface.node_parameters, 'Parameter of the histogram')]
+        return [ListParameter(name='Parameter', parameter_name='parameter', arguments=interface.node_parameters, comment='Parameter of the histogram'),
+                ListParameter(name='Scale', parameter_name='scale', arguments=[
+                              'Linear', 'Tanh'], comment='Scale of the parameter'),
+                BoolParameter(name='Rotate', parameter_name='rotated', default_value=False,
+                              comment='Should the histogram be rotated?'),
+                BoolParameter(
+                    name='Show X Label', parameter_name='show_x_label', default_value=True, comment=''),
+                BoolParameter(
+                    name='Show Y Label', parameter_name='show_y_label', default_value=True, comment=''),
+                NoneRangeParameter(name='X Limit', parameter_name='x_lim',
+                                   default_min_value=None, default_max_value=None, limits=(None, None), comment=''),
+                NoneRangeParameter(name='Y Limit', parameter_name='y_lim',
+                                   default_min_value=None, default_max_value=None, limits=(None, None), comment=''),
+                ]
 
-    @classmethod
-    def from_qt(cls, qt_settings: dict):
+    @staticmethod
+    def qt_to_settings(qt_settings: dict):
         # Copy qt_settings to avoid modifying the original dictionary
         settings = qt_settings.copy()
 
@@ -176,8 +272,9 @@ class plot_histogram(Plot):
 
         settings['parameters'] = (parameter_value,)
 
-        # Pass the modified settings as keyword arguments to the class constructor
-        return cls(**settings)
+        settings['scale'] = (settings['scale'], 'Linear')
+
+        return settings
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -217,9 +314,8 @@ class plot_histogram(Plot):
             if self.scale[1] == 'Tanh':
                 values = np.tanh(values)
 
-            if y_lim is None:
-                y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [
-                    np.nanmin(values), np.nanmax(values)]
+            y_lim = [np.nanmin(values) if y_lim[0] is None else y_lim[0], np.nanmax(
+                values) if y_lim[1] is None else y_lim[1]]
 
             values = values[(values >= y_lim[0]) & (values <= y_lim[1])]
 
@@ -238,9 +334,8 @@ class plot_histogram(Plot):
             if self.scale[0] == 'Tanh':
                 values = np.tanh(values)
 
-            if x_lim is None:
-                x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [
-                    np.nanmin(values), np.nanmax(values)]
+            x_lim = [np.nanmin(values) if x_lim[0] is None else x_lim[0], np.nanmax(
+                values) if x_lim[1] is None else x_lim[1]]
 
             values = values[(values >= x_lim[0]) & (values <= x_lim[1])]
 
@@ -264,7 +359,7 @@ class plot_histogram(Plot):
 @Plotter.plot_type("Hexbin")
 class plot_hexbin(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm', show_colorbar: bool = False):
@@ -273,13 +368,61 @@ class plot_hexbin(Plot):
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.colormap = colormap
         self.show_colorbar = show_colorbar
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def settings_to_code(self) -> str:
+        return ('\'parameters\':'+str(self.parameters) +
+                ',\'scale\':'+str(self.scale) +
+                ',\'rotated\':'+str(self.rotated) +
+                ',\'show_x_label\':'+str(self.show_x_label) +
+                ',\'show_y_label\':'+str(self.show_y_label) +
+                ',\'x_lim\':'+str(self._x_lim) +
+                ',\'y_lim\':'+str(self._y_lim) +
+                ',\'show_colorbar\':'+str(self.show_colorbar))
+
+    @staticmethod
+    def settings(interface: Interface):
+        return [ListParameter(name='X parameter', parameter_name='x_parameter', arguments=interface.node_parameters, comment=''),
+                ListParameter(name='X scale', parameter_name='x_scale', arguments=[
+                              'Linear', 'Tanh'], comment=''),
+                ListParameter(name='Y parameter', parameter_name='y_parameter',
+                              arguments=interface.node_parameters, comment=''),
+                ListParameter(name='Y scale', parameter_name='y_scale', arguments=[
+                              'Linear', 'Tanh'], comment=''),
+                BoolParameter(name='Rotate', parameter_name='rotated', default_value=False,
+                              comment='Should the plot be rotated?'),
+                BoolParameter(
+                    name='Show X Label', parameter_name='show_x_label', default_value=True, comment=''),
+                BoolParameter(
+                    name='Show Y Label', parameter_name='show_y_label', default_value=True, comment=''),
+                NoneRangeParameter(name='X Limit', parameter_name='x_lim',
+                                   default_min_value=None, default_max_value=None, limits=(None, None), comment=''),
+                NoneRangeParameter(name='Y Limit', parameter_name='y_lim',
+                                   default_min_value=None, default_max_value=None, limits=(None, None), comment=''),
+                BoolParameter(
+                    name='Show Colorbar', parameter_name='show_colorbar', default_value=False, comment=''),
+                ]
+
+    @staticmethod
+    def qt_to_settings(qt_settings: dict):
+        # Copy qt_settings to avoid modifying the original dictionary
+        settings = qt_settings.copy()
+
+        # Extract the value of 'parameter' and remove it from settings
+        x_parameter_value = settings.pop('x_parameter', None)
+        y_parameter_value = settings.pop('y_parameter', None)
+
+        x_scale = settings.pop('x_scale', None)
+        y_scale = settings.pop('y_scale', None)
+
+        settings['parameters'] = (x_parameter_value, y_parameter_value)
+
+        settings['scale'] = (x_scale, y_scale)
+
+        return settings
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -327,10 +470,10 @@ class plot_hexbin(Plot):
         if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
-        if x_lim is None:
+        if x_lim == (None, None):
             x_extent = [-1, 1] if self.scale[0] == 'Tanh' else [
                 np.nanmin(x_values), np.nanmax(x_values)]
-        if y_lim is None:
+        if y_lim == (None, None):
             y_extent = [-1, 1] if self.scale[1] == 'Tanh' else [
                 np.nanmin(y_values), np.nanmax(y_values)]
 
@@ -379,7 +522,7 @@ class plot_hexbin(Plot):
 @Plotter.plot_type("Scatter")
 class plot_scatter(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None):
@@ -388,8 +531,8 @@ class plot_scatter(Plot):
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.color_scheme = color_scheme
 
         # self.data_key = Interface.request_to_tuple(
@@ -472,7 +615,7 @@ class plot_scatter(Plot):
 @Plotter.plot_type("Clustering: Centroids")
 class plot_clustering_centroids(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
@@ -486,8 +629,8 @@ class plot_clustering_centroids(Plot):
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.resolution = resolution
 
         # self.data_key = Interface.request_to_tuple(
@@ -548,7 +691,7 @@ class plot_clustering_centroids(Plot):
 @Plotter.plot_type("Clustering: Scatter")
 class plot_clustering_scatter(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100, show_clustering_labels: bool = False):
         self.parameters = tuple(parameters)
@@ -559,8 +702,8 @@ class plot_clustering_scatter(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.resolution = resolution
         self.show_clustering_labels = show_clustering_labels
 
@@ -609,10 +752,10 @@ class plot_clustering_scatter(Plot):
             ax.legend()
 
         # Setting the plot limits
-        if self.x_lim is not None:
-            ax.set_xlim(*self.x_lim)
-        if self.y_lim is not None:
-            ax.set_ylim(*self.y_lim)
+        if x_lim is not None:
+            ax.set_xlim(x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
@@ -627,7 +770,7 @@ class plot_clustering_scatter(Plot):
 @Plotter.plot_type("Clustering: Fill")
 class plot_clustering_fill(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
@@ -638,8 +781,8 @@ class plot_clustering_fill(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.resolution = resolution
 
         # self.data_key = Interface.request_to_tuple(
@@ -683,22 +826,22 @@ class plot_clustering_fill(Plot):
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
 
-    def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
+    # def get_limits(self, axis_limits):
+    #     default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+    #     default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
-        x_lim = self.x_lim or axis_limits.get(
-            'x', default_x_lim)
-        y_lim = self.y_lim or axis_limits.get(
-            'y', default_y_lim)
+    #     x_lim = self.x_lim or axis_limits.get(
+    #         'x', default_x_lim)
+    #     y_lim = self.y_lim or axis_limits.get(
+    #         'y', default_y_lim)
 
-        return x_lim, y_lim
+    #     return x_lim, y_lim
 
 
 @Plotter.plot_type("Clustering: Degree of Membership")
 class plot_clustering_degree_of_membership(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
@@ -709,8 +852,8 @@ class plot_clustering_degree_of_membership(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.resolution = resolution
 
         # self.data_key = Interface.request_to_tuple(
@@ -751,22 +894,22 @@ class plot_clustering_degree_of_membership(Plot):
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
 
-    def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
+    # def get_limits(self, axis_limits):
+    #     default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+    #     default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
-        x_lim = self.x_lim or axis_limits.get(
-            'x', default_x_lim)
-        y_lim = self.y_lim or axis_limits.get(
-            'y', default_y_lim)
+    #     x_lim = self.x_lim or axis_limits.get(
+    #         'x', default_x_lim)
+    #     y_lim = self.y_lim or axis_limits.get(
+    #         'y', default_y_lim)
 
-        return x_lim, y_lim
+    #     return x_lim, y_lim
 
 
 @Plotter.plot_type("Clustering: sns")
 class plot_clustering_sns(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
         self.parameters = tuple(parameters)
@@ -777,8 +920,8 @@ class plot_clustering_sns(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.resolution = resolution
 
         # self.data_key = Interface.request_to_tuple(
@@ -833,14 +976,14 @@ class plot_clustering_sns(Plot):
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
 
-    def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
+    # def get_limits(self, axis_limits):
+    #     default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+    #     default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
-        x_lim = self.x_lim or axis_limits.get('x', default_x_lim)
-        y_lim = self.y_lim or axis_limits.get('y', default_y_lim)
+    #     x_lim = self.x_lim or axis_limits.get('x', default_x_lim)
+    #     y_lim = self.y_lim or axis_limits.get('y', default_y_lim)
 
-        return x_lim, y_lim
+    #     return x_lim, y_lim
 
 # Needs to be fixed!
 
@@ -880,8 +1023,8 @@ class draw(Plot):
         # self.data_key = Interface.request_to_tuple(
         #     self.get_dynamic_plot_requests()[0])
 
-        self.x_lim = None
-        self.y_lim = None
+        self._x_lim = None
+        self._y_lim = None
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_mean_graph', 'settings': {}}]
@@ -996,15 +1139,15 @@ class draw(Plot):
 @Plotter.plot_type("Static: Time line")
 class plot_time_line(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
 
         # self.data_key = Interface.request_to_tuple(
         #     self.get_dynamic_plot_requests()[0])
@@ -1042,15 +1185,15 @@ class plot_time_line(Plot):
 @Plotter.plot_type("Static: Node lines")
 class plot_node_lines(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.colormap = colormap
 
         self._static_data = None
@@ -1127,15 +1270,15 @@ class plot_node_lines(Plot):
 @Plotter.plot_type("Static: Graph line")
 class plot_graph_line(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.function = function
 
         self._static_data = None
@@ -1196,7 +1339,7 @@ class plot_graph_line(Plot):
 @Plotter.plot_type("Static: Graph Range")
 class plot_fill_between(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], functions: Optional[List[str]] = None,
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
@@ -1204,8 +1347,8 @@ class plot_fill_between(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
 
         self._static_data = None
 
@@ -1274,7 +1417,7 @@ class plot_fill_between(Plot):
 @Plotter.plot_type("Static: Clustering Line")
 class plot_clustering_line(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
@@ -1282,8 +1425,8 @@ class plot_clustering_line(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
 
         self._static_data = None
 
@@ -1312,8 +1455,6 @@ class plot_clustering_line(Plot):
         if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
-
         self._static_data = {'x': x_values, 'y': y_values}
         return self._static_data
 
@@ -1331,6 +1472,8 @@ class plot_clustering_line(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
                 self.parameters[0], self.parameters[0]))
@@ -1342,7 +1485,7 @@ class plot_clustering_line(Plot):
 @Plotter.plot_type("Static: Clustering Range")
 class plot_fill_between_clustering(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         assert len(
@@ -1353,8 +1496,8 @@ class plot_fill_between_clustering(Plot):
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
 
         self._static_data = None
 
@@ -1430,7 +1573,7 @@ class plot_fill_between_clustering(Plot):
 @Plotter.plot_type("Static: Opinions")
 class plot_opinions(Plot):
     def __init__(self, color_scheme: ColorScheme, clustering_settings: dict = {},
-                 scale: Optional[str | None] = None,
+                 scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
@@ -1439,8 +1582,8 @@ class plot_opinions(Plot):
         self.scale = scale or tuple('Linear', 'Linear')
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
-        self.x_lim = x_lim
-        self.y_lim = y_lim
+        self._x_lim = x_lim
+        self._y_lim = y_lim
         self.min_cluster_size = min_cluster_size
         self.colormap = colormap
 
@@ -1492,6 +1635,7 @@ class plot_opinions(Plot):
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
         data = self.data(static_data_cache)
+        x_lim, y_lim = self.get_limits(axis_limits)
 
         time = data['Time']
         labels = data['Label']
@@ -1530,10 +1674,10 @@ class plot_opinions(Plot):
             ax.set_ylabel('Opinion')
 
         # Set the x and y axis limits if provided
-        if self.x_lim is not None:
-            ax.set_xlim(self.x_lim)
-        if self.y_lim is not None:
-            ax.set_ylim(self.y_lim)
+        if x_lim is not None:
+            ax.set_xlim(x_lim)
+        if y_lim is not None:
+            ax.set_ylim(y_lim)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 

@@ -303,7 +303,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     #     return np.dot(cluster_indices, weights)
 
     @classmethod
-    def from_graph(cls, G: HariGraph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'valueIntervalsClustering':
+    def from_graph(cls, G: HariGraph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
         """
         Creates an instance of valueIntervalsClustering from a HariGraph.
 
@@ -515,7 +515,7 @@ class KMeansClustering(ParameterBasedClustering):
         return nearest_centroid_indices
 
     @classmethod
-    def from_graph(cls, G: HariGraph, clustering_parameters:  Union[Tuple(str) | List(str)],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
+    def from_graph(cls, G: HariGraph, clustering_parameters:  Union[Tuple[str] | List[str]],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
         """
         Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
