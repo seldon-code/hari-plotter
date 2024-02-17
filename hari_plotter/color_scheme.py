@@ -39,10 +39,10 @@ class ColorScheme:
         """Returns a list of property names that have been registered."""
         return list(self._methods.keys())
 
-    def scatter_marker_nodes(self, parameter=None, scale='linear'):
+    def scatter_marker_nodes(self, parameter=None, scale='Linear'):
         return self.scatter_default_marker
 
-    def scatter_colors_nodes(self, parameter=None, scale='linear'):
+    def scatter_colors_nodes(self, parameter=None, scale='Linear'):
         return {node: self.scatter_default_color for node in self.interface.nodes}
 
     def copy(self):

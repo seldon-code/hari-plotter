@@ -76,7 +76,7 @@ class Clustering(ABC):
             clustering_method: The name of the clustering method corresponding to a subclass of `Clustering`.
             data: The data to be clustered, structured as a dictionary with the key 'data' and value as another
                 dictionary mapping integers to lists of float values.
-            scale: An optional dictionary where keys are parameter names and values are functions ('linear' or 'tanh')
+            scale: An optional dictionary where keys are parameter names and values are functions ('Linear' or 'Tanh')
                 to be applied to the parameter values before clustering. If not provided, no scaling is applied.
 
         Returns:
@@ -124,13 +124,13 @@ class Clustering(ABC):
 
         data = self.G.gatherer.gather(param=key)
 
-        return [np.array([[data[k][data['nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
+        return [np.array([[data[k][data['Nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
 
 
 class ParameterBasedClustering(Clustering):
     scale_funcs = {
-        'linear': {'direct': lambda x: x, 'inverse': lambda x: x},
-        'tanh': {'direct': np.tanh, 'inverse': np.arctanh}
+        'Linear': {'direct': lambda x: x, 'inverse': lambda x: x},
+        'Tanh': {'direct': np.tanh, 'inverse': np.arctanh}
     }
 
     def __init__(self, G: HariGraph, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
@@ -327,21 +327,21 @@ class ValueIntervalsClustering(ParameterBasedClustering):
 
         # Validate and process scale argument
         if isinstance(scale, dict):
-            scale = [scale.get(param, 'linear')
+            scale = [scale.get(param, 'Linear')
                      for param in clustering_parameters]
         elif isinstance(scale, list) and len(scale) != len(clustering_parameters):
             raise ValueError('Length mismatch in scale list')
         elif scale is None:
-            scale = ['linear'] * len(clustering_parameters)
+            scale = ['Linear'] * len(clustering_parameters)
 
         # Prepare data array
         data_array = np.array(
-            [data[param] for param in clustering_parameters if param not in ['time', 'nodes']]).T
+            [data[param] for param in clustering_parameters if param not in ['Time', 'Nodes']]).T
 
         # Remove NaN values
         valid_indices = ~np.isnan(data_array).any(axis=1)
         data_array = data_array[valid_indices]
-        original_labels = np.array(data['nodes'])[valid_indices]
+        original_labels = np.array(data['Nodes'])[valid_indices]
 
         if data_array.size == 0:
             raise ValueError(
@@ -524,7 +524,7 @@ class KMeansClustering(ParameterBasedClustering):
             G: HariGraph.
             clustering_parameters: list of clustering parameters
             scale: An optional dictionary where keys are parameter names and 
-                values are functions ('linear' or 'tanh') to be applied to 
+                values are functions ('Linear' or 'Tanh') to be applied to 
                 the parameter values before clustering.
             n_clusters: The number of clusters to form.
 
@@ -540,22 +540,22 @@ class KMeansClustering(ParameterBasedClustering):
         data = G.gatherer.gather(clustering_parameters)
 
         # Extract nodes and parameter names
-        nodes = data['nodes']
+        nodes = data['Nodes']
         parameter_names = clustering_parameters if clustering_parameters is not None else [
-            key for key in data.keys() if key != 'nodes']
+            key for key in data.keys() if key != 'Nodes']
 
         # Validate and process scale argument
         if isinstance(scale, dict):
-            scale = [scale.get(param, 'linear') for param in parameter_names]
+            scale = [scale.get(param, 'Linear') for param in parameter_names]
         elif isinstance(scale, list) and len(scale) != len(parameter_names):
             raise ValueError('Length mismatch in scale list')
         elif scale is None:
-            scale = ['linear'] * len(parameter_names)
+            scale = ['Linear'] * len(parameter_names)
 
         # print(f'{data.keys() = }')
         # Prepare data array
         data = np.array([data[param] for param in parameter_names if parameter_names not in [
-                        'time', 'nodes']]).T
+                        'Time', 'Nodes']]).T
 
         # print(f'{data = }')
 

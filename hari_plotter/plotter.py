@@ -142,20 +142,20 @@ class PlotSaver:
 
 
 class Plotter:
-    _parameter_dict = {'time': 'Time',
-                       'opinion': 'Node Opinion',
-                       'cluster_size': 'Cluster size',
-                       'importance': 'Node Importance',
-                       'label': 'Node Label',
-                       'neighbor_mean_opinion': 'Node Neighbor Mean Opinion',
-                       'activity': 'Node Activity',
-                       'inner_opinions': 'Node Inner Opinions',
-                       'max_opinion': 'Node Max Opinion',
-                       'min_opinion': 'Node Min Opinion'}
+    _parameter_dict = {'Time': 'Time',
+                       'Opinion': 'Node Opinion',
+                       'Cluster size': 'Cluster size',
+                       'Importance': 'Node Importance',
+                       'Label': 'Node Label',
+                       'Neighbor mean opinion': 'Node Neighbor Mean Opinion',
+                       'Activity': 'Node Activity',
+                       'Inner opinions': 'Node Inner Opinions',
+                       'Max opinion': 'Node Max Opinion',
+                       'Min opinion': 'Node Min Opinion'}
 
     _plot_types = {}
 
-    def __init__(self, interface: Interface, figsize=None):
+    def __init__(self, interface: Interface = None, figsize=None):
         """
         Initialize the Plotter object with the given Interface instance.
 
@@ -165,12 +165,20 @@ class Plotter:
             Interface instance to be used for plotting.
         """
         self.interface: Interface = interface
+        self.color_scheme = ColorScheme(self.interface)
         self.plots = [[[]]]
         self._figsize = figsize
         self.num_rows = 1
         self.num_cols = 1
         self.size_ratios = [[1], [1]]
-        self.color_scheme = ColorScheme(self.interface)
+
+    def update_interface(self, new_interface):
+        self.interface = new_interface
+        self.color_scheme = ColorScheme(new_interface)
+
+    @property
+    def is_initialized(self):
+        return self.interface is not None
 
     @property
     def figsize(self):
@@ -397,14 +405,14 @@ class Plotter:
         return list(nx.topological_sort(dependency_graph))
 
     @property
-    def available_parameters(self) -> list:
+    def node_parameters(self) -> list:
         """
         Retrieves the list of available parameters/methods from the interface.
 
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.interface.available_parameters
+        return self.interface.node_parameters
 
     @property
     def existing_plot_types(self) -> list:
@@ -483,14 +491,14 @@ class Plotter:
         minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
         minor_ticks = np.tanh(minor_tickslabels)
 
-        if scale[0] == 'tanh':
+        if scale[0] == 'Tanh':
             ax.set_xticks(ticks)
             ax.set_xticklabels(tickslabels)
             ax.set_xticks(minor_ticks, minor=True)
             ax.set_xticklabels([], minor=True)
             ax.set_xlim([-1, 1])
 
-        if scale[1] == 'tanh':
+        if scale[1] == 'Tanh':
             ax.set_yticks(ticks)
             ax.set_yticklabels(tickslabels)
             ax.set_yticks(minor_ticks, minor=True)

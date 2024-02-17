@@ -52,6 +52,13 @@ class Interface(ABC):
             self, i) for i in range(len(self.groups))]
 
         self._nodes = None
+        self._node_parameters = None
+
+    @property
+    def node_parameters(self):
+        if not self._node_parameters:
+            self._node_parameters = self.groups[0].node_parameters
+        return self._node_parameters
 
     # def collect_static_data(self):
     #     self.static_data_cache = {}
@@ -256,13 +263,13 @@ class Interface(ABC):
         for cluster_index, label in enumerate(final_labels):
             node_id = f"{len(clusters_dynamics)-1}-{cluster_index}"
             # Assign final labels to the last frame's clusters
-            G.nodes[node_id]['label'] = label
+            G.nodes[node_id]['Label'] = label
 
         def propagate_labels_with_splits(G, clusters_dynamics):
             for frame_index in range(len(clusters_dynamics) - 1, 0, -1):
                 for cluster_index in range(len(clusters_dynamics[frame_index])):
                     node_id = f"{frame_index}-{cluster_index}"
-                    current_label = G.nodes[node_id]['label']
+                    current_label = G.nodes[node_id]['Label']
 
                     predecessors = list(G.predecessors(node_id))
                     # If the current node has multiple predecessors, it's a split in reverse
@@ -271,10 +278,10 @@ class Interface(ABC):
                         for i, pred in enumerate(predecessors):
                             # Create new labels for splits as "original.i"
                             new_label = f"{current_label}.{i+1}"
-                            G.nodes[pred]['label'] = new_label
+                            G.nodes[pred]['Label'] = new_label
                     # If there's only one predecessor, propagate the label directly
                     elif len(predecessors) == 1:
-                        G.nodes[predecessors[0]]['label'] = current_label
+                        G.nodes[predecessors[0]]['Label'] = current_label
 
         # Call the function to propagate labels with the handling of splits
         propagate_labels_with_splits(G, clusters_dynamics)
@@ -303,7 +310,7 @@ class Interface(ABC):
                     frame_labels = []
                     for cluster_index in range(len(clusters_dynamics[frame_index])):
                         node_id = f"{frame_index}-{cluster_index}"
-                        label = G.nodes[node_id]['label']
+                        label = G.nodes[node_id]['Label']
                         frame_labels.append(label)
                     updated_labels[frame_index] = frame_labels
 

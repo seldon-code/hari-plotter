@@ -18,7 +18,27 @@ from .color_scheme import ColorScheme
 from .interface import Interface
 
 
+class Parameter:
+    pass
+
+
+class ListParameter(Parameter):
+    def __init__(self, name: str, parameter_name: str, arguments: List, comment: str = '') -> None:
+        super().__init__()
+        self.name = name
+        self.parameter_name = parameter_name
+        self.arguments = arguments
+        self.comment = comment
+
+
 class Plot(ABC):
+    @staticmethod
+    def settings(interface: Interface):
+        return []
+
+    @classmethod
+    def from_qt(cls, qt_settings: dict):
+        return cls(**qt_settings)
 
     def _parse_axis_limit_reference(self, reference_str):
         """
@@ -62,7 +82,7 @@ class Plot(ABC):
         return final_limits
 
     @staticmethod
-    def transform_data(data_list, transform_parameter: str = 'nodes'):
+    def transform_data(data_list, transform_parameter: str = 'Nodes'):
         # Extract unique transform_parameter's and sort them
         # print(f'{list(data_list[0].keys()) = }')
         # print(f'{transform_parameter = }')
@@ -79,17 +99,17 @@ class Plot(ABC):
         # print(f'{transform_parameter_value_index = }')
 
         # Extract time steps
-        time_steps = [data['time'] for data in data_list]
+        time_steps = [data['Time'] for data in data_list]
 
         # Initialize parameters dictionary
         # print(f'{list(data_list[0].keys()) = }')
         params = {key: np.full((len(transform_parameter_values), len(time_steps)), np.nan)
-                  for key in data_list[0] if key not in [transform_parameter, 'time', 'nodes']}
+                  for key in data_list[0] if key not in [transform_parameter, 'Time', 'Nodes']}
 
         # Fill in the parameter values
         for t, data in enumerate(data_list):
             for param in params:
-                if param in data and param != 'nodes':
+                if param in data and param != 'Nodes':
                     # Map each transform_parameter_value's value to the corresponding row in the parameter's array
                     for transform_parameter_value, value in zip(data[transform_parameter], data[param]):
                         if transform_parameter_value is not None:
@@ -102,7 +122,7 @@ class Plot(ABC):
                             # print(f'{param = } {value = } ')
 
         return {
-            'time': np.array(time_steps),
+            'Time': np.array(time_steps),
             transform_parameter: transform_parameter_values,
             **params
         }
@@ -130,7 +150,7 @@ class plot_histogram(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -141,6 +161,23 @@ class plot_histogram(Plot):
 
         # self.data_key = Interface.request_to_tuple(
         #     self.get_dynamic_plot_requests()[0])
+
+    @staticmethod
+    def settings(interface: Interface):
+        return [ListParameter('Parameter', 'parameter', interface.node_parameters, 'Parameter of the histogram')]
+
+    @classmethod
+    def from_qt(cls, qt_settings: dict):
+        # Copy qt_settings to avoid modifying the original dictionary
+        settings = qt_settings.copy()
+
+        # Extract the value of 'parameter' and remove it from settings
+        parameter_value = settings.pop('parameter', None)
+
+        settings['parameters'] = (parameter_value,)
+
+        # Pass the modified settings as keyword arguments to the class constructor
+        return cls(**settings)
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -156,7 +193,7 @@ class plot_histogram(Plot):
         data : list[float]
             List containing parameter values.
         scale : str, optional
-            The scale for the x-axis. Options: 'linear' or 'tanh'.
+            The scale for the x-axis. Options: 'Linear' or 'Tanh'.
         rotated : bool, optional
             If True, the histogram is rotated to be horizontal.
         x_lim : Optional[Sequence[float] | None]
@@ -177,11 +214,11 @@ class plot_histogram(Plot):
         values = values[valid_indices]
 
         if self.rotated:
-            if self.scale[1] == 'tanh':
+            if self.scale[1] == 'Tanh':
                 values = np.tanh(values)
 
             if y_lim is None:
-                y_lim = [-1, 1] if self.scale[1] == 'tanh' else [
+                y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [
                     np.nanmin(values), np.nanmax(values)]
 
             values = values[(values >= y_lim[0]) & (values <= y_lim[1])]
@@ -198,11 +235,11 @@ class plot_histogram(Plot):
 
         else:
 
-            if self.scale[0] == 'tanh':
+            if self.scale[0] == 'Tanh':
                 values = np.tanh(values)
 
             if x_lim is None:
-                x_lim = [-1, 1] if self.scale[0] == 'tanh' else [
+                x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [
                     np.nanmin(values), np.nanmax(values)]
 
             values = values[(values >= x_lim[0]) & (values <= x_lim[1])]
@@ -232,7 +269,7 @@ class plot_hexbin(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm', show_colorbar: bool = False):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -264,7 +301,7 @@ class plot_hexbin(Plot):
         cmax : float, optional
             The maximum number of counts in a hexbin for colormap scaling.
         scale : list, optional
-            Scale for the plot values (x and y). Options: 'linear' or 'tanh'. Default is 'linear' for both.
+            Scale for the plot values (x and y). Options: 'Linear' or 'Tanh'. Default is 'Linear' for both.
         show_colorbar : bool, optional
         """
 
@@ -284,17 +321,17 @@ class plot_hexbin(Plot):
         x_values = x_values[valid_indices]
         y_values = y_values[valid_indices]
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
 
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
         if x_lim is None:
-            x_extent = [-1, 1] if self.scale[0] == 'tanh' else [
+            x_extent = [-1, 1] if self.scale[0] == 'Tanh' else [
                 np.nanmin(x_values), np.nanmax(x_values)]
         if y_lim is None:
-            y_extent = [-1, 1] if self.scale[1] == 'tanh' else [
+            y_extent = [-1, 1] if self.scale[1] == 'Tanh' else [
                 np.nanmin(y_values), np.nanmax(y_values)]
 
         extent = x_extent+y_extent
@@ -347,7 +384,7 @@ class plot_scatter(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -394,8 +431,8 @@ class plot_scatter(Plot):
         x_parameter, y_parameter = self.parameters
         x_values = np.array(data[x_parameter])
         y_values = np.array(data[y_parameter])
-        nodes = data['nodes']
-        print(f'{nodes = }')
+        nodes = data['Nodes']
+        # print(f'{nodes = }')
 
         # Remove NaN values
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
@@ -403,10 +440,10 @@ class plot_scatter(Plot):
         y_values = y_values[valid_indices]
         valid_nodes = [nodes[i] for i in np.where(valid_indices)[0]]
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
 
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
         colors_dict = self.color_scheme.scatter_colors_nodes()
@@ -445,7 +482,7 @@ class plot_clustering_centroids(Plot):
             self.clustering_settings['clustering_parameters'] = self.parameters
 
         # print(f'{self.clustering_settings = }')
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -486,9 +523,9 @@ class plot_clustering_centroids(Plot):
         if centroids.shape[1] == 2:
             centroids_x = centroids[:, x_feature_index]
             centroids_y = centroids[:, y_feature_index]
-            if self.scale[0] == 'tanh':
+            if self.scale[0] == 'Tanh':
                 centroids_x = np.tanh(centroids_x)
-            if self.scale[1] == 'tanh':
+            if self.scale[1] == 'Tanh':
                 centroids_y = np.tanh(centroids_y)
 
             ax.scatter(centroids_x, centroids_y,
@@ -519,7 +556,7 @@ class plot_clustering_scatter(Plot):
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
 
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -555,9 +592,9 @@ class plot_clustering_scatter(Plot):
             x_points = points[:, 0]
             y_points = points[:, 1]
 
-            if self.scale[0] == 'tanh':
+            if self.scale[0] == 'Tanh':
                 x_points = np.tanh(x_points)
-            if self.scale[1] == 'tanh':
+            if self.scale[1] == 'Tanh':
                 y_points = np.tanh(y_points)
 
             # Assign a new color if the label is not in cluster_colors, else use the existing color
@@ -598,7 +635,7 @@ class plot_clustering_fill(Plot):
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
 
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -626,9 +663,9 @@ class plot_clustering_fill(Plot):
 
         mesh_points = np.c_[xx.ravel(), yy.ravel()]
         mesh_points_scaled = np.array(mesh_points)
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
         Z = clustering.predict_clustering(mesh_points_scaled)
@@ -647,8 +684,8 @@ class plot_clustering_fill(Plot):
                 self.parameters[1], self.parameters[1]))
 
     def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
+        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
         x_lim = self.x_lim or axis_limits.get(
             'x', default_x_lim)
@@ -669,7 +706,7 @@ class plot_clustering_degree_of_membership(Plot):
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
 
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -693,9 +730,9 @@ class plot_clustering_degree_of_membership(Plot):
 
         mesh_points = np.c_[xx.ravel(), yy.ravel()]
         mesh_points_scaled = np.array(mesh_points)
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
         Z = np.array(clustering.degree_of_membership(mesh_points_scaled))
@@ -715,8 +752,8 @@ class plot_clustering_degree_of_membership(Plot):
                 self.parameters[1], self.parameters[1]))
 
     def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
+        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
         x_lim = self.x_lim or axis_limits.get(
             'x', default_x_lim)
@@ -737,7 +774,7 @@ class plot_clustering_sns(Plot):
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
 
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -761,9 +798,9 @@ class plot_clustering_sns(Plot):
 
         mesh_points = np.c_[xx.ravel(), yy.ravel()]
         mesh_points_scaled = np.array(mesh_points)
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
         Z = np.array(clustering.degree_of_membership(mesh_points_scaled))
@@ -797,8 +834,8 @@ class plot_clustering_sns(Plot):
                 self.parameters[1], self.parameters[1]))
 
     def get_limits(self, axis_limits):
-        default_x_lim = [-1, 1] if self.scale[0] == 'tanh' else [0, 1]
-        default_y_lim = [-1, 1] if self.scale[1] == 'tanh' else [0, 1]
+        default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
+        default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
 
         x_lim = self.x_lim or axis_limits.get('x', default_x_lim)
         y_lim = self.y_lim or axis_limits.get('y', default_y_lim)
@@ -891,10 +928,10 @@ class draw(Plot):
                 node_labels = {node: str(node) for node in image.nodes()}
             case 'labels':
                 node_labels = {node: ','.join(
-                    map(str, label)) for node, label in image.gatherer.gather("label").items()}
+                    map(str, label)) for node, label in image.gatherer.gather("Label").items()}
             case 'cluster_size':
                 node_labels = {node: str(
-                    len(label)) for node, label in image.gatherer.gather("label").items()}
+                    len(label)) for node, label in image.gatherer.gather("Label").items()}
         return node_labels
 
     def _prepare_node_colors(self, image, use_node_color):
@@ -926,7 +963,7 @@ class draw(Plot):
         # Default size for nodes without labels
         default_size = self.node_size_multiplier
         for node in image.nodes():
-            label = image.nodes[node].get('label')
+            label = image.nodes[node].get('Label')
             if label:
                 size = self.node_size_multiplier * \
                     math.sqrt(len(label))  # Nonlinear scaling
@@ -963,7 +1000,7 @@ class plot_time_line(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -982,10 +1019,10 @@ class plot_time_line(Plot):
 
         x_parameter, y_parameter = self.parameters
 
-        if x_parameter == 'time':
+        if x_parameter == 'Time':
             # Time is on the x-axis, draw a vertical line
             ax.axvline(x=data, color='r', linestyle='--')
-        elif y_parameter == 'time':
+        elif y_parameter == 'Time':
             # Time is on the y-axis, draw a horizontal line
             ax.axhline(y=data, color='r', linestyle='--')
 
@@ -1009,7 +1046,7 @@ class plot_node_lines(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1041,22 +1078,22 @@ class plot_node_lines(Plot):
         # print(f'{data = }')
         # print(f'{data = }')
         # print(f'{data.keys() = }')
-        # print(f'{data["time"] = }')
+        # print(f'{data["Time"] = }')
 
         x_parameter, y_parameter = self.parameters
 
-        if not (x_parameter == 'time' or y_parameter == 'time'):
-            raise ValueError('One of the parameters should be time.')
+        if not (x_parameter == 'Time' or y_parameter == 'Time'):
+            raise ValueError('One of the parameters should be Time.')
 
         # Determine which axis time is on
-        time_is_x_axis = x_parameter == 'time'
+        time_is_x_axis = x_parameter == 'Time'
 
         x_values = data[x_parameter]
         y_values = data[y_parameter]
 
-        if self.scale[0 if time_is_x_axis else 1] == 'tanh':
+        if self.scale[0 if time_is_x_axis else 1] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1 if time_is_x_axis else 0] == 'tanh':
+        if self.scale[1 if time_is_x_axis else 0] == 'Tanh':
             y_values = np.tanh(y_values)
 
         # Color map for final state values
@@ -1094,7 +1131,7 @@ class plot_graph_line(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
         self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1134,9 +1171,9 @@ class plot_graph_line(Plot):
         x_values = data[x_parameter]
         y_values = data[y_parameter]
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
         ax.plot(x_values, y_values)
@@ -1164,7 +1201,7 @@ class plot_fill_between(Plot):
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
         self.functions = functions or ['min', 'max']
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1210,9 +1247,9 @@ class plot_fill_between(Plot):
         y_values_min = data_min[y_parameter]
         y_values_max = data_max[y_parameter]
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y_values_min = np.tanh(y_values_min)
             y_values_max = np.tanh(y_values_max)
 
@@ -1242,7 +1279,7 @@ class plot_clustering_line(Plot):
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         self.parameters = tuple(parameters)
         self.clustering_settings = clustering_settings
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1270,9 +1307,9 @@ class plot_clustering_line(Plot):
         x_values = np.array(data[x_parameter])
         y_values = np.array(data[y_parameter])
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
@@ -1309,11 +1346,11 @@ class plot_fill_between_clustering(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
         assert len(
-            parameters) == 3, "Three parameters are required, with the last or first being 'time'."
+            parameters) == 3, "Three parameters are required, with the last or first being 'Time'."
 
         self.parameters = tuple(parameters)
         self.clustering_settings = clustering_settings
-        self.scale = tuple(scale or ('linear', 'linear'))
+        self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1342,9 +1379,9 @@ class plot_fill_between_clustering(Plot):
         y1_values = np.array(data[y1_parameter])
         y2_values = np.array(data[y2_parameter])
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             y1_values = np.tanh(y1_values)
             y2_values = np.tanh(y2_values)
 
@@ -1366,7 +1403,7 @@ class plot_fill_between_clustering(Plot):
             y2_values = data['y2'][i, :]
 
             # Use tanh scaling if specified
-            if self.scale[1] == 'tanh':
+            if self.scale[1] == 'Tanh':
                 y1_values = np.tanh(y1_values)
                 y2_values = np.tanh(y2_values)
 
@@ -1399,7 +1436,7 @@ class plot_opinions(Plot):
                  min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
 
         self.clustering_settings = clustering_settings
-        self.scale = scale or tuple('linear', 'linear')
+        self.scale = scale or tuple('Linear', 'Linear')
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self.x_lim = x_lim
@@ -1417,7 +1454,7 @@ class plot_opinions(Plot):
         self.min_value = None
 
     def get_static_plot_requests(self):
-        return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('time', 'min_opinion', 'opinion', 'max_opinion', 'cluster_size', 'label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('Time', 'Min opinion', 'Opinion', 'Max opinion', 'Cluster size', 'Label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def get_track_clusterings_requests(self):
         return [self.clustering_settings]
@@ -1428,20 +1465,20 @@ class plot_opinions(Plot):
 
         data = static_data_cache[self.get_static_plot_requests()[0]]
 
-        data = self.transform_data(data, transform_parameter='label')
+        data = self.transform_data(data, transform_parameter='Label')
         # print(f'{data = }')
 
         # Transform data to suitable format for plotting
-        time = np.array(data['time'])
-        labels = data['label']
-        min_opinion = np.array(data['min_opinion'])
-        opinion = np.array(data['opinion'])
-        max_opinion = np.array(data['max_opinion'])
-        cluster_size = np.array(data['cluster_size'])
+        time = np.array(data['Time'])
+        labels = data['Label']
+        min_opinion = np.array(data['Min opinion'])
+        opinion = np.array(data['Opinion'])
+        max_opinion = np.array(data['Max opinion'])
+        cluster_size = np.array(data['Cluster size'])
 
-        if self.scale[0] == 'tanh':
+        if self.scale[0] == 'Tanh':
             x_values = np.tanh(x_values)
-        if self.scale[1] == 'tanh':
+        if self.scale[1] == 'Tanh':
             min_opinion = np.tanh(min_opinion)
             opinion = np.tanh(opinion)
             max_opinion = np.tanh(max_opinion)
@@ -1449,19 +1486,19 @@ class plot_opinions(Plot):
         self.min_value = np.nanmin(min_opinion)
         self.max_value = np.nanmax(max_opinion)
 
-        self._static_data = {'time': time, 'label': labels, 'min_opinion': min_opinion,
-                             'opinion': opinion, 'max_opinion': max_opinion, 'cluster_size': cluster_size}
+        self._static_data = {'Time': time, 'Label': labels, 'Min opinion': min_opinion,
+                             'Opinion': opinion, 'Max opinion': max_opinion, 'Cluster size': cluster_size}
         return self._static_data
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
         data = self.data(static_data_cache)
 
-        time = data['time']
-        labels = data['label']
-        min_opinions = data['min_opinion']
-        opinions = data['opinion']
-        max_opinions = data['max_opinion']
-        cluster_sizes = data['cluster_size']
+        time = data['Time']
+        labels = data['Label']
+        min_opinions = data['Min opinion']
+        opinions = data['Opinion']
+        max_opinions = data['Max opinion']
+        cluster_sizes = data['Cluster size']
 
         # print(f'{cluster_sizes.shape = }')
 

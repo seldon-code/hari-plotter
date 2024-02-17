@@ -26,12 +26,12 @@ class NodeGatherer(ABC):
     @classmethod
     def parameter(cls, property_name):
         """
-        Class method decorator to register methods that provide various properties of nodes.
+        Class method decorator to register parameters that provide various properties of nodes.
 
         Parameters:
         -----------
         property_name : str
-            The name of the property that the method provides.
+            The name of the property that the parameter provides.
 
         Raises:
         -------
@@ -69,12 +69,12 @@ class NodeGatherer(ABC):
         for p in param:
             if p not in self._parameters:
                 raise ValueError(
-                    f'{p} is not a valid method. Valid methods are: {self.methods}')
+                    f'{p} is not a valid parameter. Valid parameters are: {self.parameters}')
 
-            method = self._parameters[p]
-            method_result = method(self)
+            parameter = self._parameters[p]
+            parameter_result = parameter(self)
             # Use None or a default value for missing data
-            result[p] = method_result
+            result[p] = parameter_result
 
         return result
 
@@ -86,7 +86,7 @@ class NodeGatherer(ABC):
             param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
 
         Returns:
-            dict: A dictionary containing the extracted parameters, plus a 'nodes' key with a list of node names/IDs.
+            dict: A dictionary containing the extracted parameters, plus a 'Nodes' key with a list of node names/IDs.
         """
         if isinstance(param, str):
             param = [param]
@@ -97,7 +97,7 @@ class NodeGatherer(ABC):
 
         # Assuming all parameters have the same nodes, sort them once
         nodes = sorted(next(iter(result.values())).keys())
-        transformed_result['nodes'] = nodes
+        transformed_result['Nodes'] = nodes
 
         # Iterate over each parameter in the result
         for parameter, values in result.items():
@@ -136,7 +136,7 @@ class DefaultNodeGatherer(NodeGatherer):
 
     def merge(self, node_ids: List[dict]) -> dict:
         """
-        Merges given nodes and computes combined attributes such as 'inner_opinions', 'cluster_size', and 'label'.
+        Merges given nodes and computes combined attributes such as 'Inner opinions', 'Cluster size', and 'Label'.
 
         Parameters:
             node_ids (List[dict]): A list of node dictionaries, each containing node attributes.
@@ -149,52 +149,52 @@ class DefaultNodeGatherer(NodeGatherer):
 
         nodes = [self.G.nodes[node_id] for node_id in node_ids]
 
-        size = sum(node.get('cluster_size', len(node)) for node in nodes)
+        size = sum(node.get('Cluster size', len(node)) for node in nodes)
 
         # Gather all opinions of the nodes being merged using node labels/identifiers as keys
         inner_opinions = {}
 
         for node, node_id in zip(nodes, node_ids):
-            # Check if node has 'inner_opinions', if not, create one
-            if 'inner_opinions' in node:
-                inner_opinions.update(node['inner_opinions'])
+            # Check if node has 'Inner opinions', if not, create one
+            if 'Inner opinions' in node:
+                inner_opinions.update(node['Inner opinions'])
             else:
                 if len(node_id) != 1:
                     warnings.warn(
                         f"The size of the node {node_id} is {size}, higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention.")
-                inner_opinions[node_id[0]] = node['opinion']
+                inner_opinions[node_id[0]] = node['Opinion']
 
         return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node)) * node['opinion'] for node in nodes) / size,
-            'inner_opinions': inner_opinions
+            'Cluster size': size,
+            'Opinion': sum(node.get('Cluster size', len(node)) * node['Opinion'] for node in nodes) / size,
+            'Inner opinions': inner_opinions
         }
 
-    @NodeGatherer.parameter("opinion")
+    @NodeGatherer.parameter("Opinion")
     def opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to their respective opinions."""
         return self.G.opinions
 
-    @NodeGatherer.parameter("cluster_size")
+    @NodeGatherer.parameter("Cluster size")
     def cluster_size(self) -> dict:
         """Returns a dictionary mapping node IDs to their cluster sizes."""
-        return {node: self.G.nodes[node].get('cluster_size', len(node)) for node in self.G.nodes}
+        return {node: self.G.nodes[node].get('Cluster size', len(node)) for node in self.G.nodes}
 
-    @NodeGatherer.parameter("importance")
+    @NodeGatherer.parameter("Importance")
     def importance(self) -> dict:
-        """Returns a dictionary mapping node IDs to their importance based on influence and size."""
+        """Returns a dictionary mapping node IDs to their importance based on Influence and Size."""
         importance_dict = {}
         size_dict = self.cluster_size()
 
         for node in self.G.nodes:
-            influences_sum = sum(data['influence']
+            influences_sum = sum(data['Influence']
                                  for _, _, data in self.G.edges(node, data=True))
             importance_dict[node] = influences_sum / \
                 size_dict[node] if size_dict[node] != 0 else 0
 
         return importance_dict
 
-    @NodeGatherer.parameter("neighbor_mean_opinion")
+    @NodeGatherer.parameter("Neighbor mean opinion")
     def neighbor_mean_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the mean opinion of their neighbors."""
         data = {}
@@ -211,30 +211,30 @@ class DefaultNodeGatherer(NodeGatherer):
 
         return data
 
-    @NodeGatherer.parameter('inner_opinions')
+    @NodeGatherer.parameter('Inner opinions')
     def inner_opinions(self) -> dict:
         """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
-        return {node: self.G.nodes[node].get('inner_opinions', {node: self.G.nodes[node]['opinion']}) for node in self.G.nodes}
+        return {node: self.G.nodes[node].get('Inner opinions', {node: self.G.nodes[node]['Opinion']}) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('max_opinion')
+    @NodeGatherer.parameter('Max opinion')
     def max_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the maximum opinion value among their inner opinions."""
-        return {node: max((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
+        return {node: max((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('min_opinion')
+    @NodeGatherer.parameter('Min opinion')
     def min_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the minimum opinion value among their inner opinions."""
-        return {node: min((self.G.nodes[node].get('inner_opinions', {None: self.G.nodes[node]['opinion']})).values()) for node in self.G.nodes}
+        return {node: min((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('label')
+    @NodeGatherer.parameter('Label')
     def min_opinion(self) -> dict:
-        return {node: self.G.nodes[node].get("label", None) for node in self.G.nodes}
+        return {node: self.G.nodes[node].get('Label', None) for node in self.G.nodes}
 
 
 class ActivityDefaultNodeGatherer(DefaultNodeGatherer):
     def merge(self, node_ids: List[dict]) -> dict:
         """
-        Merges given nodes and computes combined attributes such as 'inner_opinions', 'cluster_size', and 'label'.
+        Merges given nodes and computes combined attributes such as 'Inner opinions', 'Cluster size', and 'Label'.
 
         Parameters:
             node_ids (List[dict]): A list of node dictionaries, each containing node attributes.
@@ -247,30 +247,30 @@ class ActivityDefaultNodeGatherer(DefaultNodeGatherer):
 
         nodes = [self.G.nodes[node_id] for node_id in node_ids]
 
-        size = sum(node.get('cluster_size', len(node)) for node in nodes)
+        size = sum(node.get('Cluster size', len(node)) for node in nodes)
 
-        activity = sum(node.get('activity', np.nan) for node in nodes)
+        activity = sum(node.get('Activity', np.nan) for node in nodes)
 
         # Gather all opinions of the nodes being merged using node labels/identifiers as keys
         inner_opinions = {}
 
         for node, node_id in zip(nodes, node_ids):
-            # Check if node has 'inner_opinions', if not, create one
-            if 'inner_opinions' in node:
-                inner_opinions.update(node['inner_opinions'])
+            # Check if node has 'Inner opinions', if not, create one
+            if 'Inner opinions' in node:
+                inner_opinions.update(node['Inner opinions'])
             else:
                 if len(node_id) != 1:
                     warnings.warn(
                         f"The size of the node {node_id} is {size}, higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention.")
-                inner_opinions[node_id[0]] = node['opinion']
+                inner_opinions[node_id[0]] = node['Opinion']
 
         return {
-            'cluster_size': size,
-            'opinion': sum(node.get('cluster_size', len(node)) * node['opinion'] for node in nodes) / size,
-            'inner_opinions': inner_opinions,
-            'activity': activity
+            'Cluster size': size,
+            'Opinion': sum(node.get('Cluster size', len(node)) * node['Opinion'] for node in nodes) / size,
+            'Inner opinions': inner_opinions,
+            'Activity': activity
         }
 
-    @NodeGatherer.parameter('activity')
+    @NodeGatherer.parameter('Activity')
     def activity(self) -> dict:
-        return {node: self.G.nodes[node].get("activity", np.nan) for node in self.G.nodes}
+        return {node: self.G.nodes[node].get('Activity', np.nan) for node in self.G.nodes}

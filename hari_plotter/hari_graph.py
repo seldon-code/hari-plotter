@@ -89,13 +89,13 @@ class HariGraph(nx.DiGraph):
 
         for u, v in self.edges():
             random_influence = random.uniform(lower_bound, upper_bound)
-            self[u][v]['influence'] = random_influence
+            self.edges[u, v]['Influence'] = random_influence
 
     def is_degroot_converging(self, tolerance=1e-2) -> bool:
         for node in self.nodes():
             incoming_edges = [(neighbor, node)
                               for neighbor in self.predecessors(node)]
-            total_influence = sum(self[u][v]['influence']
+            total_influence = sum(self.edges[u, v]['Influence']
                                   for u, v in incoming_edges)
             if not (1 - tolerance <= total_influence <= 1 + tolerance):
                 return False
@@ -112,20 +112,20 @@ class HariGraph(nx.DiGraph):
 
             # Calculate the total influence of incoming edges for the current
             # node
-            total_influence = sum(self[u][v]['influence']
+            total_influence = sum(self.edges[u, v]['Influence']
                                   for u, v in incoming_edges)
 
             # If the total influence is zero, assign random influences to
             # incoming edges
             if total_influence == 0:
                 for u, v in incoming_edges:
-                    self[u][v]['influence'] = random.random()
-                total_influence = sum(self[u][v]['influence']
+                    self.edges[u, v]['Influence'] = random.random()
+                total_influence = sum(self[u][v]['Influence']
                                       for u, v in incoming_edges)
 
             # Adjust the influences proportionally
             for u, v in incoming_edges:
-                self[u][v]['influence'] /= total_influence
+                self.edges[u, v]['Influence'] /= total_influence
 
     @classmethod
     def mean_graph(cls, images: List[HariGraph]) -> HariGraph:
@@ -141,23 +141,25 @@ class HariGraph(nx.DiGraph):
 
         # Calculate mean values for node attributes
         for node in nodes:
-            mean_opinion = sum(g.nodes[node]['opinion']
+            mean_opinion = sum(g.nodes[node]['Opinion']
                                for g in images) / len(images)
-            mean_graph.add_node(node, opinion=mean_opinion)
+            mean_graph.add_node(node)
+            mean_graph.nodes[node]['Opinion'] = mean_opinion
 
         # Calculate mean values for edge attributes
         for i, j in combinations(nodes, 2):
             influences = []
             for g in images:
                 if g.has_edge(i, j):
-                    influences.append(g[i][j]['influence'])
+                    influences.append(g[i][j]['Influence'])
                 else:
                     # Assuming 0 influence for missing edges
                     influences.append(0)
 
             mean_influence = sum(influences) / len(images)
             if mean_influence > 0:  # Add the edge only if the mean influence is positive
-                mean_graph.add_edge(i, j, influence=mean_influence)
+                mean_graph.add_edge(i, j)
+                mean_graph.edges[i, j]['Influence'] = mean_influence
 
         return mean_graph
 
@@ -196,7 +198,8 @@ class HariGraph(nx.DiGraph):
                 for i in range(n_neighbors):
                     neighbor_id = parse_node_id(parts[2 + i].strip())
                     weight = float(parts[2 + n_neighbors + i])
-                    G.add_edge(idx_agent, neighbor_id, influence=weight)
+                    G.add_edge(idx_agent, neighbor_id)
+                    G.edges[idx_agent, neighbor_id]['Influence'] = weight
 
         has_activity = False
         # Process the opinion file
@@ -212,13 +215,13 @@ class HariGraph(nx.DiGraph):
                     G.add_node(idx_agent)
 
                 # Set node attributes for opinion
-                G.nodes[idx_agent]['opinion'] = opinion
+                G.nodes[idx_agent]['Opinion'] = opinion
 
                 # Optional: set activity level if provided
                 if len(parts) > 2:
                     has_activity = True
                     activity = float(parts[2])
-                    G.nodes[idx_agent]['activity'] = activity
+                    G.nodes[idx_agent]['Activity'] = activity
 
         if has_activity:
             G.set_gatherer(ActivityDefaultNodeGatherer)
@@ -226,7 +229,7 @@ class HariGraph(nx.DiGraph):
         return G
 
     def write_network(self, network_file: str, opinion_file: str, delimiter=','):
-        opinions = self.gatherer.gather('opinion')
+        opinions = self.gatherer.gather('Opinion')
 
         with open(network_file, 'w') as f:
             f.write(
@@ -234,7 +237,7 @@ class HariGraph(nx.DiGraph):
             # Inside the for loop for writing network data to file
             for node in self.nodes:
                 neighbors = list(self.predecessors(node))
-                weights = [self[neighbor][node]['influence']
+                weights = [self[neighbor][node]['Influence']
                            for neighbor in neighbors]
 
                 # Convert node from tuple to "a&b&c..." format
@@ -249,8 +252,8 @@ class HariGraph(nx.DiGraph):
 
         with open(opinion_file, 'w') as f:
             f.write(f"# idx_agent{delimiter}opinion[...]\n")
-            for node_id in opinions['nodes']:
-                opinion = opinions['opinion'][opinions['nodes'].index(node_id)]
+            for node_id in opinions['Nodes']:
+                opinion = opinions['Opinion'][opinions['Nodes'].index(node_id)]
 
                 # Convert node_id from tuple to "a&b&c..." format
                 node_id_output = '&'.join(map(str, node_id))
@@ -266,19 +269,21 @@ class HariGraph(nx.DiGraph):
             graph_dict = json.load(file)
 
         G = cls()
-        for node in graph_dict["nodes"]:
+        for node in graph_dict['Nodes']:
             # Convert ID to tuple if necessary
             node_id = tuple(node["id"]) if isinstance(
                 node["id"], list) else (node["id"],)
-            G.add_node(node_id, opinion=node["opinion"])
+            G.add_node(node_id)
+            G.nodes[node_id]['Opinion'] = node['Opinion']
 
-        for edge in graph_dict["edges"]:
+        for edge in graph_dict['Edges']:
             # Convert source and target to tuples if necessary
             source_id = tuple(edge["source"]) if isinstance(
                 edge["source"], list) else (edge["source"],)
             target_id = tuple(edge["target"]) if isinstance(
                 edge["target"], list) else (edge["target"],)
-            G.add_edge(source_id, target_id, influence=edge["influence"])
+            G.add_edge(source_id, target_id)
+            G.edges[source_id, target_id]['Influence'] = edge['Influence']
 
         return G
 
@@ -288,34 +293,34 @@ class HariGraph(nx.DiGraph):
 
         :param filename (str): The name of the file to write to.
         """
-        params_to_save = ['opinion']
+        params_to_save = ['Opinion']
 
         # Check conditions for 'cluster_size' and 'inner_opinions'
-        if any(size > 1 for size in self.gatherer.gather('cluster_size')['cluster_size']):
-            params_to_save.extend(['cluster_size', 'inner_opinions'])
+        if any(size > 1 for size in self.gatherer.gather('Cluster size')['Cluster size']):
+            params_to_save.extend(['Cluster size', 'Inner opinions'])
 
-        # Check condition for 'activity'
-        if not np.all(np.isnan(self.gatherer.gather('activity')['activity'])):
-            params_to_save.append('activity')
+        # Check condition for 'Activity'
+        if not np.all(np.isnan(self.gatherer.gather('Activity')['Activity'])):
+            params_to_save.append('Activity')
 
         # Gathering all parameters that met the conditions
         gathered_data = self.gatherer.gather(params_to_save)
 
         # Convert tuples in 'inner_opinions' to strings if 'inner_opinions' is in the gathered data
-        if 'inner_opinions' in gathered_data:
-            gathered_data['inner_opinions'] = [
-                {key[0]: value for key, value in d.items()} for d in gathered_data['inner_opinions']]
+        if 'Inner opinions' in gathered_data:
+            gathered_data['Inner opinions'] = [
+                {key[0]: value for key, value in d.items()} for d in gathered_data['Inner opinions']]
 
         # Construct node data
         graph_dict = {
-            "nodes": [
+            'Nodes': [
                 {"id": list(node_id) if isinstance(node_id, tuple) else node_id,
                  **{prop: gathered_data[prop][i] for prop in params_to_save}}
-                for i, node_id in enumerate(gathered_data['nodes'])
+                for i, node_id in enumerate(gathered_data['Nodes'])
             ],
-            "edges": [
+            'Edges': [
                 {"source": list(u) if isinstance(u, tuple) else u, "target": list(
-                    v) if isinstance(v, tuple) else v, "influence": self[u][v]["influence"]}
+                    v) if isinstance(v, tuple) else v, 'Influence': self[u][v]['Influence']}
                 for u, v in self.edges()
             ]
         }
@@ -336,20 +341,24 @@ class HariGraph(nx.DiGraph):
 
         G = cls()
         for i in range(n):
-            G.add_node(i, opinion=random.random())
+            G.add_node((i,))
+            G.nodes[(i,)]['Opinion'] = random.random()
 
         nodes = list(G.nodes)
         random.shuffle(nodes)
         for i in range(n - 1):
-            G.add_edge(nodes[i], nodes[i + 1], influence=random.random())
+            G.add_edge(nodes[i], nodes[i + 1])
+            G.edges[nodes[i], nodes[i + 1]]['Influence'] = random.random()
 
         additional_edges = random.randint(1, n)
         for _ in range(additional_edges):
             u, v = random.sample(G.nodes, 2)
             if u != v and not G.has_edge(u, v):
-                G.add_edge(u, v, influence=random.random())
+                G.add_edge(u, v)
+                G.edges[u, v]['Influence'] = random.random()
                 if random.choice([True, False]) and not G.has_edge(v, u):
-                    G.add_edge(v, u, influence=random.random())
+                    G.add_edge(v, u)
+                    G.edges[v, u]['Influence'] = random.random()
 
         G.add_parameters_to_nodes()
 
@@ -371,11 +380,13 @@ class HariGraph(nx.DiGraph):
 
         G = cls()
         for i in range(n):
-            G.add_node((i,), opinion=random.random())
+            G.add_node((i,))
+            G.nodes[(i,)]['Opinion'] = random.random()
         for i in range(n):
             for j in range(n):
                 if i != j:
-                    G.add_edge((i,), (j,), influence=random.random())
+                    G.add_edge((i,), (j,))
+                    G.edges[(i,), (j,)]['Influence'] = random.random()
 
         edges_to_remove = random.sample(
             G.edges, int(len(G.edges) * (1 - factor)))
@@ -450,7 +461,8 @@ class HariGraph(nx.DiGraph):
         opinion_idx = 0
         for size in cluster_sizes:
             for i in range(start, start + size):
-                G.add_node((i,), opinion=opinions[opinion_idx])
+                G.add_node((i,))
+                G.nodes[(i,)]['Opinion'] = opinions[opinion_idx]
                 opinion_idx += 1
             for i in range(start, start + size):
                 for j in range(i + 1, start + size):
@@ -498,12 +510,12 @@ class HariGraph(nx.DiGraph):
         updated_opinions = {}  # Temporary dictionary to store updated opinions
 
         for i in self.nodes:
-            vi = self.nodes[i]['opinion']
+            vi = self.nodes[i]['Opinion']
 
             # Predecessors of a node are the start nodes of its incoming edges.
             for j in self.predecessors(i):
-                pij = self[j][i]['influence']
-                vj = self.nodes[j]['opinion']
+                pij = self[j][i]['Influence']
+                vj = self.nodes[j]['Opinion']
                 vi += pij * vj * t  # Calculate updated opinion based on each incoming edge
 
             # Clip the updated opinion to [0, 1]
@@ -513,7 +525,7 @@ class HariGraph(nx.DiGraph):
 
         # Update the opinions in the graph with the calculated updated opinions
         for i, vi in updated_opinions.items():
-            self.nodes[i]['opinion'] = vi
+            self.nodes[i]['Opinion'] = vi
 
     # ---- Merge Methods ----
 
@@ -553,13 +565,15 @@ class HariGraph(nx.DiGraph):
         for u, v, data in list(self.edges(data=True)):
             if u in [i, j]:
                 if v not in [i, j]:
-                    influence = data['influence']
-                    self.add_edge(new_node_id, v, influence=influence)
+                    influence = data['Influence']
+                    self.add_edge(new_node_id, v)
+                    self[new_node_id][v]['Influence'] = influence
                 self.remove_edge(u, v)
             elif v in [i, j]:
                 if u not in [i, j]:
-                    influence = data['influence']
-                    self.add_edge(u, new_node_id, influence=influence)
+                    influence = data['Influence']
+                    self.add_edge(u, new_node_id)
+                    self[u][new_node_id]['Influence'] = influence
                 self.remove_edge(u, v)
 
         # Remove the original nodes
@@ -596,21 +610,21 @@ class HariGraph(nx.DiGraph):
             merged_attributes = self.gatherer.merge(cluster)
             self.add_node(new_node_name, **merged_attributes)
             if label is not None:
-                self.nodes[new_node_name]['label'] = label
+                self.nodes[new_node_name]['Label'] = label
 
             # Reconnect edges
             for old_node_id in cluster:
                 for successor in list(self.successors(old_node_id)):
                     if successor not in cluster:
-                        influence = self[old_node_id][successor]['influence']
-                        self.add_edge(new_node_name, successor,
-                                      influence=influence)
+                        influence = self[old_node_id][successor]['Influence']
+                        self.add_edge(new_node_name, successor)
+                        self[new_node_name][successor]['Influence'] = influence
 
                 for predecessor in list(self.predecessors(old_node_id)):
                     if predecessor not in cluster:
-                        influence = self[predecessor][old_node_id]['influence']
-                        self.add_edge(predecessor, new_node_name,
-                                      influence=influence)
+                        influence = self[predecessor][old_node_id]['Influence']
+                        self.add_edge(predecessor, new_node_name)
+                        self[predecessor][new_node_name]['Influence'] = influence
 
                 # Remove old node
                 self.remove_node(old_node_id)
@@ -651,17 +665,17 @@ class HariGraph(nx.DiGraph):
                     if neighbor in visited_nodes:
                         continue  # Skip already visited nodes
 
-                    vi = self.nodes[node]['opinion']
-                    vj = self.nodes[neighbor]['opinion']
+                    vi = self.nodes[node]['Opinion']
+                    vj = self.nodes[neighbor]['Opinion']
                     size_i = self.nodes[node].get('cluster_size', len(node))
 
                     if self.has_edge(node, neighbor):
-                        influence_ij = self[node][neighbor]['influence']
+                        influence_ij = self[node][neighbor]['Influence']
                     else:
                         influence_ij = 0
 
                     if self.has_edge(neighbor, node):
-                        influence_ji = self[neighbor][node]['influence']
+                        influence_ji = self[neighbor][node]['Influence']
                     else:
                         influence_ji = 0
 
@@ -700,7 +714,7 @@ class HariGraph(nx.DiGraph):
 
             # Iterate over all nodes and assign them to the appropriate cluster
             for node, data in self.nodes(data=True):
-                if lower_bound <= data['opinion'] < upper_bound:
+                if lower_bound <= data['Opinion'] < upper_bound:
                     cluster.append(node)
             if len(cluster) > 0:
                 clusters.append(cluster)
@@ -773,11 +787,11 @@ class HariGraph(nx.DiGraph):
         total_weight = 0
 
         for node in self.nodes:
-            opinion = self.nodes[node]['opinion']
+            opinion = self.nodes[node]['Opinion']
 
             # If label is defined, the weight is the length of the label.
             # If not defined, the weight is assumed to be 1.
-            weight = len(self.nodes[node].get('label', [node]))
+            weight = len(self.nodes[node].get('Label', [node]))
 
             total_opinion += opinion * weight
             total_weight += weight
@@ -855,15 +869,15 @@ class HariGraph(nx.DiGraph):
             return -2
 
         # Extract parameters from node i, node j, and the edge (if exists)
-        vi = self.nodes[i]['opinion']
-        vj = self.nodes[j]['opinion']
+        vi = self.nodes[i]['Opinion']
+        vj = self.nodes[j]['Opinion']
 
         size_i = len(i)
         size_j = len(j)
 
-        edge_influence = self[i][j]['influence'] if self.has_edge(
+        edge_influence = self[i][j]['Influence'] if self.has_edge(
             i, j) else None
-        reverse_edge_influence = self[j][i]['influence'] if self.has_edge(
+        reverse_edge_influence = self[j][i]['Influence'] if self.has_edge(
             j, i) else None
 
         # Choose the correct similarity function and calculate the similarity
@@ -888,7 +902,7 @@ class HariGraph(nx.DiGraph):
 
     # def get_opinion_neighbor_mean_opinion_pairs(self):
     #     # Extract opinion values for all nodes
-    #     opinions = nx.get_node_attributes(self, 'opinion')
+    #     opinions = nx.get_node_attributes(self, 'Opinion')
 
     #     x_values = []  # Node's opinion
     #     y_values = []  # Mean opinion of neighbors
@@ -905,7 +919,7 @@ class HariGraph(nx.DiGraph):
 
     # def get_opinion_neighbor_mean_opinion_pairs_dict(self):
     #     # Extract opinion values for all nodes
-    #     opinions = nx.get_node_attributes(self, 'opinion')
+    #     opinions = nx.get_node_attributes(self, 'Opinion')
 
     #     mean_neighbor_opinion_dict = {}
 
@@ -925,17 +939,17 @@ class HariGraph(nx.DiGraph):
         Returns a dictionary with the opinions of the nodes.
         Key is the node ID, and opinion is the opinion of the node.
         """
-        return {node: self.nodes[node]["opinion"] for node in self.nodes}
+        return {node: self.nodes[node]['Opinion'] for node in self.nodes}
 
     @opinions.setter
     def opinions(self, values: Union[int, float, Dict[Tuple[int]:float]]):
         if isinstance(values, (int, float)):
             for node in self.nodes:
-                self.nodes[node]["opinion"] = values
+                self.nodes[node]['Opinion'] = values
         elif isinstance(values, dict):
             for node, opinion in values.items():
                 if node in self.nodes:
-                    self.nodes[node]["opinion"] = opinion
+                    self.nodes[node]['Opinion'] = opinion
                 else:
                     raise ValueError(
                         f"Node {node} does not exist in the graph.")
@@ -951,19 +965,19 @@ class HariGraph(nx.DiGraph):
     #     """
     #     if isinstance(values, (int, float)):  # Single value provided
     #         for node in self.nodes:
-    #             self.nodes[node]["opinion"] = values
+    #             self.nodes[node]['Opinion'] = values
 
     #     elif isinstance(values, list):  # List of values provided
     #         if len(values) != len(self.nodes):
     #             raise ValueError(
     #                 "Length of provided list does not match the number of nodes in the graph.")
     #         for node, opinion in zip(self.nodes, values):
-    #             self.nodes[node]["opinion"] = opinion
+    #             self.nodes[node]['Opinion'] = opinion
 
     #     elif isinstance(values, dict):  # Dictionary provided
     #         for node, opinion in values.items():
     #             if node in self.nodes:
-    #                 self.nodes[node]["opinion"] = opinion
+    #                 self.nodes[node]['Opinion'] = opinion
     #             else:
     #                 raise ValueError(
     #                     f"Node {node} does not exist in the graph.")

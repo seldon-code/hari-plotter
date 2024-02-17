@@ -83,13 +83,13 @@ class TestHariGraph:
         assert graph.number_of_nodes() == n1 + \
             n2, f"Graph should have {n1 + n2} nodes."
 
-        # Assert that the graph has the 'opinion' attribute for every node and
+        # Assert that the graph has the 'Opinion' attribute for every node and
         # edge
         for _, data in graph.nodes(data=True):
-            assert 'opinion' in data, "Every node should have a 'opinion' attribute."
+            assert 'Opinion' in data, "Every node should have a 'Opinion' attribute."
 
         for _, _, data in graph.edges(data=True):
-            assert 'influence' in data, "Every edge should have a 'influence' attribute."
+            assert 'Influence' in data, "Every edge should have a 'Influence' attribute."
 
         assert graph.check_all_paths_exist(), "All paths should exist in the graph."
 
@@ -110,7 +110,7 @@ class TestHariGraph:
 
         for node in self.graph.nodes:
             influences_sum = sum(
-                data['influence'] for _, _, data in self.graph.edges(node, data=True))
+                data['Influence'] for _, _, data in self.graph.edges(node, data=True))
             calculated_importance = influences_sum / \
                 cluster_size[node] if cluster_size[node] != 0 else 0
             assert importance[node] == pytest.approx(
@@ -120,12 +120,18 @@ class TestHariGraph:
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node((1,), opinion=0.1)
-        G.add_node((2,), opinion=0.2)
-        G.add_node((3,), opinion=0.9)
-        G.add_node((4,), opinion=0.95)
-        G.add_edge((1,), (2,), influence=0.15)
-        G.add_edge((3,), (4,), influence=0.15)
+        G.add_node((1,))
+        G.nodes[(1,)]['Opinion'] = 0.1
+        G.add_node((2,))
+        G.nodes[(2,)]['Opinion'] = 0.2
+        G.add_node((3,))
+        G.nodes[(3,)]['Opinion'] = 0.9
+        G.add_node((4,))
+        G.nodes[(4,)]['Opinion'] = 0.95
+        G.add_edge((1,), (2,))
+        G.edges[((1,), (2,))]['Influence'] = 0.15
+        G.add_edge((3,), (4,))
+        G.edges[((3,), (4,))]['Influence'] = 0.15
 
         clusters = G.find_clusters(
             max_opinion_difference=0.1, min_influence=0.1)
@@ -142,12 +148,18 @@ class TestHariGraph:
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node((1,), opinion=0.1)
-        G.add_node((2,), opinion=0.2)
-        G.add_node((3,), opinion=0.9)
-        G.add_node((4,), opinion=0.95)
-        G.add_edge((1,), (2,), influence=0.15)
-        G.add_edge((3,), (4,), influence=0.05)
+        G.add_node((1,))
+        G.nodes[(1,)]['Opinion'] = 0.1
+        G.add_node((2,))
+        G.nodes[(2,)]['Opinion'] = 0.2
+        G.add_node((3,))
+        G.nodes[(3,)]['Opinion'] = 0.9
+        G.add_node((4,))
+        G.nodes[(4,)]['Opinion'] = 0.95
+        G.add_edge((1,), (2,))
+        G.edges[((1,), (2,))]['Influence'] = 0.15
+        G.add_edge((3,), (4,))
+        G.edges[((3,), (4,))]['Influence'] = 0.05
 
         clusters = [{(1,), (2,)}, {(3,), (4,)}]
         G.merge_clusters(clusters)
@@ -158,17 +170,17 @@ class TestHariGraph:
 
         # Validate new nodes' opinions and importances
         for node in G.nodes:
-            assert G.nodes[node]['opinion'] == pytest.approx(
-                0.15) or G.nodes[node]['opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['opinion'] =}"
+            assert G.nodes[node]['Opinion'] == pytest.approx(
+                0.15) or G.nodes[node]['Opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['Opinion'] =}"
             assert len(node) == 2, "Unexpected size in merged node"
 
     def test_min_max_opinions(self):
         self.graph.add_parameters_to_nodes()
 
         opinions_data = self.graph.gatherer.gather(
-            ['min_opinion', 'max_opinion'])
-        min_opinions = opinions_data['min_opinion']
-        max_opinions = opinions_data['max_opinion']
+            ['Min opinion', 'Max opinion'])
+        min_opinions = opinions_data['Min opinion']
+        max_opinions = opinions_data['Max opinion']
 
         assert isinstance(
             min_opinions, list), "min_opinions should return a list."

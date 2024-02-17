@@ -17,14 +17,14 @@ class Group:
 
     # Dictionary mapping function names to actual function objects
     common_functions = {
-        'mean': np.mean,
-        'sum': np.sum,
-        'min': np.min,
-        'max': np.max,
-        'median': np.median,
-        'std': np.std,  # Standard Deviation
-        'var': np.var,  # Variance
-        'ptp': np.ptp,  # Peak to Peak (Max - Min)
+        'Mean': np.mean,
+        'Sum': np.sum,
+        'Min': np.min,
+        'Max': np.max,
+        'Median': np.median,
+        'Standard Deviation': np.std,  # Standard Deviation
+        'Variance': np.var,  # Variance
+        'Peak to Peak': np.ptp,  # Peak to Peak (Max - Min)
         # Add other functions as needed
     }
 
@@ -49,6 +49,13 @@ class Group:
         self.clusterings = dict()
 
         self._nodes = None
+        self._node_parameters = None
+
+    @property
+    def node_parameters(self):
+        if not self._node_parameters:
+            self._node_parameters = self.images[0].gatherer.parameters
+        return self._node_parameters
 
     @staticmethod
     def request_to_tuple(request):
@@ -126,10 +133,10 @@ class Group:
         graph = self.clustering_graph(**clustering_settings)
         # print(str(graph))
 
-        params_no_time = [param for param in parameters if param != 'time']
+        params_no_time = [param for param in parameters if param != 'Time']
         results = graph.gatherer.gather(params_no_time)
-        if 'time' in parameters:
-            results['time'] = self.mean_time()
+        if 'Time' in parameters:
+            results['Time'] = self.mean_time()
 
         # print(f'{results = }')
 
@@ -173,20 +180,20 @@ class Group:
         Returns:
             dict: A dictionary containing mean node values.
         """
-        params_no_time = [param for param in parameters if param != 'time']
+        params_no_time = [param for param in parameters if param != 'Time']
         results = self.mean_graph.gatherer.gather(params_no_time)
-        if 'time' in parameters:
-            results['time'] = self.mean_time()
+        if 'Time' in parameters:
+            results['Time'] = self.mean_time()
         # print(f'{results.keys() = }')
         return results
 
-    def calculate_function_of_node_values(self, parameters: Tuple[str], function='mean', **settings) -> dict:
+    def calculate_function_of_node_values(self, parameters: Tuple[str], function='Mean', **settings) -> dict:
         """
-        Calculate the function of mean node values based on parameters, treating 'time' specially.
+        Calculate the function of mean node values based on parameters, treating 'Time' specially.
 
         Args:
             parameters (List[str]): List of parameter names.
-            function (str): The name of the function to be applied to the mean values of the nodes, except for 'time'.
+            function (str): The name of the function to be applied to the mean values of the nodes, except for 'Time'.
 
         Returns:
             dict: A dictionary containing the results of the function applied to mean node values.
@@ -197,16 +204,16 @@ class Group:
                 f'{function} is not in a list of common functions: {list(self.common_functions.keys())}')
         func = self.common_functions[function]
 
-        # Separate 'time' from other parameters if it's present
-        params_no_time = [param for param in parameters if param != 'time']
+        # Separate 'Time' from other parameters if it's present
+        params_no_time = [param for param in parameters if param != 'Time']
         node_data = self.calculate_node_values(params_no_time)
         results = {}
 
         for param in parameters:
-            if param == 'time':
-                # Handle 'time' as a special case
-                results['time'] = self.mean_time()
-            elif param == 'nodes':
+            if param == 'Time':
+                # Handle 'Time' as a special case
+                results['Time'] = self.mean_time()
+            elif param == 'Nodes':
                 continue
             elif param in node_data:
                 # Apply the function to other parameters

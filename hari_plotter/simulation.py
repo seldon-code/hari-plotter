@@ -136,6 +136,9 @@ class Simulation:
     def __len__(self) -> int:
         return len(self.dynamics)
 
+    def __getitem__(self, index):
+        return self.dynamics[index]
+
     def __repr__(self) -> str:
         """
         Return a string representation of the Simulation instance.
