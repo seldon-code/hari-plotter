@@ -35,7 +35,7 @@ class MainWindow(QMainWindow):
         self.setGeometry(100, 100, 800, 600)
 
         self.plotter = None  # To store the loaded interface
-        self.group_index = 0  # Initialize group index
+        self._group_index = 0  # Initialize group index
         self.figure = Figure()
         self.plotter = QtPlotter(None, figure=self.figure)
 
@@ -46,6 +46,8 @@ class MainWindow(QMainWindow):
 
         # Menu Bar
         self.menu_bar = self.menuBar()
+
+        # File Menu
         self.file_menu = self.menu_bar.addMenu("&File")
 
         # Open Action
@@ -53,29 +55,34 @@ class MainWindow(QMainWindow):
         self.open_action.triggered.connect(self.open_directory_dialog)
         self.file_menu.addAction(self.open_action)
 
+        # Import Settings Action
+        self.import_settings_action = QAction("&Import Settings", self)
+        self.import_settings_action.triggered.connect(
+            self.import_plotter_settings)
+        self.import_settings_action.setEnabled(False)  # Disabled by default
+        self.file_menu.addAction(self.import_settings_action)
+
+        # Export Settings Action
+        self.export_settings_action = QAction("&Export Settings", self)
+        self.export_settings_action.triggered.connect(
+            self.export_plotter_settings)
+        self.export_settings_action.setEnabled(False)  # Disabled by default
+        self.file_menu.addAction(self.export_settings_action)
+
+        # Edit Menu
+        self.edit_menu = self.menu_bar.addMenu("&Edit")
+
         # Information Action
         self.info_action = QAction("&Information", self)
         self.info_action.triggered.connect(self.show_info_window)
         self.info_action.setEnabled(False)  # Disabled by default
-        self.file_menu.addAction(self.info_action)
+        self.edit_menu.addAction(self.info_action)
 
         # Add Plot Action
         self.add_plot_action = QAction("&Add Plot", self)
         self.add_plot_action.triggered.connect(self.show_add_plot_window)
         self.add_plot_action.setEnabled(False)  # Disabled by default
-        self.file_menu.addAction(self.add_plot_action)
-
-        # Load Settings Action
-        self.load_settings_action = QAction("&Load Settings", self)
-        self.load_settings_action.triggered.connect(self.load_plotter_settings)
-        self.load_settings_action.setEnabled(False)  # Disabled by default
-        self.file_menu.addAction(self.load_settings_action)
-
-        # Save Settings Action
-        self.save_settings_action = QAction("&Save Settings", self)
-        self.save_settings_action.triggered.connect(self.save_plotter_settings)
-        self.save_settings_action.setEnabled(False)  # Disabled by default
-        self.file_menu.addAction(self.save_settings_action)
+        self.edit_menu.addAction(self.add_plot_action)
 
         # Group navigation bar
         self.nav_bar_layout = QHBoxLayout()
@@ -83,7 +90,7 @@ class MainWindow(QMainWindow):
         self.left_button.clicked.connect(self.decrement_group_index)
         self.nav_bar_layout.addWidget(self.left_button)
 
-        self.group_index_label = QLabel("0")
+        self.group_index_label = QLabel("0/0")
         self.nav_bar_layout.addWidget(self.group_index_label)
 
         self.right_button = QPushButton(">")
@@ -104,7 +111,18 @@ class MainWindow(QMainWindow):
             self.open_directory_dialog(initial_dir_path)
 
         if self.plotter.is_initialized and settings_path:
-            self.load_plotter_settings(settings_path)
+            self.import_plotter_settings(settings_path)
+
+        self.update_group_index_label()
+
+    @property
+    def group_index(self):
+        return self._group_index
+
+    @group_index.setter
+    def group_index(self, i: int):
+        self._group_index = i
+        self.update_group_index_label()
 
     def open_directory_dialog(self, dir_path=None):
         if not dir_path:
@@ -125,11 +143,15 @@ class MainWindow(QMainWindow):
             self.add_plot_action.setEnabled(True)
             self.left_button.setEnabled(True)
             self.right_button.setEnabled(True)
-            self.load_settings_action.setEnabled(True)
-            self.save_settings_action.setEnabled(True)
+            self.import_settings_action.setEnabled(True)
+            self.export_settings_action.setEnabled(True)
+
+            self.update_group_index_label()
 
     def plot_current_group(self):
         if self.plotter.is_initialized:
+            print('Group: ' + str(self.group_index) +
+                  '/'+str(len(self.plotter.interface)-1))
             self.plotter.plot(self.group_index)
             self.canvas.draw_idle()  # Refresh the canvas to display the new plot
 
@@ -141,27 +163,32 @@ class MainWindow(QMainWindow):
             self.info_window.show()
 
     def increment_group_index(self):
-        if self.plotter.is_initialized and self.group_index < len(self.plotter.interface.groups) - 1:
-            self.group_index += 1
-            self.update_group_index_label()
+        if self.plotter.is_initialized:
+            group_index = self.group_index + 1
+            self.group_index = group_index % len(self.plotter.interface.groups)
             self.plot_current_group()
 
     def decrement_group_index(self):
-        if self.plotter.is_initialized and self.group_index > 0:
-            self.group_index -= 1
-            self.update_group_index_label()
+        if self.plotter.is_initialized:
+            group_index = self.group_index - 1
+            if group_index == -1:
+                group_index = len(self.plotter.interface.groups)-1
+            self.group_index = group_index
             self.plot_current_group()
 
     def update_group_index_label(self):
-        self.group_index_label.setText(str(self.group_index))
-        # Additional functionality can be added here to update other parts of the UI based on the new group index
+        if self.plotter.is_initialized:
+            self.group_index_label.setText(
+                str(self.group_index)+'/'+str(len(self.plotter.interface)-1))
+        else:
+            self.group_index_label.setText('0/0')
 
     def show_add_plot_window(self):
         if self.plotter.is_initialized:
             self.add_plot_window = AddPlotWindow(self)
             self.add_plot_window.show()
 
-    def save_plotter_settings(self):
+    def export_plotter_settings(self):
         # Use QFileDialog to get the filename from the user
         options = QFileDialog.Options()
         fileName, _ = QFileDialog.getSaveFileName(
@@ -173,7 +200,7 @@ class MainWindow(QMainWindow):
             with open(fileName, 'w') as file:
                 file.write(self.plotter.to_code())
 
-    def load_plotter_settings(self, settings_path=None):
+    def import_plotter_settings(self, settings_path=None):
         if not settings_path:  # If no settings path is provided, open dialog
             options = QFileDialog.Options()
             settings_path, _ = QFileDialog.getOpenFileName(
