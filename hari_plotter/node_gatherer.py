@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Set, Tuple, Union
@@ -14,42 +15,69 @@ class NodeGatherer(ABC):
     or parameters of nodes within a graph.
 
     Attributes:
-        _parameters (dict): Dictionary mapping property names to the associated method.
+        parameter_logger : Class to handle names and associated method.
         G (nx.Graph): The graph containing the nodes.
     """
-    _parameters = {}
+    class ParameterLogger:
+        def __init__(self) -> None:
+            self.parameters = {}
+
+        def __call__(self, property_name):
+            """
+            Makes the ParameterLogger instance callable. It can be used as a decorator to register parameters.
+
+            Parameters:
+            -----------
+            property_name : str
+                The name of the property that the parameter provides.
+            """
+            def decorator(class_parameter):
+                if property_name in self.parameters:
+                    raise ValueError(
+                        f"Property {property_name} is already defined.")
+                self.parameters[property_name] = class_parameter
+                return class_parameter
+            return decorator
+
+        def copy(self):
+            # Create a new instance of ParameterLogger
+            new_instance = NodeGatherer.ParameterLogger()
+            new_instance.parameters = copy.deepcopy(
+                self.parameters)  # Deep copy the dictionary
+            return new_instance
+
+        def keys(self):
+            return self.parameters.keys()
+
+        def __getitem__(self, key):
+            # Returns None if key is not found
+            return self.parameters.get(key, None)
+
+        def __setitem__(self, key, value):
+            self.parameters[key] = value
+
+        def __contains__(self, key):
+            return key in self.parameters
+
+        def __str__(self):
+            return str(self.parameters)
+
+        def __len__(self):
+            return len(self.parameters)
+
+        def __iter__(self):
+            return iter(self.parameters)
+
+    parameter_logger = ParameterLogger()
 
     def __init__(self, G):
         super().__init__()
         self.G = G
 
-    @classmethod
-    def parameter(cls, property_name):
-        """
-        Class method decorator to register parameters that provide various properties of nodes.
-
-        Parameters:
-        -----------
-        property_name : str
-            The name of the property that the parameter provides.
-
-        Raises:
-        -------
-        ValueError: 
-            If the property name is already defined.
-        """
-        def decorator(class_parameter):
-            if property_name in cls._parameters:
-                raise ValueError(
-                    f"Property {property_name} is already defined.")
-            cls._parameters[property_name] = class_parameter
-            return class_parameter
-        return decorator
-
     @property
     def parameters(self) -> list:
         """Returns a list of property names that have been registered."""
-        return list(self._parameters.keys())
+        return list(self.parameter_logger.keys())
 
     def gather_unprocessed(self, param: Union[str, List[str]]) -> dict:
         """
@@ -67,11 +95,11 @@ class NodeGatherer(ABC):
         result = dict()
 
         for p in param:
-            if p not in self._parameters:
+            if p not in self.parameter_logger:
                 raise ValueError(
                     f'{p} is not a valid parameter. Valid parameters are: {self.parameters}')
 
-            parameter = self._parameters[p]
+            parameter = self.parameter_logger[p]
             parameter_result = parameter(self)
             # Use None or a default value for missing data
             result[p] = parameter_result
@@ -111,7 +139,7 @@ class NodeGatherer(ABC):
         return transformed_result
 
     def gather_everything(self) -> dict:
-        return self.gather_unprocessed(self._parameters.keys())
+        return self.gather_unprocessed(self.parameter_logger.keys())
 
     @abstractmethod
     def merge(self, nodes: (List[dict])) -> dict:
@@ -133,6 +161,7 @@ class DefaultNodeGatherer(NodeGatherer):
     Default implementation of the NodeGatherer. This class provides methods to extract default parameters from nodes
     within a graph.
     """
+    parameter_logger = NodeGatherer.ParameterLogger()
 
     def merge(self, node_ids: List[dict]) -> dict:
         """
@@ -170,17 +199,17 @@ class DefaultNodeGatherer(NodeGatherer):
             'Inner opinions': inner_opinions
         }
 
-    @NodeGatherer.parameter("Opinion")
+    @parameter_logger("Opinion")
     def opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to their respective opinions."""
         return self.G.opinions
 
-    @NodeGatherer.parameter("Cluster size")
+    @parameter_logger("Cluster size")
     def cluster_size(self) -> dict:
         """Returns a dictionary mapping node IDs to their cluster sizes."""
         return {node: self.G.nodes[node].get('Cluster size', len(node)) for node in self.G.nodes}
 
-    @NodeGatherer.parameter("Importance")
+    @parameter_logger("Importance")
     def importance(self) -> dict:
         """Returns a dictionary mapping node IDs to their importance based on Influence and Size."""
         importance_dict = {}
@@ -194,7 +223,7 @@ class DefaultNodeGatherer(NodeGatherer):
 
         return importance_dict
 
-    @NodeGatherer.parameter("Neighbor mean opinion")
+    @parameter_logger("Neighbor mean opinion")
     def neighbor_mean_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the mean opinion of their neighbors."""
         data = {}
@@ -211,27 +240,29 @@ class DefaultNodeGatherer(NodeGatherer):
 
         return data
 
-    @NodeGatherer.parameter('Inner opinions')
+    @parameter_logger('Inner opinions')
     def inner_opinions(self) -> dict:
         """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
         return {node: self.G.nodes[node].get('Inner opinions', {node: self.G.nodes[node]['Opinion']}) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('Max opinion')
+    @parameter_logger('Max opinion')
     def max_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the maximum opinion value among their inner opinions."""
         return {node: max((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('Min opinion')
+    @parameter_logger('Min opinion')
     def min_opinion(self) -> dict:
         """Returns a dictionary mapping node IDs to the minimum opinion value among their inner opinions."""
         return {node: min((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
 
-    @NodeGatherer.parameter('Label')
+    @parameter_logger('Label')
     def min_opinion(self) -> dict:
         return {node: self.G.nodes[node].get('Label', None) for node in self.G.nodes}
 
 
 class ActivityDefaultNodeGatherer(DefaultNodeGatherer):
+    parameter_logger = DefaultNodeGatherer.parameter_logger.copy()
+
     def merge(self, node_ids: List[dict]) -> dict:
         """
         Merges given nodes and computes combined attributes such as 'Inner opinions', 'Cluster size', and 'Label'.
@@ -271,6 +302,6 @@ class ActivityDefaultNodeGatherer(DefaultNodeGatherer):
             'Activity': activity
         }
 
-    @NodeGatherer.parameter('Activity')
+    @parameter_logger('Activity')
     def activity(self) -> dict:
         return {node: self.G.nodes[node].get('Activity', np.nan) for node in self.G.nodes}
