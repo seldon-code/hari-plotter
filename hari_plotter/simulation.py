@@ -6,7 +6,7 @@ from typing import Any, Dict, Optional, Union
 import toml
 
 from .hari_dynamics import HariDynamics
-from .model import Model
+from .model import Model, ModelFactory
 
 
 class Simulation:
@@ -51,7 +51,7 @@ class Simulation:
         data = toml.load(filename)
         model_type = data.get("simulation", {}).get("model")
         model_params = data.get(model_type, {})
-        model = Model(model_type, model_params)
+        model = ModelFactory.create_model(model_type, model_params)
         rng_seed = data.get("simulation", {}).get("rng_seed", None)
         max_iterations = data.get("model", {}).get("max_iterations", None)
         network = data.get("network", {})
@@ -80,7 +80,7 @@ class Simulation:
 
         model_type = data.get("simulation", {}).get("model")
         model_params = data.get(model_type, {})
-        model = Model(model_type, model_params)
+        model = ModelFactory.create_model(model_type, model_params)
         rng_seed = data.get("simulation", {}).get("rng_seed", None)
         max_iterations = data.get("model", {}).get("max_iterations", None)
         network = data.get("network", {})

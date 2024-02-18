@@ -305,6 +305,8 @@ class plot_histogram(Plot):
         x_lim, y_lim = self.get_limits(axis_limits)
         data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
+        nodes = data['Nodes']
+
         parameter = self.parameters[0]
         values = np.array(data[parameter])
         valid_indices = ~np.isnan(values)
