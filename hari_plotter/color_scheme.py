@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Set, Tuple, Union
@@ -7,12 +8,9 @@ from typing import Dict, List, Optional, Set, Tuple, Union
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-
-from .interface import Interface
-
 from matplotlib.lines import Line2D
 
-import copy
+from .interface import Interface
 
 
 class ColorScheme:

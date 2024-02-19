@@ -2,12 +2,10 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
-from typing import Any, Dict, Iterator, List, Tuple, Optional, Type, Union
+from itertools import combinations
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 
 import numpy as np
-
-from itertools import combinations
-
 
 from .cluster import Clustering
 from .hari_graph import HariGraph

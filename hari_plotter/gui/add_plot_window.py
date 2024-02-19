@@ -9,8 +9,8 @@ from PyQt5.QtWidgets import (QAction, QApplication, QCheckBox, QComboBox,
                              QMainWindow, QPushButton, QSpinBox, QTextEdit,
                              QVBoxLayout, QWidget)
 
-from hari_plotter.interface import Interface
 from hari_plotter.gui.parameters_widgets import ParameterWidgetFactory
+from hari_plotter.interface import Interface
 
 
 class PlotSettingsWidget(QWidget):

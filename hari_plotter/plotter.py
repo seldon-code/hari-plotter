@@ -18,9 +18,9 @@ import numpy as np
 import seaborn as sns
 
 from .cluster import Clustering
+from .color_scheme import ColorScheme
 from .hari_graph import HariGraph
 from .interface import Interface
-from .color_scheme import ColorScheme
 
 plt.rcParams['axes.xmargin'] = 0
 plt.rcParams['axes.ymargin'] = 0

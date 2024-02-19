@@ -12,10 +12,11 @@ import networkx as nx
 import numpy as np
 import seaborn as sns
 
-from .plotter import Plotter
 from .color_scheme import ColorScheme
 from .interface import Interface
-from .parameters import Parameter, ListParameter, BoolParameter, FloatParameter, NoneOrFloatParameter, NoneRangeParameter
+from .parameters import (BoolParameter, FloatParameter, ListParameter,
+                         NoneOrFloatParameter, NoneRangeParameter, Parameter)
+from .plotter import Plotter
 
 
 class Plot(ABC):

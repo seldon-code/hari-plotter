@@ -1,6 +1,7 @@
+import matplotlib.pyplot as plt
+
 from hari_plotter import Plotter
 from hari_plotter.interface import Interface
-import matplotlib.pyplot as plt
 
 
 class QtPlotter(Plotter):
@@ -14,8 +15,9 @@ class QtPlotter(Plotter):
             self.figure = plt.figure(figsize=self.figsize)
         fig = self.figure
         fig.clf()  # Clear the figure to prevent overlaying of plots
-        axs = fig.subplots(self.num_rows, self.num_cols, gridspec_kw={
-            'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
+        axs = fig.subplots(self
+                           .num_rows, self.num_cols, gridspec_kw={
+                               'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
         # Ensure axs is a 2D array for consistency
         if self.num_rows == 1 and self.num_cols == 1:
             axs = [[axs]]  # Single plot

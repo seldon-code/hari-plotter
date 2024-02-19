@@ -1,5 +1,6 @@
 import pytest
 from PyQt5.QtCore import Qt
+
 from hari_plotter.gui.main_window import MainWindow
 
 

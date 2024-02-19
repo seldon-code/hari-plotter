@@ -12,7 +12,8 @@ import networkx as nx
 import numpy as np
 
 from .distributions import generate_mixture_of_gaussians
-from .node_gatherer import NodeGatherer, DefaultNodeGatherer, ActivityDefaultNodeGatherer
+from .node_gatherer import (ActivityDefaultNodeGatherer, DefaultNodeGatherer,
+                            NodeGatherer)
 
 
 class HariGraph(nx.DiGraph):
