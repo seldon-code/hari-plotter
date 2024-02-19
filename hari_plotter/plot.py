@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import math
 import warnings
-from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
-from collections import defaultdict
+from abc import ABC
 from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
                     Union)
 
@@ -16,91 +15,7 @@ import seaborn as sns
 from .plotter import Plotter
 from .color_scheme import ColorScheme
 from .interface import Interface
-
-
-class Parameter:
-    @abstractclassmethod
-    def validate(self) -> bool:
-        pass
-
-
-class ListParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, arguments: List[str], comment: str = '') -> None:
-        super().__init__()
-        self.name = name
-        self.parameter_name = parameter_name
-        self.arguments = arguments
-        self.comment = comment
-
-    def validate(self, value: str) -> bool:
-        return isinstance(value, str)
-
-
-class BoolParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_value: False, comment: str = '') -> None:
-        super().__init__()
-        self.name = name
-        self.parameter_name = parameter_name
-        self.default_value = default_value
-        self.comment = comment
-
-    def validate(self, value: bool) -> bool:
-        return isinstance(value, bool)
-
-
-class FloatParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_value: float = 0.0, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
-        super().__init__()
-        self.name = name
-        self.parameter_name = parameter_name
-        self.default_value = default_value
-        self.limits = limits
-        self.comment = comment
-
-    def validate(self, value: float) -> bool:
-        return isinstance(value, float) and (self.limits[0] is None or self.limits[0] <= value) and (self.limits[1] is None or self.limits[1] >= value)
-
-
-class NoneOrFloatParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_value: Union[float, None] = None, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
-        super().__init__()
-        self.name = name
-        self.parameter_name = parameter_name
-        self.default_value = default_value
-        self.limits = limits
-        self.comment = comment
-
-    def validate(self, value: Union[float, None]) -> bool:
-        return value is None or (isinstance(value, float) and (self.limits[0] is None or self.limits[0] <= value) and (self.limits[1] is None or self.limits[1] >= value))
-
-
-class NoneRangeParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_min_value: Union[float, None] = None, default_max_value: Union[float, None] = None, limits: Tuple[float] = (None, None), comment: str = ''):
-        super().__init__()
-        self.name = name
-        self.parameter_name = parameter_name
-        self.default_min_value = default_min_value
-        self.default_max_value = default_max_value
-        self.limits = limits
-        self.comment = comment
-
-    def validate(self, value: Tuple[float, None]) -> bool:
-        min_value, max_value = value
-        # Check if both min and max values are None, floats, or one is None and the other is float
-        if not ((min_value is None or isinstance(min_value, float)) and (max_value is None or isinstance(max_value, float))):
-            return False
-
-        # If both min and max values are not None, check that max is greater than min
-        if min_value is not None and max_value is not None and max_value <= min_value:
-            return False
-
-        # Check that min and max values fall within the specified limits, if they are not None
-        if min_value is not None and (self.limits[0] is not None and min_value < self.limits[0]):
-            return False
-        if max_value is not None and (self.limits[1] is not None and max_value > self.limits[1]):
-            return False
-
-        return True
+from .parameters import Parameter, ListParameter, BoolParameter, FloatParameter, NoneOrFloatParameter, NoneRangeParameter
 
 
 class Plot(ABC):
@@ -227,14 +142,33 @@ class plot_histogram(Plot):
                  scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
-        self.parameters = tuple(parameters)
-        self.scale = tuple(scale or ('Linear', 'Linear'))
-        self.rotated = rotated
-        self.show_x_label = show_x_label
-        self.show_y_label = show_y_label
-        self._x_lim = x_lim
-        self._y_lim = y_lim
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, histogram_color: str | dict | float | None = None):
+        self.color_scheme: ColorScheme = color_scheme
+        self.parameters: Tuple[str] = tuple(parameters)
+        self.scale: Tuple[str] = tuple(scale or ('Linear', 'Linear'))
+        self.rotated: bool = rotated
+        self.show_x_label: bool = show_x_label
+        self.show_y_label: bool = show_y_label
+        self._x_lim: Sequence[float] | None = x_lim
+        self._y_lim: Sequence[float] | None = y_lim
+
+        def histogram_color_to_histogram_color_settings(histogram_color) -> dict:
+            if isinstance(histogram_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if all(key in {'mode', 'settings'} for key in histogram_color.keys()):
+                    raise ValueError(
+                        'Histogram color is incorrectly formatted')
+                return histogram_color
+            if isinstance(histogram_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': histogram_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.histogram_color_settings: dict = histogram_color_to_histogram_color_settings(
+            histogram_color)
+
+        if self.histogram_color_settings['mode'] not in self.color_scheme.method_logger['Distribution Color']['modes']:
+            raise ValueError('Histogram color is incorrectly formatted')
 
     def settings_to_code(self) -> str:
         return ('\'parameters\':'+str(self.parameters) +
@@ -243,10 +177,11 @@ class plot_histogram(Plot):
                 ',\'show_x_label\':'+str(self.show_x_label) +
                 ',\'show_y_label\':'+str(self.show_y_label) +
                 ',\'x_lim\':'+str(self._x_lim) +
-                ',\'y_lim\':'+str(self._y_lim))
+                ',\'y_lim\':'+str(self._y_lim) +
+                ',\'histogram_color\':'+str(self.histogram_color_settings))
 
     @staticmethod
-    def settings(interface: Interface):
+    def settings(interface: Interface) -> List[Parameter]:
         return [ListParameter(name='Parameter', parameter_name='parameter', arguments=interface.node_parameters, comment='Parameter of the histogram'),
                 ListParameter(name='Scale', parameter_name='scale', arguments=[
                               'Linear', 'Tanh'], comment='Scale of the parameter'),
@@ -263,8 +198,10 @@ class plot_histogram(Plot):
                 ]
 
     @staticmethod
-    def qt_to_settings(qt_settings: dict):
-        # Copy qt_settings to avoid modifying the original dictionary
+    def qt_to_settings(qt_settings: dict) -> dict:
+        '''
+        Transforms dict of settings from PyQT GUI to the dict that will be used for class init.
+        '''
         settings = qt_settings.copy()
 
         # Extract the value of 'parameter' and remove it from settings
@@ -276,7 +213,7 @@ class plot_histogram(Plot):
 
         return settings
 
-    def get_dynamic_plot_requests(self):
+    def get_dynamic_plot_requests(self) -> List[dict]:
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
 
     def plot(self, ax: plt.Axes, dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
@@ -312,6 +249,9 @@ class plot_histogram(Plot):
         valid_indices = ~np.isnan(values)
         values = values[valid_indices]
 
+        histogram_color = self.color_scheme.distribution_color(
+            nodes, **self.histogram_color_settings)
+
         if self.rotated:
             if self.scale[1] == 'Tanh':
                 values = np.tanh(values)
@@ -321,7 +261,7 @@ class plot_histogram(Plot):
 
             values = values[(values >= y_lim[0]) & (values <= y_lim[1])]
 
-            sns.kdeplot(y=values, ax=ax, fill=True)
+            sns.kdeplot(y=values, ax=ax, fill=True, color=histogram_color)
             sns.histplot(y=values, kde=False, ax=ax,
                          binrange=y_lim, element="step", fill=False, stat="density")
 
@@ -341,7 +281,7 @@ class plot_histogram(Plot):
 
             values = values[(values >= x_lim[0]) & (values <= x_lim[1])]
 
-            sns.kdeplot(data=values, ax=ax, fill=True)
+            sns.kdeplot(data=values, ax=ax, fill=True, color=histogram_color)
             sns.histplot(data=values, kde=False, ax=ax,
                          binrange=x_lim, element="step", fill=False, stat="density")
 
@@ -364,7 +304,8 @@ class plot_hexbin(Plot):
                  scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm', show_colorbar: bool = False):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str | None = None, show_colorbar: bool = False):
+        self.color_scheme = color_scheme
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
@@ -372,8 +313,24 @@ class plot_hexbin(Plot):
         self.show_y_label = show_y_label
         self._x_lim = x_lim
         self._y_lim = y_lim
-        self.colormap = colormap
         self.show_colorbar = show_colorbar
+
+        def colormap_to_colormap_settings(colormap) -> dict:
+            if isinstance(colormap, dict):
+                # check if only 'mode' and 'settings' in dict
+                if all(key in {'mode', 'settings'} for key in colormap.keys()):
+                    raise ValueError(
+                        'Colormap is incorrectly formatted')
+                return colormap
+            if isinstance(colormap, (str, float)):
+                return {'mode': 'Independent Colormap', 'settings': {'colormap': colormap}}
+            else:
+                return {'mode': 'Independent Colormap'}
+
+        self.colormap_settings = colormap_to_colormap_settings(colormap)
+
+        if self.colormap_settings['mode'] not in self.color_scheme.method_logger['Color Map']['modes']:
+            raise ValueError('Colormap is incorrectly formatted')
 
     def settings_to_code(self) -> str:
         return ('\'parameters\':'+str(self.parameters) +
@@ -386,7 +343,7 @@ class plot_hexbin(Plot):
                 ',\'show_colorbar\':'+str(self.show_colorbar))
 
     @staticmethod
-    def settings(interface: Interface):
+    def settings(interface: Interface) -> List[Parameter]:
         return [ListParameter(name='X parameter', parameter_name='x_parameter', arguments=interface.node_parameters, comment=''),
                 ListParameter(name='X scale', parameter_name='x_scale', arguments=[
                               'Linear', 'Tanh'], comment=''),
@@ -409,7 +366,7 @@ class plot_hexbin(Plot):
                 ]
 
     @staticmethod
-    def qt_to_settings(qt_settings: dict):
+    def qt_to_settings(qt_settings: dict) -> dict:
         # Copy qt_settings to avoid modifying the original dictionary
         settings = qt_settings.copy()
 
@@ -458,6 +415,8 @@ class plot_hexbin(Plot):
         y_parameter = self.parameters[1]
         x_values = np.array(data[x_parameter])
         y_values = np.array(data[y_parameter])
+        nodes = data['Nodes']
+        colormap = self.color_scheme.colorbar(nodes, **self.colormap_settings)
 
         # Find indices where neither x_values nor y_values are NaN
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
@@ -473,13 +432,13 @@ class plot_hexbin(Plot):
             y_values = np.tanh(y_values)
 
         if x_lim == (None, None):
-            x_extent = [-1, 1] if self.scale[0] == 'Tanh' else [
+            x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [
                 np.nanmin(x_values), np.nanmax(x_values)]
         if y_lim == (None, None):
-            y_extent = [-1, 1] if self.scale[1] == 'Tanh' else [
+            y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [
                 np.nanmin(y_values), np.nanmax(y_values)]
 
-        extent = x_extent+y_extent
+        extent = x_lim+y_lim
 
         delta_x = 0.1*(extent[1]-extent[0])
         x_field_extent = [extent[0]-delta_x, extent[1]+delta_x]
@@ -489,18 +448,18 @@ class plot_hexbin(Plot):
 
         field_extent = x_field_extent + y_field_extent
 
-        ax.imshow([[0, 0], [0, 0]], cmap=self.colormap,
+        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
                   interpolation='nearest', aspect='auto', extent=field_extent)
 
         hb = ax.hexbin(x_values, y_values, gridsize=50,
-                       bins='log', extent=extent, cmap=self.colormap)
+                       bins='log', extent=extent, cmap=colormap)
 
         # Create a background filled with the `0` value of the colormap
-        ax.imshow([[0, 0], [0, 0]], cmap=self.colormap,
+        ax.imshow([[0, 0], [0, 0]], cmap=colormap,
                   interpolation='nearest', aspect='auto', extent=extent)
         # Create the hexbin plot
 
-        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=self.colormap,
+        hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
                        bins='log', extent=extent)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
@@ -537,12 +496,38 @@ class plot_scatter(Plot):
         self._y_lim = y_lim
         self.color_scheme = color_scheme
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+        def scatter_color_to_scatter_color_settings(scatter_color) -> dict:
+            if isinstance(scatter_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if all(key in {'mode', 'settings'} for key in scatter_color.keys()):
+                    raise ValueError(
+                        'Histogram color is incorrectly formatted')
+                return scatter_color
+            if isinstance(scatter_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': scatter_color}}
+            else:
+                return {'mode': 'Constant Color'}
 
-    # @classmethod
-    # def style_options(cls):
-    #     return [ColorScheme.]
+        self.scatter_color_settings: dict = scatter_color_to_scatter_color_settings(
+            color)
+
+        if self.scatter_color_settings['mode'] not in self.color_scheme.method_logger['Scatter Color']['modes']:
+            raise ValueError('Histogram color is incorrectly formatted')
+
+        def scatter_marker_to_scatter_marker_settings(scatter_marker) -> dict:
+            if isinstance(scatter_marker, dict):
+                # check if only 'mode' and 'settings' in dict
+                if all(key in {'mode', 'settings'} for key in scatter_marker.keys()):
+                    raise ValueError(
+                        'Histogram marker is incorrectly formatted')
+                return scatter_marker
+            if isinstance(scatter_marker, (str, float)):
+                return {'mode': 'Constant Marker', 'settings': {'marker': scatter_marker}}
+            else:
+                return {'mode': 'Constant Marker'}
+
+        self.scatter_marker_settings: dict = scatter_marker_to_scatter_marker_settings(
+            marker)
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -591,11 +576,12 @@ class plot_scatter(Plot):
         if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
-        colors_dict = self.color_scheme.scatter_colors_nodes()
-        colors = [colors_dict[node] for node in valid_nodes]
-        marker = self.color_scheme.scatter_marker_nodes()
+        colors = self.color_scheme.scatter_colors_nodes(
+            valid_nodes, **self.scatter_color_settings)
+        markers = self.color_scheme.scatter_markers_nodes(
+            valid_nodes, **self.scatter_marker_settings)
         ax.scatter(x_values, y_values,
-                   color=colors, marker=marker)
+                   color=colors, marker=markers)
 
         # Setting the plot limits
         if x_lim is not None:
