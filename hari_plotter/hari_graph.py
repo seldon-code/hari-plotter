@@ -12,8 +12,8 @@ import networkx as nx
 import numpy as np
 
 from .distributions import generate_mixture_of_gaussians
-from .node_gatherer import (ActivityDefaultNodeGatherer, DefaultNodeGatherer,
-                            NodeGatherer)
+from .node_gatherer import (ActivityDefaultNodeEdgeGatherer, DefaultNodeEdgeGatherer,
+                            NodeEdgeGatherer)
 
 
 class HariGraph(nx.DiGraph):
@@ -27,9 +27,9 @@ class HariGraph(nx.DiGraph):
     def __init__(self, incoming_graph_data=None, **attr):
         super().__init__(incoming_graph_data, **attr)
         self.similarity_function = self.default_similarity_function
-        self.gatherer = DefaultNodeGatherer(self)
+        self.gatherer = DefaultNodeEdgeGatherer(self)
 
-    def set_gatherer(self, new_gatherer: type[NodeGatherer]):
+    def set_gatherer(self, new_gatherer: type[NodeEdgeGatherer]):
         self.gatherer = new_gatherer(self)
 
     def add_parameters_to_nodes(self, nodes: Union[List[Tuple[int]], None] = None):
@@ -225,7 +225,7 @@ class HariGraph(nx.DiGraph):
                     G.nodes[idx_agent]['Activity'] = activity
 
         if has_activity:
-            G.set_gatherer(ActivityDefaultNodeGatherer)
+            G.set_gatherer(ActivityDefaultNodeEdgeGatherer)
 
         return G
 
@@ -550,36 +550,7 @@ class HariGraph(nx.DiGraph):
             i Tuple[int]: The identifier for the first node to merge.
             j Tuple[int]: The identifier for the second node to merge.
         """
-        if not (isinstance(i, tuple) and isinstance(j, tuple)):
-            raise TypeError('Incorrect node format')
-
-        # Merge nodes using the gatherer's merge method
-        merged_data = self.gatherer.merge([i, j])
-
-        # Generate a new node ID
-        new_node_id = tuple(sorted(i+j))
-
-        # Add the new merged node to the graph
-        self.add_node(new_node_id, **merged_data)
-
-        # Reconnect edges
-        for u, v, data in list(self.edges(data=True)):
-            if u in [i, j]:
-                if v not in [i, j]:
-                    influence = data['Influence']
-                    self.add_edge(new_node_id, v)
-                    self[new_node_id][v]['Influence'] = influence
-                self.remove_edge(u, v)
-            elif v in [i, j]:
-                if u not in [i, j]:
-                    influence = data['Influence']
-                    self.add_edge(u, new_node_id)
-                    self[u][new_node_id]['Influence'] = influence
-                self.remove_edge(u, v)
-
-        # Remove the original nodes
-        self.remove_node(i)
-        self.remove_node(j)
+        self.gatherer.merge_nodes(i, j)
 
     def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
         """
@@ -591,44 +562,7 @@ class HariGraph(nx.DiGraph):
                                     to new node IDs.
             merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
         """
-        labels = labels if labels is not None else [None]*len(clusters)
-
-        # Remaining nodes not in any cluster
-        if merge_remaining:
-            # All nodes in the graph
-            all_nodes = set(self.nodes)
-
-            # Record all nodes that are part of the specified clusters
-            clustered_nodes = set(
-                node for cluster in clusters for node in cluster)
-            remaining_nodes = all_nodes - clustered_nodes
-            if remaining_nodes:
-                clusters.append(list(remaining_nodes))
-                labels.append(None)
-
-        for cluster, label in zip(clusters, labels):
-            new_node_name = tuple(sorted(sum(cluster, ())))
-            merged_attributes = self.gatherer.merge(cluster)
-            self.add_node(new_node_name, **merged_attributes)
-            if label is not None:
-                self.nodes[new_node_name]['Label'] = label
-
-            # Reconnect edges
-            for old_node_id in cluster:
-                for successor in list(self.successors(old_node_id)):
-                    if successor not in cluster:
-                        influence = self[old_node_id][successor]['Influence']
-                        self.add_edge(new_node_name, successor)
-                        self[new_node_name][successor]['Influence'] = influence
-
-                for predecessor in list(self.predecessors(old_node_id)):
-                    if predecessor not in cluster:
-                        influence = self[predecessor][old_node_id]['Influence']
-                        self.add_edge(predecessor, new_node_name)
-                        self[predecessor][new_node_name]['Influence'] = influence
-
-                # Remove old node
-                self.remove_node(old_node_id)
+        self.gatherer.merge_clusters(clusters, labels, merge_remaining)
 
     # ---- Clusterization Methods ----
 
