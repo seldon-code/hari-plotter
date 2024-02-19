@@ -25,6 +25,7 @@ PyQt5 = "5.14"
 pytest = "^7.4.2"
 ipykernel = "^6.25.2"
 pytest-qt = "^4.4.0"
+appmap = {version = "^1.19.0", allow-prereleases = true}
 
 [build-system]
 requires = ["poetry-core"]
