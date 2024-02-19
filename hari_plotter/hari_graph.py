@@ -154,103 +154,152 @@ class HariGraph(nx.DiGraph):
 
     @classmethod
     def read_network(cls, network_file: str, opinion_file: str) -> 'HariGraph':
-        G = cls()  # Instantiate HariGraph
+        """
+        Reads a graph structure and node attributes from separate files and initializes a HariGraph instance with this data.
 
-        # Check if '&' is present in the network file
+        Parameters:
+            network_file (str): Path to the file containing the network's topology, specifying nodes and their connections.
+            opinion_file (str): Path to the file containing node attributes, specifically their opinions and optionally activities.
+
+        Returns:
+            HariGraph: An instance of HariGraph populated with nodes, edges, and node attributes based on the provided files.
+        """
+
+        G = cls()  # Instantiate a new HariGraph object
+
+        # Open and read the network file. Check if node IDs are represented as tuples (indicated by '&').
         with open(network_file, 'r') as f:
             content = f.read()
+            # Determine if node IDs include '&', implying tuple representation.
             has_tuples = '&' in content
 
-        # Define parsing function based on presence of '&'
+        # Based on the presence of '&', define a function to parse node IDs appropriately.
         if has_tuples:
             def parse_node_id(node_id_str):
-                if '&' in node_id_str:
-                    return tuple(map(int, node_id_str.split('&')))
-                else:
-                    return (int(node_id_str),)
+                # Parse node ID string into a tuple if '&' is present, otherwise keep it as a single integer.
+                return tuple(map(int, node_id_str.split('&'))) if '&' in node_id_str else (int(node_id_str),)
         else:
             def parse_node_id(node_id_str):
+                # If no '&', node IDs are single integers wrapped in a tuple for consistency.
                 return (int(node_id_str),)
 
-        # Process the network file
+        # Process each line in the network file to construct the graph's structure.
         with open(network_file, 'r') as f:
-            next(f)  # Skip header line
+            next(f)  # Skip the header line
             for line in f:
                 line = line.strip()
                 if not line:
-                    continue
+                    continue  # Skip empty lines
 
                 parts = line.split(',')
+                # Extract and parse the node ID
                 idx_agent = parse_node_id(parts[0].strip())
+                # Number of neighbors for this node
                 n_neighbors = int(parts[1])
 
+                # For each neighbor, parse the neighbor's ID and the associated weight (influence).
                 for i in range(n_neighbors):
                     neighbor_id = parse_node_id(parts[2 + i].strip())
                     weight = float(parts[2 + n_neighbors + i])
-                    G.add_edge(idx_agent, neighbor_id)
-                    G.edges[idx_agent, neighbor_id]['Influence'] = weight
+                    # Add an edge with the influence attribute
+                    G.add_edge(idx_agent, neighbor_id, Influence=weight)
 
+        # Initialize a flag to track the presence of 'Activity' data in the opinion file.
         has_activity = False
-        # Process the opinion file
+
+        # Open and process the opinion file to set node attributes.
         with open(opinion_file, 'r') as f:
-            next(f)  # Skip header line
+            next(f)  # Skip the header line
             for line in f:
                 parts = line.split(',')
+                # Extract and parse the node ID
                 idx_agent = parse_node_id(parts[0].strip())
-                opinion = float(parts[1])
+                opinion = float(parts[1])  # Extract the node's opinion
 
-                # Add node if it doesn't exist
                 if not G.has_node(idx_agent):
+                    # Add the node if it doesn't already exist in the graph
                     G.add_node(idx_agent)
 
-                # Set node attributes for opinion
+                # Set the 'Opinion' attribute for the node
                 G.nodes[idx_agent]['Opinion'] = opinion
 
-                # Optional: set activity level if provided
+                # If an additional column is present, it represents the node's 'Activity' level.
                 if len(parts) > 2:
                     has_activity = True
                     activity = float(parts[2])
+                    # Set the 'Activity' attribute for the node
                     G.nodes[idx_agent]['Activity'] = activity
 
+        # If any node's 'Activity' level was provided, use the ActivityDefaultNodeEdgeGatherer for this graph.
         if has_activity:
             G.set_gatherer(ActivityDefaultNodeEdgeGatherer)
 
-        return G
+        return G  # Return the constructed HariGraph instance
 
     def write_network(self, network_file: str, opinion_file: str, delimiter=','):
+        """
+        Writes the current graph's network structure and node attributes to specified files.
+
+        Parameters:
+            network_file (str): Path to the file where the network structure will be saved.
+            opinion_file (str): Path to the file where the node attributes, particularly opinions, will be saved.
+            delimiter (str): The delimiter used to separate values in the output files.
+
+        This method outputs two files: one detailing the graph's topology and another listing node attributes.
+        """
+
+        # Gather opinions for all nodes using the current gatherer
         opinions = self.gatherer.gather('Opinion')
 
+        # Write the network structure to the specified network file
         with open(network_file, 'w') as f:
+            # Write the header line
             f.write(
                 f"# idx_agent{delimiter}n_neighbors_in{delimiter}indices_neighbors_in[...]{delimiter}weights_in[...]\n")
-            # Inside the for loop for writing network data to file
+
+            # Iterate over all nodes to write their connectivity and influence data
             for node in self.nodes:
+                # List of nodes influencing the current node
                 neighbors = list(self.predecessors(node))
+                # List of influence weights from each neighbor
                 weights = [self[neighbor][node]['Influence']
                            for neighbor in neighbors]
 
-                # Convert node from tuple to "a&b&c..." format
+                # Format the node ID and its neighbors for output
+                # Convert node ID from tuple to string if necessary
                 node_output = '&'.join(map(str, node))
-
-                # Prepare neighbors' output, converting tuples to "a&b&c..." format
+                # Convert neighbor IDs from tuples to strings
                 neighbors_output = ['&'.join(map(str, neighbor))
                                     for neighbor in neighbors]
 
+                # Write the node data line with all necessary information
                 f.write(
                     f"{node_output}{delimiter}{len(neighbors)}{delimiter}{delimiter.join(neighbors_output)}{delimiter}{delimiter.join(map(str, weights))}\n")
 
+        # Write the node opinions to the specified opinion file
         with open(opinion_file, 'w') as f:
+            # Write the header line
             f.write(f"# idx_agent{delimiter}opinion[...]\n")
             for node_id in opinions['Nodes']:
+                # Retrieve the opinion for the current node ID
                 opinion = opinions['Opinion'][opinions['Nodes'].index(node_id)]
-
-                # Convert node_id from tuple to "a&b&c..." format
+                # Convert node ID from tuple to string if necessary
                 node_id_output = '&'.join(map(str, node_id))
-
+                # Write the node opinion line
                 f.write(f"{node_id_output}{delimiter}{opinion}\n")
 
     @classmethod
     def read_json(cls, filename: str) -> HariGraph:
+        """
+        Reads a HariGraph instance from a JSON file that contains both the graph's structure and node attributes.
+
+        Parameters:
+            filename (str): Path to the JSON file from which the graph is to be loaded.
+
+        Returns:
+            HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph's nodes, edges, and associated attributes like opinions and influences.
+        """
+
         if not os.path.exists(filename):
             raise FileNotFoundError(f"{filename} does not exist.")
 
@@ -278,10 +327,14 @@ class HariGraph(nx.DiGraph):
 
     def write_json(self, filename: str):
         """
-        Saves the HariGraph to a JSON file.
+        Serializes the graph to a JSON file, including its structure (nodes and edges) and attributes (e.g., opinions).
 
-        :param filename (str): The name of the file to write to.
+        Parameters:
+            filename (str): The file path where the graph will be saved in JSON format.
+
+        This method creates a JSON representation of the graph, which includes detailed information about nodes and edges along with their attributes, making it suitable for storage, sharing, or further analysis.
         """
+
         params_to_save = ['Opinion']
 
         # Check conditions for 'cluster_size' and 'inner_opinions'

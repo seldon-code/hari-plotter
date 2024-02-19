@@ -20,8 +20,8 @@ class Group:
         'Min': np.min,
         'Max': np.max,
         'Median': np.median,
-        'Standard Deviation': np.std,  # Standard Deviation
-        'Variance': np.var,  # Variance
+        'Standard Deviation': np.std,
+        'Variance': np.var,
         'Peak to Peak': np.ptp,  # Peak to Peak (Max - Min)
         # Add other functions as needed
     }
