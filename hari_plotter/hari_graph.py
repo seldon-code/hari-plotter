@@ -6,163 +6,151 @@ import random
 import re
 import warnings
 from itertools import combinations, permutations
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import networkx as nx
 import numpy as np
 
 from .distributions import generate_mixture_of_gaussians
-from .node_gatherer import (ActivityDefaultNodeEdgeGatherer, DefaultNodeEdgeGatherer,
-                            NodeEdgeGatherer)
+from .node_gatherer import (ActivityDefaultNodeEdgeGatherer,
+                            DefaultNodeEdgeGatherer, NodeEdgeGatherer)
 
 
 class HariGraph(nx.DiGraph):
     """
-    HariGraph extends the DiGraph class of Networkx to offer additional functionality.
-    It ensures that each node has a label and provides methods to create, save, and load graphs.
+    HariGraph extends the NetworkX DiGraph class to provide additional functionalities specific to complex network
+    analysis and manipulation. It includes methods for graph parameterization, node merging, influence assignment,
+    and serialization/deserialization to/from JSON format.
+
+    Attributes:
+        gatherer (NodeEdgeGatherer): An instance of a NodeEdgeGatherer subclass responsible for collecting and
+                                    applying node and edge parameters based on defined criteria.
     """
 
-    # ---- Initialization Methods ----
-
     def __init__(self, incoming_graph_data=None, **attr):
-        super().__init__(incoming_graph_data, **attr)
-        self.similarity_function = self.default_similarity_function
-        self.gatherer = DefaultNodeEdgeGatherer(self)
-
-    def set_gatherer(self, new_gatherer: type[NodeEdgeGatherer]):
-        self.gatherer = new_gatherer(self)
-
-    def add_parameters_to_nodes(self, nodes: Union[List[Tuple[int]], None] = None):
         """
-        Appends or updates node attributes based on predefined criteria.
+        Initializes the HariGraph instance by extending the NetworkX DiGraph constructor.
 
         Parameters:
-            node_ids (Optional[List[Tuple[int]]): List of node IDs to which parameters will be added. 
-                If None, all nodes will be considered.
+            incoming_graph_data: Input graph data to initialize the graph (default is None).
+            attr: Additional attributes to add to the graph.
         """
-        if nodes is None:
-            nodes = list(self.nodes)
+        super().__init__(incoming_graph_data, **attr)
+        # Default gatherer for node and edge parameters
+        self.gatherer = DefaultNodeEdgeGatherer(self)
 
+    def set_gatherer(self, new_gatherer: Type[NodeEdgeGatherer]) -> None:
+        """
+        Sets a new gatherer for collecting and applying node and edge parameters.
+
+        Parameters:
+            new_gatherer (Type[NodeEdgeGatherer]): The new gatherer class to be used.
+        """
+        self.gatherer = new_gatherer(self)
+
+    def add_parameters_to_nodes(self, nodes: Optional[List[Tuple[int]]] = None) -> None:
+        """
+        Adds or updates parameters for the specified nodes based on the current gatherer's criteria. If no nodes
+        are specified, parameters are added or updated for all nodes in the graph.
+
+        Parameters:
+            nodes (Optional[List[Tuple[int]]]): List of node identifiers to update. If None, updates all nodes.
+        """
+        nodes = nodes or list(self.nodes)
         parameters = self.gatherer.gather_everything()
-        # Update the node's attributes with the gathered parameters
+
         for key, value in parameters.items():
             for node in nodes:
                 self.nodes[node][key] = value[node]
 
-    def has_self_loops(self):
+    def has_self_loops(self) -> bool:
         """
-        Checks if the graph contains any self-loops.
+        Checks if the graph contains any self-loops (edges that connect a node to itself).
 
         Returns:
-            bool: True if there is at least one self-loop in the graph, False otherwise.
+            bool: True if there is at least one self-loop in the graph, otherwise False.
         """
-        for node in self.nodes:
-            if self.has_edge(node, node):
-                return True  # A self-loop exists
-        return False  # No self-loops found
+        return any(self.has_edge(node, node) for node in self.nodes)
 
-    def remove_self_loops(self):
+    def remove_self_loops(self) -> None:
         """
-        Removes any self-loops present in the graph.
-
-        A self-loop is an edge that connects a node to itself.
+        Removes all self-loops from the graph.
         """
-        # Iterate over all nodes in the graph
-        for node in self.nodes:
-            # Check if there is an edge from the node to itself and remove it
+        for node in list(self.nodes):
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
 
-    def assign_random_influences(
-            self, mean_influence, influence_range, seed=None):
+    def assign_random_influences(self, mean_influence: float, influence_range: float, seed: Optional[int] = None) -> None:
         """
-        Assigns random influence values to all edges of the graph within the given range centered around the mean influence.
+        Assigns random influence values to all edges within a specified range centered around a mean influence value.
 
-        :param mean_influence: float, mean value of the influence.
-        :param influence_range: float, the range within which the influence values should fall.
-        :param seed: int, random seed (default None).
+        Parameters:
+            mean_influence (float): The mean value around which the influence values are centered.
+            influence_range (float): The range within which the random influence values will vary.
+            seed (Optional[int]): An optional seed for the random number generator for reproducibility (default is None).
         """
         if seed is not None:
             random.seed(seed)
 
-        lower_bound = mean_influence - (influence_range / 2)
-        upper_bound = mean_influence + (influence_range / 2)
+        lower_bound, upper_bound = mean_influence - \
+            influence_range / 2, mean_influence + influence_range / 2
 
-        for u, v in self.edges():
-            random_influence = random.uniform(lower_bound, upper_bound)
-            self.edges[u, v]['Influence'] = random_influence
+        for u, v in self.edges:
+            self.edges[u, v]['Influence'] = random.uniform(
+                lower_bound, upper_bound)
 
-    def is_degroot_converging(self, tolerance=1e-2) -> bool:
-        for node in self.nodes():
-            incoming_edges = [(neighbor, node)
-                              for neighbor in self.predecessors(node)]
-            total_influence = sum(self.edges[u, v]['Influence']
-                                  for u, v in incoming_edges)
-            if not (1 - tolerance <= total_influence <= 1 + tolerance):
-                return False
-        return True
+    def is_degroot_converging(self, tolerance: float = 1e-2) -> bool:
+        """
+        Checks if the graph's influence structure adheres to the Degroot convergence criteria, i.e., the total
+        incoming influence for each node is within a tolerance of 1.
 
-    def make_degroot_converging(self, seed=None):
+        Parameters:
+            tolerance (float): The tolerance within which the total influence must fall to be considered converging.
+
+        Returns:
+            bool: True if the graph meets the Degroot convergence criteria, otherwise False.
+        """
+        return all(1 - tolerance <= sum(self.edges[predecessor, node]['Influence'] for predecessor in self.predecessors(node)) <= 1 + tolerance for node in self.nodes)
+
+    def make_degroot_converging(self, seed: Optional[int] = None) -> None:
+        """
+        Adjusts the influence values on incoming edges for each node to ensure the graph meets the Degroot convergence
+        criteria, i.e., the total incoming influence for each node equals 1.
+
+        Parameters:
+            seed (Optional[int]): An optional seed for the random number generator for reproducibility (default is None).
+        """
         if seed is not None:
             random.seed(seed)
             np.random.seed(seed)
 
-        for node in self.nodes():
+        for node in self.nodes:
             incoming_edges = [(neighbor, node)
                               for neighbor in self.predecessors(node)]
+            total_influence = sum(
+                self.edges[edge]['Influence'] for edge in incoming_edges)
 
-            # Calculate the total influence of incoming edges for the current
-            # node
-            total_influence = sum(self.edges[u, v]['Influence']
-                                  for u, v in incoming_edges)
-
-            # If the total influence is zero, assign random influences to
-            # incoming edges
             if total_influence == 0:
                 for u, v in incoming_edges:
                     self.edges[u, v]['Influence'] = random.random()
-                total_influence = sum(self[u][v]['Influence']
-                                      for u, v in incoming_edges)
+                total_influence = sum(
+                    self.edges[edge]['Influence'] for edge in incoming_edges)
 
-            # Adjust the influences proportionally
             for u, v in incoming_edges:
                 self.edges[u, v]['Influence'] /= total_influence
 
-    @classmethod
-    def mean_graph(cls, images: List[HariGraph]) -> HariGraph:
-        if len(images) == 1:
-            return images[0].copy()
-        # Initialize a new graph
-        mean_graph = cls()
+    def mean_graph(self, images: List['HariGraph']) -> 'HariGraph':
+        """
+        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
+        that are the average of the corresponding attributes in the input graphs.
 
-        # Assure that all graphs have the same nodes
-        nodes = set(images[0].nodes())
-        if not all(set(g.nodes()) == nodes for g in images):
-            raise ValueError("Graphs do not have the same nodes")
+        Parameters:
+            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
 
-        # Calculate mean values for node attributes
-        for node in nodes:
-            mean_opinion = sum(g.nodes[node]['Opinion']
-                               for g in images) / len(images)
-            mean_graph.add_node(node)
-            mean_graph.nodes[node]['Opinion'] = mean_opinion
-
-        # Calculate mean values for edge attributes
-        for i, j in combinations(nodes, 2):
-            influences = []
-            for g in images:
-                if g.has_edge(i, j):
-                    influences.append(g[i][j]['Influence'])
-                else:
-                    # Assuming 0 influence for missing edges
-                    influences.append(0)
-
-            mean_influence = sum(influences) / len(images)
-            if mean_influence > 0:  # Add the edge only if the mean influence is positive
-                mean_graph.add_edge(i, j)
-                mean_graph.edges[i, j]['Influence'] = mean_influence
-
-        return mean_graph
+        Returns:
+            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
+        """
+        return self.gatherer.mean_graph(images)
 
     @classmethod
     def read_network(cls, network_file: str, opinion_file: str) -> 'HariGraph':
@@ -495,8 +483,6 @@ class HariGraph(nx.DiGraph):
         G_copy = super().copy(as_view=False)
         G_copy = HariGraph(G_copy) if not isinstance(
             G_copy, HariGraph) else G_copy
-        G_copy.similarity_function = self.similarity_function
-        # G_copy.node_parameter_gatherer = self.node_parameter_gatherer
         G_copy.set_gatherer(type(self.gatherer))
         return G_copy
 
@@ -658,38 +644,6 @@ class HariGraph(nx.DiGraph):
         if clusters:
             self.merge_clusters(clusters)
 
-    def simplify_graph_one_iteration(self):
-        """
-        Simplifies the graph by one iteration.
-
-        In each iteration, it finds the pair of nodes with the maximum similarity
-        and merges them. 
-        If there is only one node left, no further simplification is possible.
-
-        Returns:
-            HariGraph: The simplified graph.
-        """
-        # self.generate_labels()
-
-        if self.number_of_nodes() <= 1:
-            warnings.warn(
-                "Only one node left, no further simplification possible.")
-            return self
-
-        # Find the pair of nodes with the maximum similarity
-        max_similarity = -1
-        pair = None
-        for i, j in combinations(self.nodes, 2):
-            similarity = self.compute_similarity(i, j)
-            if similarity > max_similarity:
-                max_similarity = similarity
-                pair = (i, j)
-
-        # Merge the nodes with the maximum similarity
-        if pair:
-            i, j = pair
-            self = self.merge_nodes(i, j)
-
     # ---- Data Processing Methods ----
 
     def check_all_paths_exist(self) -> bool:
@@ -736,90 +690,6 @@ class HariGraph(nx.DiGraph):
 
         return total_opinion / total_weight
 
-    @staticmethod
-    def default_similarity_function(vi: float, vj: float, size_i: int, size_j: int, edge_influence: float, reverse_edge_influence: float,
-                                    opinion_coef: float = 1., extreme_coef: float = 0.1, influence_coef: float = 1., size_coef: float = 10.) -> float:
-        """
-        The default function used to calculate the similarity between two nodes.
-
-        Parameters:
-            vi (float): The opinion attribute of node i.
-            vj (float): The opinion attribute of node j.
-            size_i (int): The length of the label of node i.
-            size_j (int): The length of the label of node j.
-            edge_influence (float): The influence attribute of the edge from node i to node j, if it exists, else None.
-            reverse_edge_influence (float): The influence attribute of the edge from node j to node i, if it exists, else None.
-            opinion_coef (float): Coefficient for opinion proximity impact.
-            extreme_coef (float): Coefficient for extreme proximity impact.
-            influence_coef (float): Coefficient for influence impact.
-            size_coef (float): Coefficient for size impact.
-
-        Returns:
-            float: The computed similarity between node i and node j.
-        """
-        # Calculate Value Proximity Impact (high if opinions are close)
-        opinion_proximity = opinion_coef * (1 - abs(vi - vj))
-
-        # Calculate Proximity to 0 or 1 Impact (high if opinions are close to 0
-        # or 1)
-        extreme_proximity = extreme_coef * \
-            min(min(vi, vj), min(1 - vi, 1 - vj))
-
-        # Calculate Influence Impact (high if influence is high)
-        influence = 0
-        label_sum = size_i + size_j
-
-        if edge_influence is not None:  # if an edge exists between the nodes
-            influence += (edge_influence * size_j) / label_sum
-
-        if reverse_edge_influence is not None:  # if a reverse edge exists between the nodes
-            influence += (reverse_edge_influence * size_i) / label_sum
-
-        influence *= influence_coef  # Apply Influence Coefficient
-
-        # Calculate Size Impact (high if size is low)
-        size_impact = size_coef * \
-            (1 / (1 + size_i) + 1 / (1 + size_j))
-
-        # Combine the impacts
-        return opinion_proximity + extreme_proximity + influence + size_impact
-
-    def compute_similarity(self, i: Tuple[int], j: Tuple[int], similarity_function=None):
-        """
-        Computes the similarity between two nodes in the graph.
-
-        Parameters:
-            i (int): The identifier for the first node.
-            j (int): The identifier for the second node.
-            similarity_function (callable, optional):
-                A custom similarity function to be used for this computation.
-                If None, the instance's similarity_function is used.
-                Default is None.
-
-        Returns:
-            float: The computed similarity opinion between nodes i and j.
-        """
-        # Check if there is an edge between nodes i and j
-        if not self.has_edge(i, j) and not self.has_edge(j, i):
-            return -2
-
-        # Extract parameters from node i, node j, and the edge (if exists)
-        vi = self.nodes[i]['Opinion']
-        vj = self.nodes[j]['Opinion']
-
-        size_i = len(i)
-        size_j = len(j)
-
-        edge_influence = self[i][j]['Influence'] if self.has_edge(
-            i, j) else None
-        reverse_edge_influence = self[j][i]['Influence'] if self.has_edge(
-            j, i) else None
-
-        # Choose the correct similarity function and calculate the similarity
-        func = similarity_function or self.similarity_function
-        return func(vi, vj, size_i, size_j,
-                    edge_influence, reverse_edge_influence)
-
     def position_nodes(self, seed=None):
         """
         Determines the positions of the nodes in the graph using the spring layout algorithm.
@@ -834,39 +704,6 @@ class HariGraph(nx.DiGraph):
             and the opinions are the corresponding (x, y) coordinates.
         """
         return nx.spring_layout(self, seed=seed)
-
-    # def get_opinion_neighbor_mean_opinion_pairs(self):
-    #     # Extract opinion values for all nodes
-    #     opinions = nx.get_node_attributes(self, 'Opinion')
-
-    #     x_values = []  # Node's opinion
-    #     y_values = []  # Mean opinion of neighbors
-
-    #     for node in self.nodes():
-    #         node_opinion = opinions[node]
-    #         neighbors = list(self.neighbors(node))
-    #         if neighbors:  # Ensure the node has neighbors
-    #             mean_neighbor_opinion = sum(
-    #                 opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-    #             x_values.append(node_opinion)
-    #             y_values.append(mean_neighbor_opinion)
-    #     return x_values, y_values
-
-    # def get_opinion_neighbor_mean_opinion_pairs_dict(self):
-    #     # Extract opinion values for all nodes
-    #     opinions = nx.get_node_attributes(self, 'Opinion')
-
-    #     mean_neighbor_opinion_dict = {}
-
-    #     for node in self.nodes():
-    #         node_opinion = opinions[node]
-    #         neighbors = list(self.neighbors(node))
-    #         if neighbors:  # Ensure the node has neighbors
-    #             mean_neighbor_opinion = sum(
-    #                 opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-    #             mean_neighbor_opinion_dict[node] = (
-    #                 node_opinion, mean_neighbor_opinion)
-    #     return mean_neighbor_opinion_dict
 
     @property
     def opinions(self):
@@ -891,35 +728,6 @@ class HariGraph(nx.DiGraph):
         else:
             raise TypeError(
                 f'Values input type for the opinions {type(values)} is not supported')
-
-    # @opinions.setter
-    # def opinions(self, values):
-    #     """
-    #     Sets the opinions of the nodes based on the provided value(s).
-    #     Value(s) can be a single float, a list of floats, or a dictionary with node IDs as keys.
-    #     """
-    #     if isinstance(values, (int, float)):  # Single value provided
-    #         for node in self.nodes:
-    #             self.nodes[node]['Opinion'] = values
-
-    #     elif isinstance(values, list):  # List of values provided
-    #         if len(values) != len(self.nodes):
-    #             raise ValueError(
-    #                 "Length of provided list does not match the number of nodes in the graph.")
-    #         for node, opinion in zip(self.nodes, values):
-    #             self.nodes[node]['Opinion'] = opinion
-
-    #     elif isinstance(values, dict):  # Dictionary provided
-    #         for node, opinion in values.items():
-    #             if node in self.nodes:
-    #                 self.nodes[node]['Opinion'] = opinion
-    #             else:
-    #                 raise ValueError(
-    #                     f"Node {node} does not exist in the graph.")
-
-    #     else:
-    #         raise TypeError(
-    #             "Invalid type for opinions. Expected int, float, list, or dict.")
 
     def __str__(self):
         return f"<HariGraph with {self.number_of_nodes()} nodes and {self.number_of_edges()} edges>"

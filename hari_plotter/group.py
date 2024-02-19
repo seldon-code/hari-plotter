@@ -26,8 +26,8 @@ class Group:
         # Add other functions as needed
     }
 
-    def __init__(self, images, time=None, model=None):
-        self.images = images
+    def __init__(self, images: List[HariGraph], time=None, model=None):
+        self.images: List[HariGraph] = images
 
         if time is None:
             self.time = None
@@ -52,7 +52,7 @@ class Group:
     @property
     def node_parameters(self):
         if not self._node_parameters:
-            self._node_parameters = self.images[0].gatherer.parameters
+            self._node_parameters = self.images[0].gatherer.node_parameters
         return self._node_parameters
 
     @staticmethod
@@ -78,7 +78,7 @@ class Group:
         return self.mean_graph
 
     def initialize_mean_graph(self):
-        self._mean_graph = HariGraph.mean_graph(self.images)
+        self._mean_graph = self.images[0].mean_graph(self.images)
 
     def clustering(self, **clustering_settings):
         # Convert settings to a sorted tuple of pairs to ensure consistent ordering

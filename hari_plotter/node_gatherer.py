@@ -3,7 +3,8 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABC, abstractmethod
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from warnings import warn
 
 import networkx as nx
 import numpy as np
@@ -11,398 +12,430 @@ import numpy as np
 
 class NodeEdgeGatherer(ABC):
     """
-    Abstract base class representing a node gatherer. It provides a framework for extracting specific attributes
-    or parameters of nodes within a graph.
+    Abstract base class for gathering node and edge attributes within a graph. It defines a framework for extracting
+    specific attributes or parameters of nodes and edges, facilitating customized data collection and analysis on
+    graph-based structures.
 
     Attributes:
-        node_parameter_logger : Class to handle names and associated method.
-        G (nx.Graph): The graph containing the nodes.
+        node_parameter_logger (ParameterLogger): A logger for registering and tracking node parameters.
+        edge_parameter_logger (ParameterLogger): A logger for registering and tracking edge parameters.
+        G (nx.Graph): The graph instance from NetworkX containing the nodes and edges for analysis.
     """
-    class ParameterLogger:
-        def __init__(self) -> None:
-            self.parameters = {}
 
-        def __call__(self, property_name):
+    class ParameterLogger:
+        """
+        A utility class used within NodeEdgeGatherer to log and manage parameters associated with nodes or edges.
+        It allows for the dynamic registration of parameters to be gathered from the graph.
+
+        Attributes:
+            parameters (Dict[str, Any]): A dictionary mapping parameter names to their corresponding functions
+                or values within the graph structure.
+        """
+
+        def __init__(self) -> None:
+            self.parameters: Dict[str, Any] = {}
+
+        def __call__(self, property_name: str):
             """
-            Makes the ParameterLogger instance callable. It can be used as a decorator to register parameters.
+            Allows the ParameterLogger instance to be used as a decorator for registering parameters.
 
             Parameters:
-            -----------
-            property_name : str
-                The name of the property that the parameter provides.
+                property_name (str): The name of the property that the parameter provides.
             """
-            def decorator(class_parameter):
+
+            def decorator(class_parameter: Any) -> Any:
                 if property_name in self.parameters:
                     raise ValueError(
                         f"Property {property_name} is already defined.")
                 self.parameters[property_name] = class_parameter
                 return class_parameter
+
             return decorator
 
-        def copy(self):
-            # Create a new instance of ParameterLogger
+        def copy(self) -> "NodeEdgeGatherer.ParameterLogger":
+            """
+            Creates a deep copy of the ParameterLogger instance, including its parameters.
+
+            Returns:
+                NodeEdgeGatherer.ParameterLogger: A new instance of ParameterLogger with copied parameters.
+            """
             new_instance = NodeEdgeGatherer.ParameterLogger()
-            new_instance.parameters = copy.deepcopy(
-                self.parameters)  # Deep copy the dictionary
+            new_instance.parameters = copy.deepcopy(self.parameters)
             return new_instance
 
-        def keys(self):
-            return self.parameters.keys()
+        def keys(self) -> list:
+            """Returns a list of all registered parameter names."""
+            return list(self.parameters.keys())
 
-        def __getitem__(self, key):
-            # Returns None if key is not found
+        def __getitem__(self, key: str) -> Any:
+            """
+            Allows direct access to a parameter's value via its name.
+
+            Parameters:
+                key (str): The name of the parameter to access.
+
+            Returns:
+                Any: The value or function associated with the given parameter name.
+            """
             return self.parameters.get(key, None)
 
-        def __setitem__(self, key, value):
+        def __setitem__(self, key: str, value: Any) -> None:
+            """
+            Allows direct setting of a parameter's value via its name.
+
+            Parameters:
+                key (str): The name of the parameter.
+                value (Any): The value or function to associate with the parameter name.
+            """
             self.parameters[key] = value
 
-        def __contains__(self, key):
+        def __contains__(self, key: str) -> bool:
+            """
+            Checks if a given parameter name is already registered.
+
+            Parameters:
+                key (str): The name of the parameter to check.
+
+            Returns:
+                bool: True if the parameter is registered, False otherwise.
+            """
             return key in self.parameters
 
-        def __str__(self):
+        def __str__(self) -> str:
+            """Returns a string representation of the parameters dictionary."""
             return str(self.parameters)
 
-        def __len__(self):
+        def __len__(self) -> int:
+            """Returns the number of registered parameters."""
             return len(self.parameters)
 
         def __iter__(self):
+            """Allows iteration over the registered parameter names."""
             return iter(self.parameters)
 
     node_parameter_logger = ParameterLogger()
     edge_parameter_logger = ParameterLogger()
 
-    def __init__(self, G):
-        super().__init__()
+    def __init__(self, G: nx.Graph) -> None:
+        """
+        Initializes a NodeEdgeGatherer instance with a specific graph.
+
+        Parameters:
+            G (nx.Graph): The graph containing the nodes and edges for data gathering.
+        """
         self.G = G
 
     @property
-    def node_parameters(self) -> list:
-        """Returns a list of property names that have been registered."""
+    def node_parameters(self) -> List[str]:
+        """Returns a list of all registered node parameter names."""
         return list(self.node_parameter_logger.keys())
 
     @property
-    def edge_parameters(self) -> list:
-        """Returns a list of property names that have been registered."""
+    def edge_parameters(self) -> List[str]:
+        """Returns a list of all registered edge parameter names."""
         return list(self.edge_parameter_logger.keys())
 
-    def gather_unprocessed(self, param: Union[str, List[str]]) -> dict:
+    def gather_unprocessed(self, param: Union[str, List[str]]) -> Dict[str, Any]:
         """
-        Extracts the desired parameter(s) for all nodes in the graph, and includes node names/IDs.
+        Gathers unprocessed parameter data for all nodes or edges in the graph based on the specified parameter(s).
 
         Parameters:
-            param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
+            param (Union[str, List[str]]): The parameter name(s) to extract data for.
 
         Returns:
-            dict: A dictionary containing the extracted parameters.
+            Dict[str, Any]: A dictionary containing the raw data for the requested parameter(s).
         """
         if isinstance(param, str):
             param = [param]
 
-        result = dict()
+        result: Dict[str, Any] = {}
 
         for p in param:
             if p not in self.node_parameter_logger:
                 raise ValueError(
-                    f'{p} is not a valid parameter. Valid parameters are: {self.parameters}')
+                    f"{p} is not a valid parameter. Valid parameters are: {list(self.node_parameter_logger.keys())}")
 
             parameter = self.node_parameter_logger[p]
             parameter_result = parameter(self)
-            # Use None or a default value for missing data
             result[p] = parameter_result
 
         return result
 
-    def gather(self, param: Union[str, List[str]]) -> dict:
+    def gather(self, param: Union[str, List[str]]) -> Dict[str, Any]:
         """
-        Extracts the desired parameter(s) for all nodes in the graph, and includes node names/IDs.
+        Gathers and organizes parameter data for all nodes or edges in the graph based on the specified parameter(s).
 
         Parameters:
-            param (Union[str, List[str]]): The parameter name or a list of parameter names to extract.
+            param (Union[str, List[str]]): The parameter name(s) to extract data for.
 
         Returns:
-            dict: A dictionary containing the extracted parameters, plus a 'Nodes' key with a list of node names/IDs.
+            Dict[str, Any]: A dictionary containing organized data for the requested parameter(s), including
+                            a 'Nodes' key with a list of node names/IDs.
         """
         if isinstance(param, str):
             param = [param]
 
         result = self.gather_unprocessed(param)
 
-        transformed_result = {}
-
-        # Assuming all parameters have the same nodes, sort them once
+        transformed_result: Dict[str, Any] = {}
         nodes = sorted(next(iter(result.values())).keys())
         transformed_result['Nodes'] = nodes
 
-        # Iterate over each parameter in the result
         for parameter, values in result.items():
-
-            # Extract the values for the sorted nodes
             sorted_values = [values.get(node, None) for node in nodes]
-
-            # Store in the transformed result
             transformed_result[parameter] = sorted_values
 
         return transformed_result
 
-    def gather_everything(self) -> dict:
-        return self.gather_unprocessed(self.node_parameter_logger.keys())
+    def gather_everything(self) -> Dict[str, Any]:
+        """
+        Gathers data for all registered parameters for nodes or edges in the graph.
 
-    # @abstractmethod
-    # def merge(self, nodes: (List[dict])) -> dict:
-    #     """
-    #     Abstract method to gather properties or parameters for a merged node based on input nodes.
-
-    #     Parameters:
-    #         nodes (List[dict]): A list of nodes to merge.
-
-    #     Returns:
-    #         dict: Dictionary with merged node attributes.
-    #     """
-    #     raise NotImplementedError(
-    #         "This method must be implemented in subclasses")
+        Returns:
+            Dict[str, Any]: A dictionary containing data for all registered parameters.
+        """
+        return self.gather_unprocessed(list(self.node_parameter_logger.keys()))
 
 
 class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
     """
-    Default implementation of the NodeEdgeGatherer. This class provides methods to extract default parameters from nodes
-    within a graph.
+    Provides a default implementation for the NodeEdgeGatherer abstract base class. This class implements methods
+    to extract and manipulate default parameters from nodes within a graph, such as merging nodes and clusters
+    based on specific criteria.
     """
+
+    # Inherit parameter loggers for node and edge parameters from the base class
     node_parameter_logger = NodeEdgeGatherer.ParameterLogger()
     edge_parameter_logger = NodeEdgeGatherer.ParameterLogger()
 
-    def merge_nodes(self, i: Tuple[int], j: Tuple[int]):
+    def merge_nodes(self, i: Tuple[int], j: Tuple[int]) -> None:
         """
-        Merges two nodes in the graph into a new node.
-
-        The new node's opinion is a weighted average of the opinions of
-        the merged nodes, and its name is the concatenation of the names
-        of the merged nodes. The edges are reconnected to the new node,
-        and the old nodes are removed.
+        Merges two specified nodes into a single new node within the graph. The new node's attributes are determined
+        by the attributes of the merged nodes, and the edges are updated accordingly.
 
         Parameters:
-            i Tuple[int]: The identifier for the first node to merge.
-            j Tuple[int]: The identifier for the second node to merge.
+            i (Tuple[int]): Identifier for the first node to be merged.
+            j (Tuple[int]): Identifier for the second node to be merged.
         """
         if not (isinstance(i, tuple) and isinstance(j, tuple)):
-            raise TypeError('Incorrect node format')
+            raise TypeError('Node identifiers must be tuples.')
 
-        # Merge nodes using the gatherer's merge method
         merged_data = self.merge([i, j])
+        new_node_id = tuple(sorted(i + j))
 
-        # Generate a new node ID
-        new_node_id = tuple(sorted(i+j))
-
-        # Add the new merged node to the graph
         self.G.add_node(new_node_id, **merged_data)
 
-        # Reconnect edges
         for u, v, data in list(self.G.edges(data=True)):
-            if u in [i, j]:
-                if v not in [i, j]:
-                    influence = data['Influence']
-                    self.G.add_edge(new_node_id, v)
-                    self.G[new_node_id][v]['Influence'] = influence
-                self.G.remove_edge(u, v)
-            elif v in [i, j]:
-                if u not in [i, j]:
-                    influence = data['Influence']
-                    self.G.add_edge(u, new_node_id)
-                    self.G[u][new_node_id]['Influence'] = influence
-                self.G.remove_edge(u, v)
+            if u in [i, j] and v not in [i, j]:
+                self.G.add_edge(new_node_id, v, **data)
+            elif v in [i, j] and u not in [i, j]:
+                self.G.add_edge(u, new_node_id, **data)
+            self.G.remove_edge(u, v)
 
-        # Remove the original nodes
         self.G.remove_node(i)
         self.G.remove_node(j)
 
-    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
+    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining: bool = False) -> None:
         """
-        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
+        Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
+        node. Each new node represents its constituent cluster.
 
         Parameters:
-            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
-                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
-                                    to new node IDs.
-            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
+            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
+            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
+            merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.
         """
-        labels = labels if labels is not None else [None]*len(clusters)
+        labels = labels or [None] * len(clusters)
 
-        # Remaining nodes not in any cluster
         if merge_remaining:
-            # All nodes in the graph
             all_nodes = set(self.G.nodes)
+            clustered_nodes = {
+                node for cluster in clusters for node in cluster}
+            remaining_nodes = list(all_nodes - clustered_nodes)
 
-            # Record all nodes that are part of the specified clusters
-            clustered_nodes = set(
-                node for cluster in clusters for node in cluster)
-            remaining_nodes = all_nodes - clustered_nodes
             if remaining_nodes:
-                clusters.append(list(remaining_nodes))
+                clusters.append(remaining_nodes)
                 labels.append(None)
 
         for cluster, label in zip(clusters, labels):
-            new_node_name = tuple(sorted(sum(cluster, ())))
+            new_node_id = tuple(sorted(sum(cluster, ())))
             merged_attributes = self.merge(cluster)
-            self.G.add_node(new_node_name, **merged_attributes)
-            if label is not None:
-                self.G.nodes[new_node_name]['Label'] = label
 
-            # Reconnect edges
+            self.G.add_node(new_node_id, **merged_attributes)
+            if label is not None:
+                self.G.nodes[new_node_id]['Label'] = label
+
             for old_node_id in cluster:
                 for successor in list(self.G.successors(old_node_id)):
                     if successor not in cluster:
-                        influence = self.G[old_node_id][successor]['Influence']
-                        self.G.add_edge(new_node_name, successor)
-                        self.G[new_node_name][successor]['Influence'] = influence
-
+                        self.G.add_edge(new_node_id, successor,
+                                        **self.G[old_node_id][successor])
                 for predecessor in list(self.G.predecessors(old_node_id)):
                     if predecessor not in cluster:
-                        influence = self.G[predecessor][old_node_id]['Influence']
-                        self.G.add_edge(predecessor, new_node_name)
-                        self.G[predecessor][new_node_name]['Influence'] = influence
-
-                # Remove old node
+                        self.G.add_edge(predecessor, new_node_id,
+                                        **self.G[predecessor][old_node_id])
                 self.G.remove_node(old_node_id)
 
-    def merge(self, node_ids: List[dict]) -> dict:
+    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
         """
-        Merges given nodes and computes combined attributes such as 'Inner opinions', 'Cluster size', and 'Label'.
+        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
+        that are the average of the corresponding attributes in the input graphs.
 
         Parameters:
-            node_ids (List[dict]): A list of node dictionaries, each containing node attributes.
+            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
 
         Returns:
-            dict: A dictionary with merged node attributes.
+            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
+        """
+        if not images:
+            raise ValueError("Input list of graphs is empty.")
+
+        mean_graph: nx.Graph = type(self.G)()
+
+        # Assure all graphs have the same nodes
+        nodes = set(images[0].nodes)
+        if not all(set(g.nodes) == nodes for g in images):
+            raise ValueError(
+                "Not all input graphs have the same set of nodes.")
+
+        # Calculate mean attributes for nodes
+        for node in nodes:
+            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
+            mean_graph.add_node(node, Opinion=mean_opinion)
+
+        # Calculate mean attributes for edges
+        edges_set = set()
+        for graph in images:
+            edges_set.update(graph.edges)
+
+        for u, v in edges_set:
+            influences = []
+            for graph in images:
+                if graph.has_edge(u, v):
+                    influences.append(graph.edges[u, v]['Influence'])
+            if influences:  # Only add the edge if at least one graph has it
+                mean_influence = np.mean(influences)
+                mean_graph.add_edge(u, v, Influence=mean_influence)
+
+        return mean_graph
+
+    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
+        """
+        Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
+        cluster size, and aggregate opinions.
+
+        Parameters:
+            node_ids (List[dict]): A list of node attribute dictionaries to be merged.
+
+        Returns:
+            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes.
         """
         if not node_ids:
-            raise ValueError("The input list of nodes must not be empty.")
+            raise ValueError("No nodes provided for merging.")
 
         nodes = [self.G.nodes[node_id] for node_id in node_ids]
-
-        size = sum(node.get('Cluster size', len(node)) for node in nodes)
-
-        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
+        size = sum(node.get('Cluster size', 1) for node in nodes)
         inner_opinions = {}
 
         for node, node_id in zip(nodes, node_ids):
-            # Check if node has 'Inner opinions', if not, create one
             if 'Inner opinions' in node:
                 inner_opinions.update(node['Inner opinions'])
             else:
                 if len(node_id) != 1:
-                    warnings.warn(
-                        f"The size of the node {node_id} is {size}, higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention.")
+                    warn(f"Node {node_id} has size {size}, which is unusual.")
                 inner_opinions[node_id[0]] = node['Opinion']
 
         return {
             'Cluster size': size,
-            'Opinion': sum(node.get('Cluster size', len(node)) * node['Opinion'] for node in nodes) / size,
+            'Opinion': sum(node.get('Cluster size', 1) * node['Opinion'] for node in nodes) / size,
             'Inner opinions': inner_opinions
         }
 
+    # Decorators to register node attributes for gathering
     @node_parameter_logger("Opinion")
-    def opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to their respective opinions."""
-        return self.G.opinions
+    def opinion(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to their opinions."""
+        return {node: data['Opinion'] for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger("Cluster size")
-    def cluster_size(self) -> dict:
-        """Returns a dictionary mapping node IDs to their cluster sizes."""
-        return {node: self.G.nodes[node].get('Cluster size', len(node)) for node in self.G.nodes}
+    def cluster_size(self) -> Dict[Tuple[int], int]:
+        """Returns a mapping of node IDs to their cluster sizes."""
+        return {node: data.get('Cluster size', 1) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger("Importance")
-    def importance(self) -> dict:
-        """Returns a dictionary mapping node IDs to their importance based on Influence and Size."""
+    def importance(self) -> Dict[Tuple[int], float]:
+        """Calculates and returns a mapping of node IDs to their importance, based on influence and size."""
         importance_dict = {}
-        size_dict = self.cluster_size()
-
         for node in self.G.nodes:
             influences_sum = sum(data['Influence']
                                  for _, _, data in self.G.edges(node, data=True))
+            cluster_size = self.G.nodes[node].get('Cluster size', 1)
             importance_dict[node] = influences_sum / \
-                size_dict[node] if size_dict[node] != 0 else 0
-
+                cluster_size if cluster_size else 0
         return importance_dict
 
     @node_parameter_logger("Neighbor mean opinion")
-    def neighbor_mean_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the mean opinion of their neighbors."""
+    def neighbor_mean_opinion(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to the average opinion of their neighbors."""
         data = {}
-        opinions = self.G.opinions
-        for node in self.G.nodes():
-            node_opinion = opinions[node]
+        for node in self.G.nodes:
             neighbors = list(self.G.neighbors(node))
             if neighbors:
-                mean_neighbor_opinion = sum(
-                    opinions[neighbor] for neighbor in neighbors) / len(neighbors)
-                data[node] = mean_neighbor_opinion
+                data[node] = np.mean(
+                    [self.G.nodes[neighbor]['Opinion'] for neighbor in neighbors])
             else:
                 data[node] = np.nan
-
         return data
 
     @node_parameter_logger('Inner opinions')
-    def inner_opinions(self) -> dict:
-        """Returns a dictionary mapping node IDs to their inner opinions or the main opinion if missing."""
-        return {node: self.G.nodes[node].get('Inner opinions', {node: self.G.nodes[node]['Opinion']}) for node in self.G.nodes}
+    def inner_opinions(self) -> Dict[Tuple[int], Dict]:
+        """Returns a mapping of node IDs to their inner opinions."""
+        return {node: data.get('Inner opinions', {node: data['Opinion']}) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Max opinion')
-    def max_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the maximum opinion value among their inner opinions."""
-        return {node: max((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
+    def max_opinion(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to the maximum opinion value among their inner opinions."""
+        return {node: max(data.get('Inner opinions', {None: data['Opinion']}).values()) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Min opinion')
-    def min_opinion(self) -> dict:
-        """Returns a dictionary mapping node IDs to the minimum opinion value among their inner opinions."""
-        return {node: min((self.G.nodes[node].get('Inner opinions', {None: self.G.nodes[node]['Opinion']})).values()) for node in self.G.nodes}
+    def min_opinion(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to the minimum opinion value among their inner opinions."""
+        return {node: min(data.get('Inner opinions', {None: data['Opinion']}).values()) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Label')
-    def min_opinion(self) -> dict:
-        return {node: self.G.nodes[node].get('Label', None) for node in self.G.nodes}
+    def label(self) -> Dict[Tuple[int], str]:
+        """Returns a mapping of node IDs to their labels."""
+        return {node: data.get('Label', None) for node, data in self.G.nodes(data=True)}
 
 
 class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
+    """
+    Extends the DefaultNodeEdgeGatherer with functionality to handle node activity. It adds the ability to merge
+    nodes based on activity levels in addition to the default parameters.
+    """
+
+    # Copy parameter loggers to extend with activity-related parameters
     node_parameter_logger = DefaultNodeEdgeGatherer.node_parameter_logger.copy()
     edge_parameter_logger = DefaultNodeEdgeGatherer.edge_parameter_logger.copy()
 
-    def merge(self, node_ids: List[dict]) -> dict:
+    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
         """
-        Merges given nodes and computes combined attributes such as 'Inner opinions', 'Cluster size', and 'Label'.
+        Extends the merge function to include activity in the merged node attributes.
 
         Parameters:
-            node_ids (List[dict]): A list of node dictionaries, each containing node attributes.
+            node_ids (List[dict]): A list of node dictionaries to be merged.
 
         Returns:
-            dict: A dictionary with merged node attributes.
+            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes, including activity.
         """
-        if not node_ids:
-            raise ValueError("The input list of nodes must not be empty.")
+        base_merged_data = super().merge(node_ids)
+        activity = sum(self.G.nodes[node_id].get(
+            'Activity', 0) for node_id in node_ids)
 
-        nodes = [self.G.nodes[node_id] for node_id in node_ids]
-
-        size = sum(node.get('Cluster size', len(node)) for node in nodes)
-
-        activity = sum(node.get('Activity', np.nan) for node in nodes)
-
-        # Gather all opinions of the nodes being merged using node labels/identifiers as keys
-        inner_opinions = {}
-
-        for node, node_id in zip(nodes, node_ids):
-            # Check if node has 'Inner opinions', if not, create one
-            if 'Inner opinions' in node:
-                inner_opinions.update(node['Inner opinions'])
-            else:
-                if len(node_id) != 1:
-                    warnings.warn(
-                        f"The size of the node {node_id} is {size}, higher than one. Assuming that all opinions in this cluster were equal. This is not typical behavior, check that that it corresponds to your intention.")
-                inner_opinions[node_id[0]] = node['Opinion']
-
-        return {
-            'Cluster size': size,
-            'Opinion': sum(node.get('Cluster size', len(node)) * node['Opinion'] for node in nodes) / size,
-            'Inner opinions': inner_opinions,
-            'Activity': activity
-        }
+        base_merged_data['Activity'] = activity
+        return base_merged_data
 
     @node_parameter_logger('Activity')
-    def activity(self) -> dict:
-        return {node: self.G.nodes[node].get('Activity', np.nan) for node in self.G.nodes}
+    def activity(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to their activity levels."""
+        return {node: data.get('Activity', np.nan) for node, data in self.G.nodes(data=True)}
