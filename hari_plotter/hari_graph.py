@@ -39,6 +39,10 @@ class HariGraph(nx.DiGraph):
         # Default gatherer for node and edge parameters
         self.gatherer = DefaultNodeEdgeGatherer(self)
 
+    @property
+    def node_parameters(self):
+        return self.gatherer.node_parameters
+
     def set_gatherer(self, new_gatherer: Type[NodeEdgeGatherer]) -> None:
         """
         Sets a new gatherer for collecting and applying node and edge parameters.

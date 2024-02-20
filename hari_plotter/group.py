@@ -72,7 +72,6 @@ class Group:
             raise ValueError("Invalid input for time")
 
         self.model = model
-
         self._mean_graph = None
 
         self.clusterings = dict()
@@ -83,7 +82,7 @@ class Group:
     @property
     def node_parameters(self):
         if not self._node_parameters:
-            self._node_parameters = self.images[0].gatherer.node_parameters
+            self._node_parameters = self.images[0].node_parameters
         return self._node_parameters
 
     @staticmethod

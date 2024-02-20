@@ -8,6 +8,7 @@ from warnings import warn
 
 import networkx as nx
 import numpy as np
+from scipy.stats import gaussian_kde
 
 
 class NodeEdgeGatherer(ABC):
@@ -293,6 +294,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
             return images[0].copy()
 
         mean_graph: nx.Graph = type(self.G)()
+        mean_graph.set_gatherer(type(self))
 
         # Assure all graphs have the same nodes
         nodes = set(images[0].nodes)
@@ -358,6 +360,20 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
     def opinion(self) -> Dict[Tuple[int], float]:
         """Returns a mapping of node IDs to their opinions."""
         return {node: data['Opinion'] for node, data in self.G.nodes(data=True)}
+
+    @staticmethod
+    def kde_scipy(x, x_grid, bandwidth=0.2, **kwargs):
+        """Kernel Density Estimation with Scipy"""
+        # x are the data points, x_grid are the points to estimate the density at
+        kde = gaussian_kde(x, bw_method=bandwidth, **kwargs)
+        return kde.evaluate(x_grid)
+
+    @node_parameter_logger("Opinion density")
+    def opinion_density(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to their opinion distribution density."""
+        opinions = np.array(list(self.opinion().values()))
+        densities = self.kde_scipy(opinions, opinions)
+        return {node: density for node, density in zip(self.G.nodes, densities)}
 
     @node_parameter_logger("Cluster size")
     def cluster_size(self) -> Dict[Tuple[int], int]:
