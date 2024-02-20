@@ -74,6 +74,10 @@ class Model(ABC):
         """
         self.params = params
 
+    @property
+    def dt(self):
+        return self.params.get("dt", 1)
+
     @abstractmethod
     def get_tension(self) -> float:
         """

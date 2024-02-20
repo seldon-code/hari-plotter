@@ -404,7 +404,7 @@ class SimulationInterface(Interface):
 
     def _initialize_group(self, i: int) -> Group:
         group = self.data.dynamics.groups[i]
-        return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.model.params.get("dt", 1))
+        return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.dt)
 
     def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
         self.data.dynamics.group(num_intervals, interval_size, offset)

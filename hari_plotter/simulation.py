@@ -133,6 +133,10 @@ class Simulation:
     def group(self, *args, **kwargs):
         self.dynamics.group(*args, **kwargs)
 
+    @property
+    def dt(self):
+        return self.model.dt
+
     def __len__(self) -> int:
         return len(self.dynamics)
 
