@@ -26,121 +26,6 @@ plt.rcParams['axes.xmargin'] = 0
 plt.rcParams['axes.ymargin'] = 0
 
 
-class PlotSaver:
-    """
-    A utility class to handle the saving and display of plots.
-
-    It provides functionality to save individual plots, display them,
-    and even create GIFs from a sequence of plots.
-    """
-
-    def __init__(self, mode: Union[str, List[str]] = 'show',
-                 save_path: Optional[str] = None,
-                 save_format: Optional[str] = 'image_{}',
-                 gif_path: Optional[str] = None) -> None:
-        """
-        Initialize the PlotSaver instance.
-
-        Args:
-            mode (Union[str, List[str]]): The mode(s) in which to operate. 
-                It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
-            save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
-            save_format (Optional[str]): string with {} for formatting in the number
-            gif_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
-        """
-        # Ensure mode is a list even if a single mode string is provided
-        self.mode = mode if isinstance(mode, list) else [mode]
-        if not os.path.exists(save_path):
-            warnings.warn(f"Path {save_path} does not exist. Creating it.")
-            # Create the directory, including any necessary parent directories
-            os.makedirs(save_path, exist_ok=True)
-        self.save_path = save_path if save_path[-1] == '/' else save_path+'/'
-        self.save_format = save_format
-        self.gif_path = gif_path
-        self.saved_images = []
-        self.temp_dir = None
-        self.color_palette = ColorScheme()
-
-    @staticmethod
-    def is_inside_jupyter() -> bool:
-        """
-        Determine if the current environment is Jupyter Notebook.
-
-        Returns:
-            bool: True if inside Jupyter Notebook, False otherwise.
-        """
-        try:
-            get_ipython
-            return True
-        except NameError:
-            return False
-
-    def __enter__(self) -> PlotSaver:
-        """
-        Entry point for the context manager.
-
-        Returns:
-            PlotSaver: The current instance of the PlotSaver.
-        """
-        return self
-
-    def save(self, fig: matplotlib.figure.Figure) -> None:
-        """
-        Save and/or display the provided figure based on the specified mode.
-
-        Args:
-            fig (matplotlib.figure.Figure): The figure to be saved or displayed.
-        """
-        plt.tight_layout()
-
-        # Save the figure if 'save' mode is active and save_path is provided
-        if 'save' in self.mode and self.save_path:
-            path = self.save_path + \
-                self.save_format.format(len(self.saved_images))
-            fig.savefig(path)
-            self.saved_images.append(path)
-        # If only 'gif' mode is selected, save figure to a temp directory
-        elif 'gif' in self.mode and not self.save_path:
-            if not self.temp_dir:
-                self.temp_dir = tempfile.mkdtemp()
-            temp_path = os.path.join(
-                self.temp_dir, "tmp_plot_{}.png".format(len(self.saved_images)))
-            fig.savefig(temp_path)
-            self.saved_images.append(temp_path)
-
-        # Show the figure if 'show' mode is active
-        if 'show' in self.mode:
-            if self.is_inside_jupyter():
-                # In Jupyter, let the figure be displayed automatically
-                display(fig)
-            else:
-                # Outside Jupyter, use fig.show() to display the figure
-                fig.show()
-
-        # Close the figure after processing
-        plt.close(fig)
-
-    def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[object]) -> None:
-        """
-        Exit point for the context manager.
-
-        Args:
-            exc_type (Optional[type]): The exception type if raised inside the context.
-            exc_val (Optional[Exception]): The exception instance if raised inside the context.
-            exc_tb (Optional[object]): The traceback if an exception was raised inside the context.
-        """
-        # If 'gif' mode is active and gif_path is provided, create a GIF from the saved images
-        if 'gif' in self.mode and self.gif_path and self.saved_images:
-            with imageio.get_writer(self.gif_path, mode='I') as writer:
-                for img_path in self.saved_images:
-                    image = imageio.imread(img_path)
-                    writer.append_data(image)
-
-        # Cleanup temporary directory if it was used
-        if self.temp_dir:
-            shutil.rmtree(self.temp_dir)
-
-
 class Plotter:
     _parameter_dict = {'Time': 'Time',
                        'Opinion': 'Node Opinion',
@@ -154,6 +39,120 @@ class Plotter:
                        'Min opinion': 'Node Min Opinion'}
 
     _plot_types = {}
+
+    class PlotSaver:
+        """
+        A utility class to handle the saving and display of plots.
+
+        It provides functionality to save individual plots, display them,
+        and even create GIFs from a sequence of plots.
+        """
+
+        def __init__(self, mode: Union[str, List[str]] = 'show',
+                     save_path: Optional[str] = None,
+                     save_format: Optional[str] = 'image_{}',
+                     gif_path: Optional[str] = None) -> None:
+            """
+            Initialize the PlotSaver instance.
+
+            Args:
+                mode (Union[str, List[str]]): The mode(s) in which to operate. 
+                    It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
+                save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
+                save_format (Optional[str]): string with {} for formatting in the number
+                gif_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
+            """
+            # Ensure mode is a list even if a single mode string is provided
+            self.mode = mode if isinstance(mode, list) else [mode]
+            if not os.path.exists(save_path):
+                warnings.warn(f"Path {save_path} does not exist. Creating it.")
+                # Create the directory, including any necessary parent directories
+                os.makedirs(save_path, exist_ok=True)
+            self.save_path = save_path if save_path[-1] == '/' else save_path+'/'
+            self.save_format = save_format
+            self.gif_path = gif_path
+            self.saved_images = []
+            self.temp_dir = None
+            self.color_palette = ColorScheme()
+
+        @staticmethod
+        def is_inside_jupyter() -> bool:
+            """
+            Determine if the current environment is Jupyter Notebook.
+
+            Returns:
+                bool: True if inside Jupyter Notebook, False otherwise.
+            """
+            try:
+                get_ipython
+                return True
+            except NameError:
+                return False
+
+        def __enter__(self) -> Plotter.PlotSaver:
+            """
+            Entry point for the context manager.
+
+            Returns:
+                Plotter.PlotSaver: The current instance of the PlotSaver.
+            """
+            return self
+
+        def save(self, fig: matplotlib.figure.Figure) -> None:
+            """
+            Save and/or display the provided figure based on the specified mode.
+
+            Args:
+                fig (matplotlib.figure.Figure): The figure to be saved or displayed.
+            """
+            plt.tight_layout()
+
+            # Save the figure if 'save' mode is active and save_path is provided
+            if 'save' in self.mode and self.save_path:
+                path = self.save_path + \
+                    self.save_format.format(len(self.saved_images))
+                fig.savefig(path)
+                self.saved_images.append(path)
+            # If only 'gif' mode is selected, save figure to a temp directory
+            elif 'gif' in self.mode and not self.save_path:
+                if not self.temp_dir:
+                    self.temp_dir = tempfile.mkdtemp()
+                temp_path = os.path.join(
+                    self.temp_dir, "tmp_plot_{}.png".format(len(self.saved_images)))
+                fig.savefig(temp_path)
+                self.saved_images.append(temp_path)
+
+            # Show the figure if 'show' mode is active
+            if 'show' in self.mode:
+                if self.is_inside_jupyter():
+                    # In Jupyter, let the figure be displayed automatically
+                    display(fig)
+                else:
+                    # Outside Jupyter, use fig.show() to display the figure
+                    fig.show()
+
+            # Close the figure after processing
+            plt.close(fig)
+
+        def __exit__(self, exc_type: Optional[type], exc_val: Optional[Exception], exc_tb: Optional[object]) -> None:
+            """
+            Exit point for the context manager.
+
+            Args:
+                exc_type (Optional[type]): The exception type if raised inside the context.
+                exc_val (Optional[Exception]): The exception instance if raised inside the context.
+                exc_tb (Optional[object]): The traceback if an exception was raised inside the context.
+            """
+            # If 'gif' mode is active and gif_path is provided, create a GIF from the saved images
+            if 'gif' in self.mode and self.gif_path and self.saved_images:
+                with imageio.get_writer(self.gif_path, mode='I') as writer:
+                    for img_path in self.saved_images:
+                        image = imageio.imread(img_path)
+                        writer.append_data(image)
+
+            # Cleanup temporary directory if it was used
+            if self.temp_dir:
+                shutil.rmtree(self.temp_dir)
 
     def __init__(self, interface: Interface = None, figsize=None):
         """
@@ -319,7 +318,7 @@ class Plotter:
         Create and display the plots based on the stored configurations.
         mode : ["show", "save", "gif"]
         """
-        with PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
+        with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
 
             # self.interface.static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
             #     self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
