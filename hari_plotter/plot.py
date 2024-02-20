@@ -169,7 +169,7 @@ class plot_histogram(Plot):
         def histogram_color_to_histogram_color_settings(histogram_color) -> dict:
             if isinstance(histogram_color, dict):
                 # check if only 'mode' and 'settings' in dict
-                if all(key in {'mode', 'settings'} for key in histogram_color.keys()):
+                if not all(key in {'mode', 'settings'} for key in histogram_color.keys()):
                     raise ValueError(
                         'Histogram color is incorrectly formatted')
                 return histogram_color
@@ -332,7 +332,7 @@ class plot_hexbin(Plot):
         def colormap_to_colormap_settings(colormap) -> dict:
             if isinstance(colormap, dict):
                 # check if only 'mode' and 'settings' in dict
-                if all(key in {'mode', 'settings'} for key in colormap.keys()):
+                if not all(key in {'mode', 'settings'} for key in colormap.keys()):
                     raise ValueError(
                         'Colormap is incorrectly formatted')
                 return colormap
@@ -513,7 +513,7 @@ class plot_scatter(Plot):
         def scatter_color_to_scatter_color_settings(scatter_color) -> dict:
             if isinstance(scatter_color, dict):
                 # check if only 'mode' and 'settings' in dict
-                if all(key in {'mode', 'settings'} for key in scatter_color.keys()):
+                if not all(key in {'mode', 'settings'} for key in scatter_color.keys()):
                     raise ValueError(
                         'Histogram color is incorrectly formatted')
                 return scatter_color
@@ -531,7 +531,7 @@ class plot_scatter(Plot):
         def scatter_marker_to_scatter_marker_settings(scatter_marker) -> dict:
             if isinstance(scatter_marker, dict):
                 # check if only 'mode' and 'settings' in dict
-                if all(key in {'mode', 'settings'} for key in scatter_marker.keys()):
+                if not all(key in {'mode', 'settings'} for key in scatter_marker.keys()):
                     raise ValueError(
                         'Histogram marker is incorrectly formatted')
                 return scatter_marker
