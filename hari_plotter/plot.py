@@ -20,6 +20,15 @@ from .plotter import Plotter
 
 
 class Plot(ABC):
+    def __init__(self):
+        self.color_scheme: ColorScheme = None
+        self.parameters: Tuple[str] = None
+        self.scale: Tuple[str] = None
+        self.show_x_label: bool = None
+        self.show_y_label: bool = None
+        self._x_lim: Sequence[float] | None = None
+        self._y_lim: Sequence[float] | None = None
+
     @staticmethod
     def settings(interface: Interface):
         return []
@@ -53,10 +62,14 @@ class Plot(ABC):
                 dependencies['after'].append(ref_plot)
         return dependencies
 
-    def get_limits(self, axis_limits: dict):
+    def get_limits(self, axis_limits: dict) -> List[Tuple[float | None]]:
         final_limits = []
-        for i_lim, scale in zip((self._x_lim, self._y_lim), self.scale):
-            if scale == 'Tanh':
+        parameters = list(self.parameters) + [None] * \
+            max(2 - len(self.parameters), 0)
+        for i_lim, scale, parameter in zip((self._x_lim, self._y_lim), self.scale, parameters):
+            if parameter == 'Time':
+                final_limits.append((None, None))
+            elif scale == 'Tanh':
                 final_limits.append((-1., 1.))
             elif i_lim is None:
                 final_limits.append((None, None))
@@ -1566,7 +1579,7 @@ class plot_opinions(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
-
+        self.parameters = ('Time', 'Opinion')
         self.clustering_settings = clustering_settings
         self.scale = scale or tuple('Linear', 'Linear')
         self.show_x_label = show_x_label
@@ -1663,10 +1676,8 @@ class plot_opinions(Plot):
             ax.set_ylabel('Opinion')
 
         # Set the x and y axis limits if provided
-        if x_lim is not None:
-            ax.set_xlim(x_lim)
-        if y_lim is not None:
-            ax.set_ylim(y_lim)
+        ax.set_xlim(0, np.max(time))
+        ax.set_ylim(y_lim)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 

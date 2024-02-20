@@ -289,6 +289,8 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         """
         if not images:
             raise ValueError("Input list of graphs is empty.")
+        if len(images) == 1:
+            return images[0].copy()
 
         mean_graph: nx.Graph = type(self.G)()
 

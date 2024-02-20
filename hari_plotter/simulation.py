@@ -31,11 +31,11 @@ class Simulation:
             dynamics: HariDynamics instance used for the simulation. Default is None.
             rng_seed: Seed for random number generation. Default is None.
         """
-        self.dynamics = dynamics
-        self.model = model
-        self.rng_seed = rng_seed
-        self.max_iterations = max_iterations
-        self.network = network
+        self.dynamics: HariDynamics = dynamics
+        self.model: Model = model
+        self.rng_seed: int = rng_seed
+        self.max_iterations: int = max_iterations
+        self.network: dict = network
 
     @classmethod
     def from_toml(cls, filename: str) -> 'Simulation':

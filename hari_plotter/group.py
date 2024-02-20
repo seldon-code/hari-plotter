@@ -12,8 +12,27 @@ from .hari_graph import HariGraph
 
 
 class Group:
+    """
+    Represents a group of HariGraph images, allowing for operations like calculating mean graphs,
+    performing clustering, and extracting node values. This facilitates analyzing similarities and
+    differences among a collection of graph-based images, typically used in complex network analysis or
+    similar domains.
 
-    # Dictionary mapping function names to actual function objects
+    Attributes:
+        images (List[HariGraph]): A list of HariGraph instances representing individual images in the group.
+        time (Optional[List[float]]): Optional time values associated with each image, used for time-based analyses.
+        model (Optional[Any]): An optional model associated with the group, which can be used for further analysis or processing.
+        clusterings (Dict): A dictionary to store clustering results with their settings as keys to avoid recomputation.
+        _mean_graph (Optional[HariGraph]): Cached mean graph of the group, calculated when needed to optimize performance.
+        _nodes (Optional[set]): Cached set of nodes present in the mean graph, used to speed up node-related computations.
+        _node_parameters (Optional[Dict]): Cached node parameters from the first image, ensuring consistency across the group.
+
+    Common Functions:
+        Group class provides a dictionary mapping statistical function names (e.g., 'Mean', 'Sum') to their corresponding
+        numpy function objects, allowing for flexible data aggregation and analysis.
+    """
+
+    # Dictionary mapping function names to actual function objects for common statistical operations
     common_functions = {
         'Mean': np.mean,
         'Sum': np.sum,
@@ -23,10 +42,22 @@ class Group:
         'Standard Deviation': np.std,
         'Variance': np.var,
         'Peak to Peak': np.ptp,  # Peak to Peak (Max - Min)
-        # Add other functions as needed
+        # Additional functions can be added here as needed
     }
 
     def __init__(self, images: List[HariGraph], time=None, model=None):
+        """
+        Initializes a Group instance with a list of images, optional time values, and an optional model.
+
+        Parameters:
+            images (List[HariGraph]): A list of HariGraph instances to include in the group.
+            time (Optional[List[float] | float]): Time values associated with each image, can be a list of floats,
+                a single float (applied to all images), or None if time is not applicable.
+            model (Optional[Any]): An optional model to associate with the group for advanced analyses.
+
+        Raises:
+            ValueError: If the length of the time list does not match the number of images or an invalid type is provided for time.
+        """
         self.images: List[HariGraph] = images
 
         if time is None:
@@ -57,6 +88,16 @@ class Group:
 
     @staticmethod
     def request_to_tuple(request):
+        """
+        Converts a request dictionary or list into a sorted, nested tuple to ensure consistent key representation,
+        especially useful for caching and retrieving results based on unique request settings.
+
+        Parameters:
+            request (Union[Dict, List, Any]): The request to convert, which may include nested dictionaries and lists.
+
+        Returns:
+            Tuple: A nested tuple representation of the request, providing a hashable and consistent key for caching.
+        """
         def convert(item):
             if isinstance(item, dict):
                 return tuple(sorted((k, convert(v)) for k, v in item.items()))
@@ -69,16 +110,23 @@ class Group:
 
     @property
     def mean_graph(self) -> HariGraph:
-        if self._mean_graph is not None:
-            return self._mean_graph
-        self.initialize_mean_graph()
+        """
+        Lazily computes or retrieves the cached mean graph of the group. The mean graph is a single HariGraph instance
+        that represents the average structure and attributes of all graphs in the group.
+
+        Returns:
+            HariGraph: The mean graph of the group.
+        """
+        if self._mean_graph is None:
+            self.initialize_mean_graph()
         return self._mean_graph
 
     def get_mean_graph(self, **settings) -> HariGraph:
         return self.mean_graph
 
     def initialize_mean_graph(self):
-        self._mean_graph = self.images[0].mean_graph(self.images)
+        self._mean_graph = self.images[0].mean_graph(
+            [image.get_graph() for image in self.images])
 
     def clustering(self, **clustering_settings):
         # Convert settings to a sorted tuple of pairs to ensure consistent ordering

@@ -33,8 +33,8 @@ class HariDynamics:
     """
 
     def __init__(self):
-        self.lazy_hari_graphs = []
-        self.groups = []
+        self.lazy_hari_graphs: List[LazyHariGraph] = []
+        self.groups: List[List[int]] = []
 
     @property
     def initialized(self) -> List[int]:

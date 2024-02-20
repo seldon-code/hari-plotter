@@ -41,11 +41,6 @@ class Interface(ABC):
         self.data = data
         self._group_cache = [None]*group_length
         self.groups = self.GroupIterable(self)
-
-        # self.track_clusters_requests = []
-        # self.static_data_cache_requests = []
-        # self.dynamic_data_cache_requests = []
-
         self.track_clusters_cache = {}
         self.static_data_cache = self.StaticDataCache(self)
         self.dynamic_data_cache = [self.DynamicDataCache(
@@ -59,31 +54,6 @@ class Interface(ABC):
         if not self._node_parameters:
             self._node_parameters = self.groups[0].node_parameters
         return self._node_parameters
-
-    # def collect_static_data(self):
-    #     self.static_data_cache = {}
-    #     for request in self.static_data_cache_requests:
-    #         method_name = request['method']
-    #         settings = request['settings']
-    #         data_key = Interface.request_to_tuple(request)
-    #         if data_key not in self.static_data_cache:
-    #             # Fetch and cache the data for each group
-    #             data_for_all_groups = []
-    #             for group in self.groups:
-    #                 data = getattr(group, method_name)(**settings)
-    #                 data_for_all_groups.append(data)
-    #             self.static_data_cache[data_key] = data_for_all_groups
-
-    # def collect_dynamic_data(self, i: int):
-    #     self.dynamic_data_cache = {}
-    #     for request in self.dynamic_data_cache_requests:
-    #         method_name = request['method']
-    #         settings = request['settings']
-    #         # print(f'{request = }')
-    #         data_key = Interface.request_to_tuple(request)
-    #         if data_key not in self.dynamic_data_cache:
-    #             self.dynamic_data_cache[data_key] = getattr(
-    #                 self.groups[i], method_name)(**settings)
 
     @property
     def nodes(self):
@@ -131,13 +101,14 @@ class Interface(ABC):
             self.cache = {}
 
     def clean_cache(self):
+        self.track_clusters_cache = {}
         self.static_data_cache.clean()
         for c in self.dynamic_data_cache:
             c.clean()
 
     class GroupIterable:
-        def __init__(self, interface_instance):
-            self._interface = interface_instance
+        def __init__(self, interface_instance: Interface):
+            self._interface: Interface = interface_instance
 
         def __getitem__(self, index):
             # Handle slices
@@ -210,6 +181,17 @@ class Interface(ABC):
         """Abstract method to define the behavior for data grouping."""
         raise NotImplementedError(
             "This method must be implemented in subclasses")
+
+    @abstractmethod
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1):
+        """Abstract method to regroup dynamics."""
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
+    def regroup(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.clean_cache()
+        self._group_cache = [None]*num_intervals
+        self._regroup_dynamics(num_intervals, interval_size, offset)
 
     @classmethod
     def info(cls) -> str:
@@ -349,13 +331,23 @@ class HariGraphInterface(Interface):
 
     def __init__(self, data):
         super().__init__(data=data, group_length=1)
+        self.data: HariGraph
+        self._group_size = 1
 
     def __len__(self):
         return 1
 
     def _initialize_group(self, i: int = 0) -> Group:
-        assert i == 0
-        return Group([self.data], time=np.array([0]))
+        if i != 0 or self._group_size != 1:
+            Warning.warn(
+                'An attempt to create the dynamics from a singe image')
+        return Group([self.data]*self._group_size, time=np.array([0]))
+
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        if num_intervals != 1 and interval_size != 1:
+            Warning.warn(
+                'An attempt to create the dynamics from a singe image')
+        self._group_size = interval_size
 
     @property
     def available_parameters(self) -> list:
@@ -375,6 +367,7 @@ class HariDynamicsInterface(Interface):
 
     def __init__(self, data):
         super().__init__(data=data, group_length=len(data.groups))
+        self.data: HariDynamics
 
     def __len__(self):
         return len(self.data.groups)
@@ -382,6 +375,9 @@ class HariDynamicsInterface(Interface):
     def _initialize_group(self, i: int) -> Group:
         group = self.data.groups[i]
         return Group([self.data[j] for j in group], time=np.array(group))
+
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.data.group(num_intervals, interval_size, offset)
 
     @property
     def available_parameters(self) -> list:
@@ -401,6 +397,7 @@ class SimulationInterface(Interface):
 
     def __init__(self, data):
         super().__init__(data=data, group_length=len(data.dynamics.groups))
+        self.data: Simulation
 
     def __len__(self):
         return len(self.data.dynamics.groups)
@@ -408,6 +405,9 @@ class SimulationInterface(Interface):
     def _initialize_group(self, i: int) -> Group:
         group = self.data.dynamics.groups[i]
         return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.model.params.get("dt", 1))
+
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.data.dynamics.group(num_intervals, interval_size, offset)
 
     @property
     def available_parameters(self) -> list:
