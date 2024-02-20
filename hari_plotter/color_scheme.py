@@ -5,6 +5,8 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Dict, List, Optional, Set, Tuple, Union
 
+import matplotlib.cm as cm
+import matplotlib.colors as colors
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
@@ -77,6 +79,20 @@ class ColorScheme:
         self.available_colormaps = plt.colormaps()
         self.available_markers = list(Line2D.markers.keys())
 
+        self._scatter_color_cache = {}
+
+    @staticmethod
+    def request_to_tuple(request):
+        def convert(item):
+            if isinstance(item, dict):
+                return tuple(sorted((k, convert(v)) for k, v in item.items()))
+            elif isinstance(item, list):
+                return tuple(convert(v) for v in item)
+            else:
+                return item
+
+        return convert(request)
+
     @property
     def methods(self) -> list:
         """Returns a list of property names that have been registered."""
@@ -98,13 +114,33 @@ class ColorScheme:
                 return settings['Marker']
             return self.default_scatter_marker
 
-    @method_logger('Scatter Color', modes=('Constant Color',))
+    @method_logger('Scatter Color', modes=('Constant Color', 'Final State Colormap',))
     def scatter_colors_nodes(self, nodes, mode: str = None, settings=None):
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
                 return settings['Color']
             return self.default_scatter_color
+        elif mode == 'Final State Colormap':
+            if 'parameter' not in settings:
+                raise ValueError(
+                    'Settings are not formatted correctly. "parameter" key is expected')
+            request_settings = {'parameters': (settings['parameter'],)}
+            request_settings['scale'] = settings.get('scale', 'Linear')
+            colormap = settings.get('colormap', self.default_color_map)
+            request = {**request_settings, 'colormap': colormap}
+            request_tuple = ColorScheme.request_to_tuple(request)
+            if request_tuple not in self._scatter_color_cache:
+                data = self.interface.dynamic_data_cache[-1][{
+                    'method': 'calculate_node_values', 'settings': request_settings}]
+                # print(f'{data = }')
+                floats = data[settings['parameter']]
+                norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
+                colormap = cm.get_cmap(colormap)
+                self._scatter_color_cache[request_tuple] = {node: colormap(
+                    norm(value)) for node, value in zip(data['Nodes'], floats)}
+                # print(f'{self._scatter_color_cache[request_tuple] = }')
+            return [self._scatter_color_cache[request_tuple][node] for node in nodes]
 
     @method_logger('Color Map', modes=('Independent Colormap',))
     def colorbar(self, nodes, mode: str = None, settings=None):
