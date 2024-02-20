@@ -453,6 +453,55 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         base_merged_data['Activity'] = activity
         return base_merged_data
 
+    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+        """
+        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
+        that are the average of the corresponding attributes in the input graphs.
+
+        Parameters:
+            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
+
+        Returns:
+            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
+        """
+        if not images:
+            raise ValueError("Input list of graphs is empty.")
+        if len(images) == 1:
+            return images[0].copy()
+
+        mean_graph: nx.Graph = type(self.G)()
+        mean_graph.set_gatherer(type(self))
+
+        # Assure all graphs have the same nodes
+        nodes = set(images[0].nodes)
+        if not all(set(g.nodes) == nodes for g in images):
+            raise ValueError(
+                "Not all input graphs have the same set of nodes.")
+
+        # Calculate mean attributes for nodes
+        for node in nodes:
+            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
+            mean_activity = np.mean(
+                [g.nodes[node]['Activity'] for g in images])
+            mean_graph.add_node(node, Opinion=mean_opinion,
+                                Activity=mean_activity)
+
+        # Calculate mean attributes for edges
+        edges_set = set()
+        for graph in images:
+            edges_set.update(graph.edges)
+
+        for u, v in edges_set:
+            influences = []
+            for graph in images:
+                if graph.has_edge(u, v):
+                    influences.append(graph.edges[u, v]['Influence'])
+            if influences:  # Only add the edge if at least one graph has it
+                mean_influence = np.mean(influences)
+                mean_graph.add_edge(u, v, Influence=mean_influence)
+
+        return mean_graph
+
     @node_parameter_logger('Activity')
     def activity(self) -> Dict[Tuple[int], float]:
         """Returns a mapping of node IDs to their activity levels."""

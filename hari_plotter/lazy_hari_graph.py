@@ -19,7 +19,6 @@ class LazyHariGraph:
             *args: Positional arguments to pass to the class method.
             **kwargs: Keyword arguments to pass to the class method.
         """
-        print(f'LazyHariGraph created')
         # The actual HariGraph instance (initialized later)
         self._hari_graph: HariGraph = None
         # The class method used to create the HariGraph instance
