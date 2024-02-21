@@ -99,7 +99,7 @@ class ColorScheme:
         return list(self._methods.keys())
 
     @method_logger('Distribution Color', modes=('Constant Color',))
-    def distribution_color(self, nodes, mode: str = None, settings=None):
+    def distribution_color(self, nodes, group_i: int, mode: str = None, settings=None):
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
@@ -107,32 +107,39 @@ class ColorScheme:
             return self.default_distribution_color
 
     @method_logger('Scatter Marker', modes=('Constant Marker',))
-    def scatter_markers_nodes(self, nodes, mode: str = None, settings=None):
+    def scatter_markers_nodes(self, nodes, group_i: int,  mode: str = None, settings=None):
         mode = mode or 'Constant Marker'
         if mode == 'Constant Marker':
             if settings is not None and 'Marker' in settings:
                 return settings['Marker']
             return self.default_scatter_marker
 
-    @method_logger('Scatter Color', modes=('Constant Color', 'Final State Colormap',))
-    def scatter_colors_nodes(self, nodes, mode: str = None, settings=None):
+    @method_logger('Scatter Color', modes=('Constant Color', 'State Colormap',))
+    def scatter_colors_nodes(self, nodes, group_i: int,  mode: str = None, settings=None):
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
                 return settings['Color']
             return self.default_scatter_color
-        elif mode == 'Final State Colormap':
+        elif mode == 'State Colormap':
             if 'parameter' not in settings:
                 raise ValueError(
                     'Settings are not formatted correctly. "parameter" key is expected')
+            image = settings.get('Image', group_i)
+            if image == 'Current':
+                image = group_i
+            image = int(image)
+            if image < 0:
+                image += len(self.interface.groups)
             request_settings = {'parameters': (settings['parameter'],)}
             request_settings['scale'] = settings.get('scale', 'Linear')
             colormap = settings.get('colormap', self.default_color_map)
-            request = {**request_settings, 'colormap': colormap}
+            request = {**request_settings, 'colormap': colormap, 'image': image}
             request_tuple = ColorScheme.request_to_tuple(request)
             if request_tuple not in self._scatter_color_cache:
-                data = self.interface.dynamic_data_cache[-1][{
-                    'method': 'calculate_node_values', 'settings': request_settings}]
+                self.interface
+                data = self.interface.dynamic_data_cache[image][{
+                    'method': 'calculate_node_values', 'group_i': group_i, 'settings': request_settings}]
                 # print(f'{data = }')
                 floats = data[settings['parameter']]
                 norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
@@ -143,7 +150,7 @@ class ColorScheme:
             return [self._scatter_color_cache[request_tuple][node] for node in nodes]
 
     @method_logger('Color Map', modes=('Independent Colormap',))
-    def colorbar(self, nodes, mode: str = None, settings=None):
+    def colorbar(self, nodes, group_i: int,  mode: str = None, settings=None):
         mode = mode or 'Independent Colormap'
         if mode == 'Independent Colormap':
             if settings is not None and 'Color Pallet' in settings:
