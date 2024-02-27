@@ -41,10 +41,10 @@ class Interface(ABC):
         self.data = data
         self._group_cache = [None]*group_length
         self.groups = self.GroupIterable(self)
-        self.track_clusters_cache = {}
         self.static_data_cache = self.StaticDataCache(self)
         self.dynamic_data_cache = [self.DynamicDataCache(
             self, i) for i in range(len(self.groups))]
+        self.cluster_tracker = self.ClusterTracker(self)
 
         self._nodes = None
         self._node_parameters = None
@@ -101,7 +101,7 @@ class Interface(ABC):
             self.cache = {}
 
     def clean_cache(self):
-        self.track_clusters_cache = {}
+        self.cluster_tracker.clean()
         self.static_data_cache.clean()
         for c in self.dynamic_data_cache:
             c.clean()
@@ -209,103 +209,168 @@ class Interface(ABC):
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
-    def cluster_graph(self, clusters_dynamics=None, **cluster_settings):
-        # Extract the dynamics of clusters across frames
-        clusters_dynamics = clusters_dynamics or [list(group.clustering(
-            **cluster_settings).get_cluster_mapping()) for group in self.groups]
+    class ClusterTracker:
+        def __init__(self, interface):
+            # Initialize with an instance of the enclosing class if needed to access its attributes and methods
+            self.interface = interface
+            self.track_clusters_cache = {}
 
-        # Initialize the final labels from the last frame
-        final_labels = self.groups[-1].clustering(**
-                                                  cluster_settings).cluster_labels
-        G = nx.DiGraph()
+        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, List[str]]]:
+            """
+            Tracks the clusters across frames based on the provided clusterization settings.
 
-        # Build the graph
-        for frame_index, frame in enumerate(clusters_dynamics):
-            for cluster_index, cluster in enumerate(frame):
-                node_id = f"{frame_index}-{cluster_index}"
-                G.add_node(node_id, frame=frame_index, cluster=cluster,
-                           label=None)  # Initially, labels are None
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
 
-                if frame_index > 0:  # Connect clusters to their predecessors
-                    # Simplify connections if the number of clusters remains constant
-                    if len(frame) == len(clusters_dynamics[frame_index - 1]):
-                        # Direct connection from each cluster to its corresponding cluster in the next frame
-                        prev_node_id = f"{frame_index - 1}-{cluster_index}"
-                        G.add_edge(prev_node_id, node_id)
-                    else:
-                        for prev_cluster_index, prev_cluster in enumerate(clusters_dynamics[frame_index - 1]):
-                            prev_node_id = f"{frame_index - 1}-{prev_cluster_index}"
-                            # Implement logic to determine connections (e.g., based on overlap)
-                            overlap = len(
-                                set(cluster).intersection(set(prev_cluster)))
-                            if overlap > 0:  # Adjust this threshold as necessary
-                                G.add_edge(prev_node_id, node_id)
+            updated_labels_list = []
+            for clust_settings in clusterization_settings_list:
+                # Extract the dynamics of clusters across frames
+                # print(f'{clust_settings = }')
+                cluster_tuple = Interface.request_to_tuple(clust_settings)
+                if cluster_tuple not in self.track_clusters_cache:
+                    clusters_dynamics = [list(group.clustering(
+                        **clust_settings).get_cluster_mapping()) for group in self.interface.groups]
 
-        # Label Propagation
-        for cluster_index, label in enumerate(final_labels):
-            node_id = f"{len(clusters_dynamics)-1}-{cluster_index}"
-            # Assign final labels to the last frame's clusters
-            G.nodes[node_id]['Label'] = label
+                    G = self.cluster_graph(clust_settings,
+                                           clusters_dynamics=clusters_dynamics)
+                    # Step 5: Extract updated labels
+                    updated_labels = {}
+                    for frame_index in range(len(clusters_dynamics)):
+                        frame_labels = []
+                        for cluster_index in range(len(clusters_dynamics[frame_index])):
+                            node_id = f"{frame_index}-{cluster_index}"
+                            label = G.nodes[node_id]['Label']
+                            frame_labels.append(label)
+                        updated_labels[frame_index] = frame_labels
 
-        def propagate_labels_with_splits(G, clusters_dynamics):
-            for frame_index in range(len(clusters_dynamics) - 1, 0, -1):
-                for cluster_index in range(len(clusters_dynamics[frame_index])):
+                    # Apply updated labels
+                    for frame_index, labels in updated_labels.items():
+                        group = self.interface.groups[frame_index]
+                        group.clustering(
+                            **clust_settings).cluster_labels = labels
+
+                    self.track_clusters_cache[cluster_tuple] = updated_labels
+
+                updated_labels_list.append(
+                    self.track_clusters_cache[cluster_tuple])
+            return updated_labels_list
+
+        def clean(self):
+            self.track_clusters_cache = {}
+
+        def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Any]] = None) -> nx.DiGraph:
+            """
+            Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.
+
+            :param cluster_settings: Settings for clusterization.
+            :param clusters_dynamics: A list of lists where each sub-list represents the clusters in a frame.
+
+            :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.
+            """
+            clusters_dynamics = clusters_dynamics or [list(group.clustering(
+                **cluster_settings).get_cluster_mapping()) for group in self.interface.groups]
+
+            # Initialize the final labels from the last frame
+            final_labels = self.interface.groups[-1].clustering(**
+                                                                cluster_settings).cluster_labels
+            G = nx.DiGraph()
+
+            # Build the graph
+            for frame_index, frame in enumerate(clusters_dynamics):
+                for cluster_index, cluster in enumerate(frame):
                     node_id = f"{frame_index}-{cluster_index}"
-                    current_label = G.nodes[node_id]['Label']
+                    G.add_node(node_id, frame=frame_index, cluster=cluster,
+                               label=None)  # Initially, labels are None
 
-                    predecessors = list(G.predecessors(node_id))
-                    # If the current node has multiple predecessors, it's a split in reverse
-                    if len(predecessors) > 1:
-                        # Assign new labels to each predecessor node based on the split
-                        for i, pred in enumerate(predecessors):
-                            # Create new labels for splits as "original.i"
-                            new_label = f"{current_label}.{i+1}"
-                            G.nodes[pred]['Label'] = new_label
-                    # If there's only one predecessor, propagate the label directly
-                    elif len(predecessors) == 1:
-                        G.nodes[predecessors[0]]['Label'] = current_label
+                    if frame_index > 0:  # Connect clusters to their predecessors
+                        # Simplify connections if the number of clusters remains constant
+                        if len(frame) == len(clusters_dynamics[frame_index - 1]):
+                            # Direct connection from each cluster to its corresponding cluster in the next frame
+                            prev_node_id = f"{frame_index - 1}-{cluster_index}"
+                            G.add_edge(prev_node_id, node_id)
+                        else:
+                            for prev_cluster_index, prev_cluster in enumerate(clusters_dynamics[frame_index - 1]):
+                                prev_node_id = f"{frame_index - 1}-{prev_cluster_index}"
+                                # Implement logic to determine connections (e.g., based on overlap)
+                                overlap = len(
+                                    set(cluster).intersection(set(prev_cluster)))
+                                if overlap > 0:  # Adjust this threshold as necessary
+                                    G.add_edge(prev_node_id, node_id)
 
-        # Call the function to propagate labels with the handling of splits
-        propagate_labels_with_splits(G, clusters_dynamics)
+            # Label Propagation
+            for cluster_index, label in enumerate(final_labels):
+                node_id = f"{len(clusters_dynamics)-1}-{cluster_index}"
+                # Assign final labels to the last frame's clusters
+                G.nodes[node_id]['Label'] = label
 
-        return G
-
-    def track_clusters(self, clusterization_settings: Union[dict, List[dict]]):
-
-        clusterization_settings_list = [clusterization_settings] if isinstance(
-            clusterization_settings, dict) else clusterization_settings
-
-        updated_labels_list = []
-        for clust_settings in clusterization_settings_list:
-            # Extract the dynamics of clusters across frames
-            # print(f'{clust_settings = }')
-            cluster_tuple = Interface.request_to_tuple(clust_settings)
-            if cluster_tuple not in self.track_clusters_cache:
-                clusters_dynamics = [list(group.clustering(
-                    **clust_settings).get_cluster_mapping()) for group in self.groups]
-
-                G = self.cluster_graph(
-                    clusters_dynamics=clusters_dynamics, **clust_settings)
-                # Step 5: Extract updated labels
-                updated_labels = {}
-                for frame_index in range(len(clusters_dynamics)):
-                    frame_labels = []
+            def propagate_labels_with_splits(G, clusters_dynamics):
+                for frame_index in range(len(clusters_dynamics) - 1, 0, -1):
                     for cluster_index in range(len(clusters_dynamics[frame_index])):
                         node_id = f"{frame_index}-{cluster_index}"
-                        label = G.nodes[node_id]['Label']
-                        frame_labels.append(label)
-                    updated_labels[frame_index] = frame_labels
+                        current_label = G.nodes[node_id]['Label']
 
-                # Apply updated labels
-                for frame_index, labels in updated_labels.items():
-                    group = self.groups[frame_index]
-                    group.clustering(**clust_settings).cluster_labels = labels
+                        predecessors = list(G.predecessors(node_id))
+                        # If the current node has multiple predecessors, it's a split in reverse
+                        if len(predecessors) > 1:
+                            # Assign new labels to each predecessor node based on the split
+                            for i, pred in enumerate(predecessors):
+                                # Create new labels for splits as "original.i"
+                                new_label = f"{current_label}.{i+1}"
+                                G.nodes[pred]['Label'] = new_label
+                        # If there's only one predecessor, propagate the label directly
+                        elif len(predecessors) == 1:
+                            G.nodes[predecessors[0]]['Label'] = current_label
 
-                self.track_clusters_cache[cluster_tuple] = updated_labels
+            # Call the function to propagate labels with the handling of splits
+            propagate_labels_with_splits(G, clusters_dynamics)
 
-            updated_labels_list.append(
-                self.track_clusters_cache[cluster_tuple])
-        return updated_labels_list
+            return G
+
+        def get_unique_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[str]]:
+            """
+            Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.
+            Each inner list corresponds to one clustering type if multiple types are provided.
+
+            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
+            :return: A list of lists, each containing unique cluster names for one type of clustering.
+            """
+            tracked_clusters_list = self.track_clusters(
+                clusterization_settings)
+            unique_clusters_list = []
+
+            for tracked_clusters in tracked_clusters_list:
+                unique_clusters = set()
+                for clusters in tracked_clusters.values():
+                    unique_clusters.update(clusters)
+                unique_clusters_list.append(list(unique_clusters))
+
+            return unique_clusters_list
+
+        def get_cluster_presence(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[str, List[int]]]:
+            """
+            Retrieves a list of dictionaries, each mapping unique clusters to the frames in which they appear, based on the given clusterization settings.
+            Each dictionary corresponds to one clustering type if multiple types are provided.
+
+            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
+            :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.
+            """
+            tracked_clusters_list = self.track_clusters(
+                clusterization_settings)
+            cluster_presence_list = []
+
+            for tracked_clusters in tracked_clusters_list:
+                cluster_presence = {}
+                for frame_index, clusters in tracked_clusters.items():
+                    for cluster in clusters:
+                        if cluster not in cluster_presence:
+                            cluster_presence[cluster] = []
+                        cluster_presence[cluster].append(frame_index)
+                cluster_presence_list.append(cluster_presence)
+
+            return cluster_presence_list
 
     @abstractmethod
     def __len__(self):

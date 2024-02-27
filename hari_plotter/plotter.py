@@ -286,7 +286,7 @@ class Plotter:
         # Data fetching for static plots
         track_clusters_requests = [item for i in range(self.num_rows) for j in range(
             self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
-        self.interface.track_clusters(track_clusters_requests)
+        self.interface.cluster_tracker.track_clusters(track_clusters_requests)
 
         # Determine the rendering order
         render_order = self._determine_plot_order()
