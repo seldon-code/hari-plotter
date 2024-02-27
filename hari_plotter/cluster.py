@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from collections import defaultdict
 from typing import (Any, Callable, Dict, Iterator, List, Optional, Tuple, Type,
                     Union)
 
@@ -125,6 +126,15 @@ class Clustering(ABC):
         data = self.G.gatherer.gather(param=key)
 
         return [np.array([[data[k][data['Nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
+
+    def mapping_dict(self):
+        labels = self.cluster_labels
+        mapping = self.get_cluster_mapping()
+        assert len(labels) == len(mapping)
+        return {node: label for label, nodes in zip(labels, mapping) for node in nodes}
+
+    def mapping_default_dict(self):
+        return defaultdict(lambda: None, self.mapping_dict)
 
 
 class ParameterBasedClustering(Clustering):

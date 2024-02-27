@@ -212,8 +212,8 @@ class Interface(ABC):
     class ClusterTracker:
         def __init__(self, interface):
             # Initialize with an instance of the enclosing class if needed to access its attributes and methods
-            self.interface = interface
-            self.track_clusters_cache = {}
+            self._interface = interface
+            self._track_clusters_cache = {}
 
         def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, List[str]]]:
             """
@@ -230,9 +230,9 @@ class Interface(ABC):
                 # Extract the dynamics of clusters across frames
                 # print(f'{clust_settings = }')
                 cluster_tuple = Interface.request_to_tuple(clust_settings)
-                if cluster_tuple not in self.track_clusters_cache:
+                if cluster_tuple not in self._track_clusters_cache:
                     clusters_dynamics = [list(group.clustering(
-                        **clust_settings).get_cluster_mapping()) for group in self.interface.groups]
+                        **clust_settings).get_cluster_mapping()) for group in self._interface.groups]
 
                     G = self.cluster_graph(clust_settings,
                                            clusters_dynamics=clusters_dynamics)
@@ -248,18 +248,18 @@ class Interface(ABC):
 
                     # Apply updated labels
                     for frame_index, labels in updated_labels.items():
-                        group = self.interface.groups[frame_index]
+                        group = self._interface.groups[frame_index]
                         group.clustering(
                             **clust_settings).cluster_labels = labels
 
-                    self.track_clusters_cache[cluster_tuple] = updated_labels
+                    self._track_clusters_cache[cluster_tuple] = updated_labels
 
                 updated_labels_list.append(
-                    self.track_clusters_cache[cluster_tuple])
+                    self._track_clusters_cache[cluster_tuple])
             return updated_labels_list
 
         def clean(self):
-            self.track_clusters_cache = {}
+            self._track_clusters_cache = {}
 
         def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Any]] = None) -> nx.DiGraph:
             """
@@ -271,11 +271,11 @@ class Interface(ABC):
             :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.
             """
             clusters_dynamics = clusters_dynamics or [list(group.clustering(
-                **cluster_settings).get_cluster_mapping()) for group in self.interface.groups]
+                **cluster_settings).get_cluster_mapping()) for group in self._interface.groups]
 
             # Initialize the final labels from the last frame
-            final_labels = self.interface.groups[-1].clustering(**
-                                                                cluster_settings).cluster_labels
+            final_labels = self._interface.groups[-1].clustering(**
+                                                                 cluster_settings).cluster_labels
             G = nx.DiGraph()
 
             # Build the graph

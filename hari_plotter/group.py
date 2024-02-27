@@ -127,26 +127,20 @@ class Group:
         self._mean_graph = self.images[0].mean_graph(
             [image.get_graph() for image in self.images])
 
-    def clustering(self, **clustering_settings):
+    def clustering(self, **clustering_settings) -> Clustering:
         # Convert settings to a sorted tuple of pairs to ensure consistent ordering
         clustering_key = Group.request_to_tuple(clustering_settings)
 
-        if clustering_key in self.clusterings:
-            # print(f'+clustering found {clustering_key} ')
-            return self.clusterings[clustering_key]['clustering']
+        if clustering_key not in self.clusterings:
+            # Create a new clustering instance
+            clustering = Clustering.create_clustering(
+                G=self.mean_graph, **clustering_settings)
+            # Cache the newly created clustering
+            self.clusterings[clustering_key] = {'clustering': clustering}
 
-        # print(f'-clustering not found {clustering_key} ')
-        # print(f'{list(self.clusterings.keys()) = }')
+        return self.clusterings[clustering_key]['clustering']
 
-        # Create a new clustering instance
-        clustering = Clustering.create_clustering(
-            G=self.mean_graph, **clustering_settings)
-
-        # Cache the newly created clustering
-        self.clusterings[clustering_key] = {'clustering': clustering}
-        return clustering
-
-    def get_clustering(self, **settings):
+    def get_clustering(self, **settings) -> Clustering:
         # print(f'{settings = }')
         if 'clustering_settings' in settings:
             return self.clustering(**(settings['clustering_settings']))
@@ -157,21 +151,19 @@ class Group:
 
         clustering_key = self.request_to_tuple(clustering_settings)
 
-        if clustering_key in self.clusterings and 'graph' in self.clusterings[clustering_key]:
-            return self.clusterings[clustering_key]['graph']
+        if clustering_key not in self.clusterings or 'graph' not in self.clusterings[clustering_key]:
 
-        clustering = self.clustering(**clustering_settings)
+            clustering = self.clustering(**clustering_settings)
 
-        clustering_nodes = clustering.get_cluster_mapping()
-        cluster_labels = clustering.cluster_labels
+            clustering_nodes = clustering.get_cluster_mapping()
+            cluster_labels = clustering.cluster_labels
 
-        clustering_graph = self.mean_graph.copy()
-        clustering_graph.merge_clusters(
-            clustering_nodes, labels=cluster_labels, merge_remaining=merge_remaining)
-        # print(f'{clustering_graph = }')
-        self.clusterings[clustering_key]['graph'] = clustering_graph
+            clustering_graph = self.mean_graph.copy()
+            clustering_graph.merge_clusters(
+                clustering_nodes, labels=cluster_labels, merge_remaining=merge_remaining)
+            self.clusterings[clustering_key]['graph'] = clustering_graph
 
-        return clustering_graph
+        return self.clusterings[clustering_key]['graph']
 
     def clustering_graph_values(self, parameters: Tuple[str], clustering_settings: tuple,  **settings) -> Dict[str, np.ndarray]:
 

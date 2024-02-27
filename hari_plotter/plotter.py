@@ -282,7 +282,7 @@ class Plotter:
 
         return fig, axs
 
-    def _plot(self, fig, axs: List[list], group_i: int):
+    def _plot(self, fig, axs: List[list], group_number: int):
         # Data fetching for static plots
         track_clusters_requests = [item for i in range(self.num_rows) for j in range(
             self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
@@ -298,7 +298,7 @@ class Plotter:
             # print(f'{i,j = }')
             ax = axs[i][j]
             for plot in self.plots[i][j]:
-                plot.plot(ax=ax, group_i=group_i, dynamic_data_cache=self.interface.dynamic_data_cache[group_i],
+                plot.plot(ax=ax, group_number=group_number, dynamic_data_cache=self.interface.dynamic_data_cache[group_number],
                           static_data_cache=self.interface.static_data_cache, axis_limits=axis_limits)
 
                 # Store axis limits for future reference
@@ -308,10 +308,10 @@ class Plotter:
                 ax.axis('off')
                 ax.set_visible(False)
 
-    def plot(self, group_i: int):
+    def plot(self, group_number: int):
         fig, axs = self.create_fig_and_axs()
 
-        self._plot(fig, axs, group_i)
+        self._plot(fig, axs, group_number)
 
     def plot_dynamics(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
@@ -327,13 +327,13 @@ class Plotter:
 
             # self.interface.collect_static_data()
 
-            for group_i in range(len(self.interface.groups)):
+            for group_number in range(len(self.interface.groups)):
 
-                # self.interface.collect_dynamic_data(group_i)
+                # self.interface.collect_dynamic_data(group_number)
 
                 fig, axs = self.create_fig_and_axs()
 
-                self._plot(fig, axs, group_i)
+                self._plot(fig, axs, group_number)
 
                 saver.save(fig)
 
