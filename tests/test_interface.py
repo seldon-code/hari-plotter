@@ -30,3 +30,6 @@ class TestInterface:
 
     def test_get_cluster_presence(self):
         self.H_interface.cluster_tracker.get_cluster_presence(self.cl)
+
+    def test_get_final_value(self):
+        self.H_interface.cluster_tracker.get_final_value(self.cl, 'Opinion')

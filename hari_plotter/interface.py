@@ -212,7 +212,7 @@ class Interface(ABC):
     class ClusterTracker:
         def __init__(self, interface):
             # Initialize with an instance of the enclosing class if needed to access its attributes and methods
-            self._interface = interface
+            self._interface: Interface = interface
             self._track_clusters_cache = {}
 
         def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, List[str]]]:
@@ -371,6 +371,21 @@ class Interface(ABC):
                 cluster_presence_list.append(cluster_presence)
 
             return cluster_presence_list
+
+        def get_final_value(self, clusterization_settings: Union[dict, List[dict]], parameter) -> Dict[str, float]:
+            '''
+            Returns the value of the parameter in the last group cluster appeared  
+            '''
+            presence = self.get_cluster_presence(clusterization_settings)[0]
+            final_image = {cluster: images[-1]
+                           for cluster, images in presence.items()}
+            final_values = {}
+            for cluster, group_number in final_image.items():
+                data = self._interface.groups[group_number].clustering_graph_values(
+                    parameters=(parameter, 'Label'), clustering_settings=clusterization_settings)
+                final_values[cluster] = data[parameter][data['Label'].index(
+                    cluster)]
+            return final_values
 
     @abstractmethod
     def __len__(self):
