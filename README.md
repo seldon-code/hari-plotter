@@ -27,11 +27,11 @@ or
 pip install .[qt]
 ```
 
-if you whant to use the GUI
+if you want to use the GUI
 
 ## Test
 
-You can use `pytest` and `covarage` for tests:
+You can use `pytest` and `coverage` for tests:
 
 ```bash
 coverage run --source=hari_plotter -m pytest tests/ # To test
