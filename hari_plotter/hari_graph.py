@@ -762,6 +762,10 @@ class HariGraph(nx.DiGraph):
         """
         return nx.spring_layout(self, seed=seed)
 
+    def get_graph(self) -> HariGraph:
+        '''Self call for union formatting with LazyHariGraph'''
+        return self
+
     @property
     def opinions(self):
         """
