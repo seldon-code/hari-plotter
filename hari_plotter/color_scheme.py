@@ -121,7 +121,7 @@ class ColorScheme:
     @property
     def methods(self) -> list:
         """Returns a list of property names that have been registered."""
-        return list(self._methods.keys())
+        return list(self.method_logger.keys())
 
     @method_logger('Distribution Color', modes=('Constant Color',))
     def distribution_color(self, nodes, group_number: int, mode: str = None, settings: Union[dict, None] = None):
@@ -174,7 +174,7 @@ class ColorScheme:
 
             return [self._node_marker_cache[request_tuple][node] for node in nodes]
 
-    @method_logger('Scatter Color', modes=('Constant Color', 'State Colormap', 'Cluster Color'))
+    @method_logger('Scatter Color', modes=('Constant Color', 'State Colormap', 'Cluster Color', 'Cluster State Color'))
     def scatter_colors_nodes(self, nodes, group_number: int,  mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
@@ -223,6 +223,49 @@ class ColorScheme:
                 # Map each number to a color in the colormap
                 cluster_colors = {cluster_name: cm(
                     color_index) for cluster_name, color_index in zip(cluster_names, color_indices)}
+                cluster_colors[None] = none_color
+                self._cluster_color_cache[cluster_request_tuple] = cluster_colors
+
+            request: Dict[str, Any] = {'image': image,
+                                       'clustering_settings': settings['clustering_settings'], 'colormap': colormap, 'none_color': none_color}
+            request_tuple = ColorScheme.request_to_tuple(request)
+            if request_tuple not in self._node_color_cache:
+                clustering: Clustering = self.interface.groups[image].clustering(
+                    **settings['clustering_settings'])
+                cluster_mapping = clustering.mapping_dict()
+                cluster_to_color_mapping = self._cluster_color_cache[
+                    cluster_request_tuple]
+                color_mapping = {
+                    node: cluster_to_color_mapping[cluster] for node, cluster in cluster_mapping.items()}
+                self._node_color_cache[request_tuple] = defaultdict(
+                    lambda: none_color, color_mapping)
+
+            return [self._node_color_cache[request_tuple][node] for node in nodes]
+        elif mode == 'Cluster State Color':
+            if settings is None or "clustering_settings" not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
+            if settings is None or 'parameter' not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
+            request_settings = {'parameters': (settings['parameter'],)}
+            # request_settings['scale'] = settings.get('scale', 'Linear')
+            colormap = settings.get('colormap', self.default_color_map)
+            # color for nodes that are not in the cluster
+            none_color = settings.get('None Color', self.default_none_color)
+            cluster_request: Dict[str, Any] = {**request_settings,
+                                               'clustering_settings': settings['clustering_settings'], 'colormap': colormap, 'none_color': none_color}
+            cluster_request_tuple = ColorScheme.request_to_tuple(
+                cluster_request)
+            if cluster_request_tuple not in self._cluster_color_cache:
+                cluster_values: Dict[str, float] = self.interface.cluster_tracker.get_final_value(
+                    settings['clustering_settings'], settings['parameter'])
+
+                floats = cluster_values.values()
+                norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
+                cm = plt.get_cmap(colormap)
+                cluster_colors = {cluster_name: cm(
+                    norm(value)) for cluster_name, value in cluster_values.items()}
                 cluster_colors[None] = none_color
                 self._cluster_color_cache[cluster_request_tuple] = cluster_colors
 
