@@ -88,6 +88,9 @@ class ColorScheme:
         self.default_centroid_marker = '*'
         self.default_centroid_color = ColorScheme.to_rgba('red')
 
+        self.default_timeline_color = ColorScheme.to_rgba('grey')
+        self.default_timeline_linestyle = '--'
+
         self._cluster_color_cache = {}
         self._node_color_cache = {}
         self._cluster_marker_cache = {}
@@ -218,6 +221,15 @@ class ColorScheme:
             data = self.get_cluster_marker(
                 clustering_settings=settings['clustering_settings'], none_marker=none_marker)
             return [data[cluster] for cluster in clusters]
+
+    @method_logger('Timeline Style', modes=('Constant Style',))
+    def timeline_linestyle(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                           mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        mode = mode or 'Constant Style'
+        if mode == 'Constant Style':
+            if settings is not None and 'linestyle' in settings:
+                return settings['linestyle']
+            return self.default_timeline_linestyle
 
 #############################
 # Colors
@@ -455,6 +467,15 @@ class ColorScheme:
             if settings is not None and 'Color' in settings:
                 return ColorScheme.to_rgba(settings['Color'])
             return self.default_distribution_color
+
+    @method_logger('Timeline Color', modes=('Constant Color',))
+    def timeline_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        mode = mode or 'Constant Color'
+        if mode == 'Constant Color':
+            if settings is not None and 'Color' in settings:
+                return ColorScheme.to_rgba(settings['Color'])
+            return self.default_timeline_color
 
     @method_logger('Color Map', modes=('Independent Colormap',))
     def colorbar(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,

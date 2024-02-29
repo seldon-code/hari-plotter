@@ -1216,16 +1216,51 @@ class plot_time_line(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 linestyle: str | None = None, color: str | None = None):
         self.parameters = tuple(parameters)
+        self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self._x_lim = x_lim
         self._y_lim = y_lim
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+        def time_color_to_time_color_settings(time_color) -> dict:
+            if isinstance(time_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in time_color.keys()):
+                    raise ValueError(
+                        'Time color is incorrectly formatted')
+                return time_color
+            if isinstance(time_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': time_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.time_color_settings: dict = time_color_to_time_color_settings(
+            color)
+
+        if self.time_color_settings['mode'] not in self.color_scheme.method_logger['Timeline Color']['modes']:
+            raise ValueError('Time color is incorrectly formatted')
+
+        def time_style_to_time_style_settings(time_style) -> dict:
+            if isinstance(time_style, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in time_style.keys()):
+                    raise ValueError(
+                        'Time style is incorrectly formatted')
+                return time_style
+            if isinstance(time_style, (str, float)):
+                return {'mode': 'Constant Style', 'settings': {'style': time_style}}
+            else:
+                return {'mode': 'Constant Style'}
+
+        self.time_style_settings: dict = time_style_to_time_style_settings(
+            linestyle)
+
+        if self.time_style_settings['mode'] not in self.color_scheme.method_logger['Timeline Style']['modes']:
+            raise ValueError('Time style is incorrectly formatted')
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'mean_time', 'settings': {}}]
@@ -1235,14 +1270,19 @@ class plot_time_line(Plot):
 
         data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
 
+        color = self.color_scheme.timeline_color(
+            group_number=group_number, **self.time_color_settings)
+        linestyle = self.color_scheme.timeline_linestyle(
+            group_number=group_number, **self.time_style_settings)
+
         x_parameter, y_parameter = self.parameters
 
         if x_parameter == 'Time':
             # Time is on the x-axis, draw a vertical line
-            ax.axvline(x=data, color='r', linestyle='--')
+            ax.axvline(x=data, color=color, linestyle=linestyle)
         elif y_parameter == 'Time':
             # Time is on the y-axis, draw a horizontal line
-            ax.axhline(y=data, color='r', linestyle='--')
+            ax.axhline(y=data, color=color, linestyle=linestyle)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)
