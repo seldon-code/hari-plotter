@@ -22,6 +22,7 @@ PyQt5 = [
     {version = "5.14", python = "~3.10", optional = true},  # For Python 3.10, PyQt5 must be exactly version 5.14
     {version = "^5.14", python = "~3.12", optional = true}  # For Python 3.12, PyQt5 version 5.14 or higher is acceptable
 ]
+pandas = "^2.2.1"
 
 [tool.poetry.extras]
 qt = ["PyQt5"]

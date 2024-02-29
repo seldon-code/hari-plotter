@@ -10,6 +10,7 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
+import pandas as pd
 import seaborn as sns
 from matplotlib.colors import ListedColormap, NoNorm
 
@@ -958,13 +959,15 @@ class plot_clustering_degree_of_membership(Plot):
                 self.parameters[1], self.parameters[1]))
 
 
-@Plotter.plot_type("Clustering: sns")
-class plot_clustering_sns(Plot):
+@Plotter.plot_type("Clustering: Density Plot")
+class plot_clustering_density(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 fill_color: dict = None, alpha: float = 0.5, levels: int = 5, thresh: float = 0.5, resolution: int = 100):
         self.parameters = tuple(parameters)
+        self.color_scheme = color_scheme
         self.clustering_settings = clustering_settings
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
@@ -976,6 +979,23 @@ class plot_clustering_sns(Plot):
         self._y_lim = y_lim
         self.resolution = resolution
 
+        self.alpha = alpha
+        self.levels = levels
+        self.thresh = thresh
+
+        def fill_color_to_fill_color_settings(fill_color) -> dict:
+            if isinstance(fill_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in fill_color.keys()):
+                    raise ValueError(
+                        'Histogram color is incorrectly formatted')
+                return fill_color
+            else:
+                return {'mode': 'Cluster Color', 'settings': {'clustering_settings': self.clustering_settings}}
+
+        self.fill_color_settings: dict = fill_color_to_fill_color_settings(
+            fill_color)
+
     def get_track_clusterings_requests(self):
         return [self.clustering_settings]
 
@@ -984,7 +1004,12 @@ class plot_clustering_sns(Plot):
 
     def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: dict, static_data_cache: dict, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        clustering: Clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[
+            0]]
+        labels = clustering.cluster_labels
+
+        colors = self.color_scheme.fill_colors(
+            clusters=labels, group_number=group_number, **self.fill_color_settings)
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -1007,16 +1032,23 @@ class plot_clustering_sns(Plot):
         yy_flat = yy.ravel()
         Z_index_flat = Z_index.ravel()
 
+        # Create a mapping from integer categories to custom labels
+        Z_index_flat_categorical = pd.Categorical(Z_index_flat)
+        category_mapping = {i: label for i, label in enumerate(labels)}
+
+        # Map the categories in Z_index_flat_categorical to custom labels
+        Z_index_flat_mapped = Z_index_flat_categorical.map(category_mapping)
+
         sns.kdeplot(
             ax=ax,
             x=xx_flat,
             y=yy_flat,
-            hue=Z_index_flat,
+            hue=Z_index_flat_mapped,  # Use the mapped data for hue
             weights=Z_flat,
-            levels=5,
-            thresh=0.5,
-            alpha=0.5,
-            cmap="mako"
+            levels=self.levels,
+            thresh=self.thresh,
+            alpha=self.alpha,
+            palette=colors  # Use the 'colors' list as a palette
         )
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
@@ -1027,15 +1059,6 @@ class plot_clustering_sns(Plot):
         if self.show_y_label:
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
-
-    # def get_limits(self, axis_limits):
-    #     default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
-    #     default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
-
-    #     x_lim = self.x_lim or axis_limits.get('x', default_x_lim)
-    #     y_lim = self.y_lim or axis_limits.get('y', default_y_lim)
-
-    #     return x_lim, y_lim
 
 # Needs to be fixed!
 
