@@ -189,7 +189,7 @@ class ParameterBasedClustering(Clustering):
             for i, sc in enumerate(self.scales):
                 centroids[:, i] = self.scale_funcs[sc]['inverse'](
                     centroids[:, i])
-        return centroids, self.cluster_labels
+        return centroids
 
     @abstractmethod
     def unscaled_centroids(self) -> List[np.ndarray]:
