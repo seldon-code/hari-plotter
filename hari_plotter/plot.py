@@ -799,7 +799,7 @@ class plot_clustering_fill(Plot):
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
-                 fill_color: dict = None, resolution: int = 100):
+                 fill_color: dict = None, alpha: float = 0.2, resolution: int = 100):
         self.parameters = tuple(parameters)
         self.color_scheme = color_scheme
         self.clustering_settings = clustering_settings
@@ -810,6 +810,7 @@ class plot_clustering_fill(Plot):
         self._x_lim = x_lim
         self._y_lim = y_lim
         self.resolution = resolution
+        self.alpha = alpha
 
         def fill_color_to_fill_color_settings(fill_color) -> dict:
             if isinstance(fill_color, dict):
@@ -864,7 +865,7 @@ class plot_clustering_fill(Plot):
 
         # Use the custom colormap in imshow, with NoNorm to avoid normalization of Z values
         im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
-                       origin='lower', aspect='auto', alpha=0.4, interpolation='nearest',
+                       origin='lower', aspect='auto', alpha=self.alpha, interpolation='nearest',
                        cmap=cmap, norm=NoNorm())
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
@@ -882,8 +883,10 @@ class plot_clustering_degree_of_membership(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 colormap=None, alpha: float = 0.2, resolution: int = 100):
         self.parameters = tuple(parameters)
+        self.color_scheme = color_scheme
         self.clustering_settings = clustering_settings
         if 'clustering_parameters' not in self.clustering_settings:
             self.clustering_settings['clustering_parameters'] = self.parameters
@@ -894,6 +897,24 @@ class plot_clustering_degree_of_membership(Plot):
         self._x_lim = x_lim
         self._y_lim = y_lim
         self.resolution = resolution
+        self.alpha = alpha
+
+        def colormap_to_colormap_settings(colormap) -> dict:
+            if isinstance(colormap, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in colormap.keys()):
+                    raise ValueError(
+                        'Colormap is incorrectly formatted')
+                return colormap
+            if isinstance(colormap, (str, float)):
+                return {'mode': 'Independent Colormap', 'settings': {'colormap': colormap}}
+            else:
+                return {'mode': 'Independent Colormap'}
+
+        self.colormap_settings = colormap_to_colormap_settings(colormap)
+
+        if self.colormap_settings['mode'] not in self.color_scheme.method_logger['Color Map']['modes']:
+            raise ValueError('Colormap is incorrectly formatted')
 
     def get_track_clusterings_requests(self):
         return [self.clustering_settings]
@@ -905,7 +926,8 @@ class plot_clustering_degree_of_membership(Plot):
         x_lim, y_lim = self.get_limits(axis_limits)
         clustering: Clustering = dynamic_data_cache[
             self.get_dynamic_plot_requests()[0]]
-        labels = clustering.cluster_labels
+        colormap = self.color_scheme.colorbar(
+            group_number=group_number, **self.colormap_settings)
 
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
@@ -923,8 +945,8 @@ class plot_clustering_degree_of_membership(Plot):
         Z = Z.max(axis=0)
         Z = Z.reshape(xx.shape)
 
-        ax.contourf(xx, yy, Z, alpha=0.5,
-                    levels=np.linspace(0, 1, 11), cmap='coolwarm')
+        ax.contourf(xx, yy, Z, alpha=self.alpha,
+                    levels=np.linspace(0, 1, 11), cmap=colormap)
 
         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
@@ -934,17 +956,6 @@ class plot_clustering_degree_of_membership(Plot):
         if self.show_y_label:
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
-
-    # def get_limits(self, axis_limits):
-    #     default_x_lim = [-1, 1] if self.scale[0] == 'Tanh' else [0, 1]
-    #     default_y_lim = [-1, 1] if self.scale[1] == 'Tanh' else [0, 1]
-
-    #     x_lim = self.x_lim or axis_limits.get(
-    #         'x', default_x_lim)
-    #     y_lim = self.y_lim or axis_limits.get(
-    #         'y', default_y_lim)
-
-    #     return x_lim, y_lim
 
 
 @Plotter.plot_type("Clustering: sns")
