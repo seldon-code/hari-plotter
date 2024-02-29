@@ -147,15 +147,21 @@ class Group:
         else:
             return self.clustering()
 
-    def clustering_graph(self, merge_remaining: bool = False,  **clustering_settings) -> HariGraph:
+    def is_clustering_graph_initialized(self, **clustering_settings) -> bool:
+        clustering_key = self.request_to_tuple(clustering_settings)
+        return clustering_key in self.clusterings and 'graph' in self.clusterings[clustering_key] and self.clusterings[clustering_key]['graph']
+
+    def clustering_graph(self, merge_remaining: bool = False, reinitialize: bool = False,  **clustering_settings) -> HariGraph:
 
         clustering_key = self.request_to_tuple(clustering_settings)
 
-        if clustering_key not in self.clusterings or 'graph' not in self.clusterings[clustering_key]:
+        # initialize the graph
+        if reinitialize or (clustering_key not in self.clusterings or 'graph' not in self.clusterings[clustering_key]):
 
             clustering = self.clustering(**clustering_settings)
 
-            clustering_nodes = clustering.get_cluster_mapping()
+            clustering_nodes = [
+                list([tuple(node) for node in nodes]) for nodes in clustering.labels_nodes_dict().values()]
             cluster_labels = clustering.cluster_labels
 
             clustering_graph = self.mean_graph.copy()

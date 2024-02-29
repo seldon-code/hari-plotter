@@ -28,8 +28,14 @@ class Clustering(ABC):
     """
     _clustering_methods = {}
 
-    def __init__(self, G: HariGraph):
+    def __init__(self, G: HariGraph, node_ids: np.ndarray, cluster_indexes: np.ndarray):
+        '''
+        node_ids (np.ndarray): A numpy array of length N (length of nodes) representing node ids for each data point.
+        cluster_indexes (np.ndarray): A numpy array of length N (length of nodes) shows what cluster each point from data belongs to
+        '''
         self.G = G
+        self.cluster_indexes: np.ndarray = cluster_indexes
+        self.node_ids: np.ndarray = node_ids
 
     @property
     def cluster_labels(self) -> List[str]:
@@ -38,7 +44,7 @@ class Clustering(ABC):
                 self.get_number_of_clusters())]
         return self._cluster_labels
 
-    def get_cluster_labels(self, **kwargs):
+    def get_cluster_labels(self, **kwargs) -> List[str]:
         return self.cluster_labels
 
     @cluster_labels.setter
@@ -47,6 +53,9 @@ class Clustering(ABC):
             raise ValueError(
                 f'Labels number {len(labels)} is not equal to the number of clusters {self.get_number_of_clusters()}')
         self._cluster_labels = labels
+
+    def label_to_index(self, label: str) -> int:
+        return self.cluster_labels.index(label)
 
     def reorder_labels(self, new_order: List[int]):
         current_labels = self.cluster_labels
@@ -104,7 +113,7 @@ class Clustering(ABC):
         pass
 
     @classmethod
-    def available_clustering_methods(self):
+    def available_clustering_methods(self) -> List[str]:
         return list(self._clustering_methods.keys())
 
     def get_values(self, key: Union[str, List[str]]) -> List[np.ndarray]:
@@ -125,16 +134,30 @@ class Clustering(ABC):
 
         data = self.G.gatherer.gather(param=key)
 
-        return [np.array([[data[k][data['Nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.get_cluster_mapping()]
+        return [np.array([[data[k][data['Nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.labels_nodes_dict()]
 
-    def mapping_dict(self):
-        labels = self.cluster_labels
-        mapping = self.get_cluster_mapping()
-        assert len(labels) == len(mapping)
-        return {node: label for label, nodes in zip(labels, mapping) for node in nodes}
+    def nodes_by_index(self, index: int) -> Tuple[Tuple[int]]:
+        """
+        Returns the nodes that are in the cluster with the given label
+        """
+        return self.node_ids[self.cluster_indexes == index]
 
-    def mapping_default_dict(self):
-        return defaultdict(lambda: None, self.mapping_dict)
+    def nodes_by_label(self, label: str) -> Tuple[Tuple[int]]:
+        """
+        Returns the nodes that are in the cluster with the given label
+        """
+        return self.nodes_by_index(self.label_to_index(label))
+
+    def labels_nodes_dict(self) -> Dict[str, Tuple[Tuple[int]]]:
+        return {cluster_label: self.nodes_by_label(cluster_label) for cluster_label in self.cluster_labels}
+
+    def nodes_labels_dict(self):
+        ln_dict = self.labels_nodes_dict()
+
+        return {tuple(node): label for label, nodes in ln_dict.items() for node in nodes}
+
+    def nodes_labels_default_dict(self):
+        return defaultdict(lambda: None, self.nodes_labels_dict())
 
 
 class ParameterBasedClustering(Clustering):
@@ -143,35 +166,32 @@ class ParameterBasedClustering(Clustering):
         'Tanh': {'direct': np.tanh, 'inverse': np.arctanh}
     }
 
-    def __init__(self, G: HariGraph, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: HariGraph, node_ids: np.ndarray, cluster_indexes: np.ndarray, parameters: List[str], scales: List[str]):
         """
         Initializes the Cluster object with cluster data.
 
         Args:
-            clustered_data (List[np.ndarray]): Shape NxM where N is number of points and M number of parameters
             cluster_indexes: A numpy array of length N shows what cluster each point from data belongs to
-            original_labels (np.ndarray): A numpy array of length N representing original labels for each data point. 
+            node_ids (np.ndarray): A numpy array of length N representing node ids for each data point. 
             parameters (List[str]): A list of strings length M, representing the names of the parameters 
                                     or features used in clustering. These names correspond to the 
                                     dimensions/features in the data points. 
             scales (List[str]): A list of strings representing the names of the scales used for clustering. More in scale_funcs
         """
-        super().__init__(G)
-        self.cluster_indexes = cluster_indexes
-        self.original_labels = original_labels
-        self.parameters = parameters
-        self.scales = scales
-        self._cluster_labels = None
+        super().__init__(G, cluster_indexes=cluster_indexes, node_ids=node_ids)
+        self.parameters: List[str] = parameters
+        self.scales: List[str] = scales
+        self._cluster_labels: List[str] = None
 
     def centroids(self, keep_scale: bool = False):
-        centroids = self.unscaled_centroids
+        centroids = self.unscaled_centroids()
         if not keep_scale:
             for i, sc in enumerate(self.scales):
                 centroids[:, i] = self.scale_funcs[sc]['inverse'](
                     centroids[:, i])
-        return centroids
+        return centroids, self.cluster_labels
 
-    @abstractproperty
+    @abstractmethod
     def unscaled_centroids(self) -> List[np.ndarray]:
         """
         A numpy array representing the centroids of the clusters.
@@ -211,10 +231,6 @@ class ParameterBasedClustering(Clustering):
         """
         pass
 
-    @abstractmethod
-    def get_cluster_mapping(self) -> List[list]:
-        pass
-
     def get_indices_from_parameters(self, params: Union[str, List[str]]) -> Union[int, List[int]]:
         """
         Returns the indices corresponding to the given parameter(s).
@@ -251,34 +267,35 @@ class ParameterBasedClustering(Clustering):
 class ValueIntervalsClustering(ParameterBasedClustering):
     """Value Intervals clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: HariGraph, data: np.ndarray, parameter_boundaries: List[List[float]], original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
-        super().__init__(G, original_labels, parameters, scales, cluster_indexes)
+    def __init__(self, G: HariGraph, data: np.ndarray, parameter_boundaries: List[List[float]], node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+        super().__init__(G, node_ids=node_ids, parameters=parameters,
+                         scales=scales, cluster_indexes=cluster_indexes)
         self.parameter_boundaries = parameter_boundaries
         self.data = data
-        self.indices_mapping = {}
+        self._indices_mapping = {}
         self.n_clusters = 0
 
     def get_number_of_clusters(self) -> int:
         return self.n_clusters  # Assuming self.n_clusters tracks the number of clusters
 
-    def get_cluster_mapping(self) -> List[list]:
-        """
-        Maps each node to a cluster based on the parameter boundaries.
+    # def labels_nodes_dict(self) -> List[list]:
+    #     """
+    #     Maps each node to a cluster based on the parameter boundaries.
 
-        Returns:
-        - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.
-        """
-        cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
+    #     Returns:
+    #     - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.
+    #     """
+    #     cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
 
-        for i, point in enumerate(self.data):
-            cluster_index = self.find_cluster_index(point)
-            if cluster_index is not None:  # Point falls within defined boundaries
-                cluster_nodes[cluster_index].append(
-                    tuple(self.original_labels[i]))
+    #     for i, point in enumerate(self.data):
+    #         cluster_index = self.find_cluster_index(point)
+    #         if cluster_index is not None:  # Point falls within defined boundaries
+    #             cluster_nodes[cluster_index].append(
+    #                 tuple(self.node_ids[i]))
 
-        return cluster_nodes
+    #     return cluster_nodes
 
-    def find_cluster_indices(self, point: np.ndarray) -> np.ndarray:
+    def find_cluster_indices_on_grid(self, point: np.ndarray) -> np.ndarray:
         """
         Determines the indices of the clusters a point belongs to based on parameter boundaries.
 
@@ -291,26 +308,11 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         cluster_indices = np.zeros(len(self.parameter_boundaries), dtype=int)
         for i, boundaries in enumerate(self.parameter_boundaries):
             cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
-        return tuple(cluster_indices)
+        return cluster_indices
 
-    def find_cluster_index(self, point):
-        cluster_indices = self.find_cluster_indices(point)
-        return self.indices_mapping.get(cluster_indices, None)
-
-    # def flatten_cluster_indices(self, cluster_indices: np.ndarray) -> int:
-    #     """
-    #     Flattens the array of cluster indices into a single cluster index.
-
-    #     Args:
-    #     - cluster_indices: An array of cluster indices for each parameter.
-
-    #     Returns:
-    #     - int: The flattened cluster index representing the specific cluster across all parameters.
-    #     """
-    #     cluster_sizes = np.array(
-    #         [len(b) + 1 for b in self.parameter_boundaries])
-    #     weights = np.append(1, np.cumprod(cluster_sizes[:-1]))
-    #     return np.dot(cluster_indices, weights)
+    # def find_cluster_index(self, point):
+    #     cluster_indices = self.find_cluster_indices_on_grid(point)
+    #     return self._indices_mapping.get(cluster_indices, None)
 
     @classmethod
     def from_graph(cls, G: HariGraph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
@@ -351,7 +353,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         # Remove NaN values
         valid_indices = ~np.isnan(data_array).any(axis=1)
         data_array = data_array[valid_indices]
-        original_labels = np.array(data['Nodes'])[valid_indices]
+        node_ids = np.array(data['Nodes'])[valid_indices]
 
         if data_array.size == 0:
             raise ValueError(
@@ -362,7 +364,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
             data_array[:, i] = cls.scale_funcs[sc]['direct'](data_array[:, i])
 
         # Initialize the clustering
-        clustering = cls(G=G, data=data_array, original_labels=original_labels, parameters=clustering_parameters,
+        clustering = cls(G=G, data=data_array, node_ids=node_ids, parameters=clustering_parameters,
                          scales=scale, cluster_indexes=np.nan*np.zeros(data_array.shape[0]), parameter_boundaries=parameter_boundaries)
         clustering.recluster()
         return clustering
@@ -372,30 +374,28 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         Recalculates the cluster indices for each data point based on the current parameter boundaries.
         """
         # Iterate over each data point
-        self.indices_mapping = {}
+        self._indices_mapping = {}
         self.n_clusters = 0
 
         for i, point in enumerate(self.data):
             # Determine the cluster indices for the current point across all parameters
-            cluster_indices = self.find_cluster_indices(point)
-            if cluster_indices not in self.indices_mapping:
-                self.indices_mapping[cluster_indices] = self.n_clusters
+            cluster_indices = tuple(self.find_cluster_indices_on_grid(point))
+            if cluster_indices not in self._indices_mapping:
+                self._indices_mapping[cluster_indices] = self.n_clusters
                 self.n_clusters += 1
 
             # Flatten these indices into a single cluster index
             # flat_cluster_index = self.flatten_cluster_indices(cluster_indices)
 
             # Update the cluster index for the current point
-            self.cluster_indexes[i] = self.indices_mapping[cluster_indices]
+            self.cluster_indexes[i] = self._indices_mapping[cluster_indices]
 
     def reorder_clusters(self, new_order: List[int]):
         # Implement the logic to reorder the clusters
         pass
 
-    @property
     def unscaled_centroids(self) -> np.ndarray:
-        # Implement the logic to return centroids or representative points of clusters
-        pass
+        return np.array([np.mean(self.data[self.cluster_indexes == i], axis=0) for i in range(self.n_clusters)])
 
     def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
         """
@@ -467,21 +467,16 @@ class ValueIntervalsClustering(ParameterBasedClustering):
 class KMeansClustering(ParameterBasedClustering):
     """A KMeans clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: HariGraph, data: np.ndarray, original_labels: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
-
-        super().__init__(G, original_labels, parameters, scales, cluster_indexes)
+    def __init__(self, G: HariGraph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+        super().__init__(G, node_ids=node_ids, parameters=parameters,
+                         scales=scales, cluster_indexes=cluster_indexes)
         self.data = data
 
-    @property
     def unscaled_centroids(self) -> np.ndarray:
         return self._centroids.copy()
 
-    def get_cluster_mapping(self) -> List[list]:
-        cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
-
-        for label, cluster in zip(self.original_labels, self.cluster_indexes):
-            cluster_nodes[cluster].append(tuple(label))
-        return cluster_nodes
+    # def labels_nodes_dict(self) -> Dict[str, Tuple[Tuple[int]]]:
+    #     return {cluster_label: ids for cluster_label, ids in zip(self.cluster_labels, self.node_ids)}
 
     def get_number_of_clusters(self) -> int:
         """
@@ -572,7 +567,7 @@ class KMeansClustering(ParameterBasedClustering):
         # Remove NaN values
         valid_indices = ~np.isnan(data).any(axis=1)
         data = data[valid_indices]
-        original_labels = np.array(nodes)[valid_indices]
+        node_ids = np.array(nodes)[valid_indices]
 
         if data.size == 0:
             raise ValueError(
@@ -583,7 +578,7 @@ class KMeansClustering(ParameterBasedClustering):
             data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
 
         # Perform clustering
-        clustering = cls(G=G, data=data, original_labels=original_labels, parameters=parameter_names,
+        clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
                          scales=scale, cluster_indexes=np.zeros(data.shape[0]))
         clustering.recluster(n_clusters=n_clusters)
 

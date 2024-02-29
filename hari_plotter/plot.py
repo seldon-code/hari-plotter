@@ -17,6 +17,7 @@ from .interface import Interface
 from .parameters import (BoolParameter, FloatParameter, ListParameter,
                          NoneOrFloatParameter, NoneRangeParameter, Parameter)
 from .plotter import Plotter
+from .cluster import Clustering, ParameterBasedClustering
 
 
 class Plot(ABC):
@@ -149,6 +150,9 @@ class Plot(ABC):
     def settings_to_code(self) -> str:
         return ''
 
+    def is_single_color(color):
+        return isinstance(color, (str, float)) or color.shape == (4,) or color.shape == (3,)
+
 
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
@@ -264,7 +268,7 @@ class plot_histogram(Plot):
         values = values[valid_indices]
 
         histogram_color = self.color_scheme.distribution_color(
-            nodes, group_number, **self.histogram_color_settings)
+            nodes=nodes, group_number=group_number, **self.histogram_color_settings)
 
         if self.rotated:
             if self.scale[1] == 'Tanh':
@@ -431,7 +435,7 @@ class plot_hexbin(Plot):
         y_values = np.array(data[y_parameter])
         nodes = data['Nodes']
         colormap = self.color_scheme.colorbar(
-            nodes, group_number, **self.colormap_settings)
+            nodes=nodes, group_number=group_number, **self.colormap_settings)
 
         # Find indices where neither x_values nor y_values are NaN
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
@@ -501,7 +505,8 @@ class plot_scatter(Plot):
                  scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, color: Optional[str | None] = None, marker: Optional[str | None] = None):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: Optional[str | None] = None, marker: Optional[str | None] = None):
         self.parameters = tuple(parameters)
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
@@ -592,9 +597,9 @@ class plot_scatter(Plot):
             y_values = np.tanh(y_values)
 
         colors = self.color_scheme.scatter_colors_nodes(
-            valid_nodes, group_number, **self.scatter_color_settings)
+            nodes=valid_nodes, group_number=group_number, **self.scatter_color_settings)
         markers = self.color_scheme.scatter_markers_nodes(
-            valid_nodes, group_number, **self.scatter_marker_settings)
+            nodes=valid_nodes, group_number=group_number, **self.scatter_marker_settings)
 
         if isinstance(markers, (str, type(None))):
             ax.scatter(x_values, y_values, color=colors, marker=markers)
@@ -602,10 +607,8 @@ class plot_scatter(Plot):
             # Convert markers to a NumPy array for efficient processing
             markers = np.array(markers)
             unique_markers = np.unique(markers)
-
-            # Check the type of colors to handle single color definitions
-            colors_is_array = not (isinstance(
-                colors, (str, float)) or len(colors) <= 4)
+            colors = np.array(colors)
+            colors_is_array = not (Plot.is_single_color(colors))
             if colors_is_array:
                 # Ensure colors is a NumPy array of individual colors for each point
                 colors = np.array(colors)
@@ -645,27 +648,58 @@ class plot_scatter(Plot):
 
 @Plotter.plot_type("Clustering: Centroids")
 class plot_clustering_centroids(Plot):
-    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict,
                  scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, resolution: int = 100):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: Optional[str | None] = None, marker: Optional[str | None] = None):
+
         self.parameters = tuple(parameters)
         self.clustering_settings = clustering_settings
-        if 'clustering_parameters' not in self.clustering_settings:
-            self.clustering_settings['clustering_parameters'] = self.parameters
-
-        # print(f'{self.clustering_settings = }')
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.rotated = rotated
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self._x_lim = x_lim
         self._y_lim = y_lim
-        self.resolution = resolution
+        self.color_scheme = color_scheme
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+        def centroid_color_to_centroid_color_settings(centroid_color) -> dict:
+            if isinstance(centroid_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in centroid_color.keys()):
+                    raise ValueError(
+                        'Histogram color is incorrectly formatted')
+                return centroid_color
+            if isinstance(centroid_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': centroid_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.centroid_color_settings: dict = centroid_color_to_centroid_color_settings(
+            color)
+
+        if self.centroid_color_settings['mode'] not in self.color_scheme.method_logger['Scatter Color']['modes']:
+            raise ValueError('Histogram color is incorrectly formatted')
+
+        def centroid_marker_to_centroid_marker_settings(centroid_marker) -> dict:
+            if isinstance(centroid_marker, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in centroid_marker.keys()):
+                    raise ValueError(
+                        'Histogram marker is incorrectly formatted')
+                return centroid_marker
+            if isinstance(centroid_marker, (str, float)):
+                return {'mode': 'Constant Marker', 'settings': {'marker': centroid_marker}}
+            else:
+                return {'mode': 'Constant Marker'}
+
+        self.centroid_marker_settings: dict = centroid_marker_to_centroid_marker_settings(
+            marker)
+
+    # def get_track_clusterings_requests(self):
+    #     return [self.clustering_settings]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -685,31 +719,76 @@ class plot_clustering_centroids(Plot):
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        clustering: ParameterBasedClustering = dynamic_data_cache[self.get_dynamic_plot_requests()[
+            0]]
 
+        print(f'{clustering = }')
+        print(f'{id(clustering) = }')
         x_feature_name, y_feature_name = self.parameters
 
         x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
         # Plot centroids if they are 2D
-        centroids = clustering.centroids()
-        if centroids.shape[1] == 2:
-            centroids_x = centroids[:, x_feature_index]
-            centroids_y = centroids[:, y_feature_index]
-            if self.scale[0] == 'Tanh':
-                centroids_x = np.tanh(centroids_x)
-            if self.scale[1] == 'Tanh':
-                centroids_y = np.tanh(centroids_y)
+        centroids, labels = clustering.centroids()
+        print(f'{labels = }')
+        print(f'{centroids = }')
 
-            ax.scatter(centroids_x, centroids_y,
-                       color="red",
-                       label="Centroids",
-                       marker="X",
-                       )
+        markers = self.color_scheme.centroid_markers(
+            clusters=labels, group_number=group_number, **self.centroid_marker_settings)
+        colors = self.color_scheme.centroid_colors(
+            clusters=labels, group_number=group_number, **self.centroid_color_settings)
+
+        print(f'{markers = }')
+        print(f'{colors = }')
+
+        if centroids.shape[1] != 2:
+            raise ValueError(f'Centroids ({centroids}) shape is incorrect')
+
+        x_values = centroids[:, x_feature_index]
+        y_values = centroids[:, y_feature_index]
+        if self.scale[0] == 'Tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'Tanh':
+            y_values = np.tanh(y_values)
+
+        if isinstance(markers, (str, type(None))):
+            ax.scatter(x_values, y_values, color=colors, marker=markers)
         else:
-            warnings.warn(
-                f'centroids.shape[1] != 2, it is {centroids.shape[1]}. Clusters centroids are not shown on a plot')
+            # Convert markers to a NumPy array for efficient processing
+            markers = np.array(markers)
+            unique_markers = np.unique(markers)
+
+            # Check the type of colors to handle single color definitions
+            colors = np.array(colors)
+            colors_is_array = not (Plot.is_single_color(colors))
+            if colors_is_array:
+                # Ensure colors is a NumPy array of individual colors for each point
+                colors = np.array(colors)
+            else:
+                # Single color definition, use it directly for all points
+                c = colors
+
+            # Plot each group of points with the same marker individually
+            for marker in unique_markers:
+                # Find indices of points with the current marker
+                indices = np.where(markers == marker)[0]
+
+                if colors_is_array:
+                    # Extract the colors for the selected indices for individual colors per point
+                    c = colors[indices, :]
+
+                # Plot these points as a separate scatter plot
+                ax.scatter(x_values[indices],
+                           y_values[indices], color=c, marker=marker)
+
+        # Setting the plot limits
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -740,8 +819,8 @@ class plot_clustering_scatter(Plot):
 
         self.cluster_colors = {}  # Initialize the cluster colors dictionary
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -816,8 +895,8 @@ class plot_clustering_fill(Plot):
         self._y_lim = y_lim
         self.resolution = resolution
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -887,8 +966,8 @@ class plot_clustering_degree_of_membership(Plot):
         self._y_lim = y_lim
         self.resolution = resolution
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -955,8 +1034,8 @@ class plot_clustering_sns(Plot):
         self._y_lim = y_lim
         self.resolution = resolution
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_dynamic_plot_requests()[0])
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]

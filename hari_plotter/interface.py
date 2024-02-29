@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod, abstractproperty
 from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
@@ -7,6 +8,7 @@ from typing import Any, Dict, Iterator, List, Optional, Type, Union
 import networkx as nx
 import numpy as np
 
+from .cluster import Clustering
 from .group import Group
 from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
@@ -215,7 +217,10 @@ class Interface(ABC):
             self._interface: Interface = interface
             self._track_clusters_cache = {}
 
-        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, List[str]]]:
+        def clean(self):
+            self._track_clusters_cache = {}
+
+        def is_tracked(self, clusterization_settings: Union[dict, List[dict]]) -> List[bool]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
 
@@ -224,44 +229,15 @@ class Interface(ABC):
             """
             clusterization_settings_list = [clusterization_settings] if isinstance(
                 clusterization_settings, dict) else clusterization_settings
-
-            updated_labels_list = []
+            is_tracked_list = []
             for clust_settings in clusterization_settings_list:
                 # Extract the dynamics of clusters across frames
-                # print(f'{clust_settings = }')
                 cluster_tuple = Interface.request_to_tuple(clust_settings)
-                if cluster_tuple not in self._track_clusters_cache:
-                    clusters_dynamics = [list(group.clustering(
-                        **clust_settings).get_cluster_mapping()) for group in self._interface.groups]
+                is_tracked_list.append(
+                    cluster_tuple in self._track_clusters_cache)
+            return is_tracked_list
 
-                    G = self.cluster_graph(clust_settings,
-                                           clusters_dynamics=clusters_dynamics)
-                    # Step 5: Extract updated labels
-                    updated_labels = {}
-                    for frame_index in range(len(clusters_dynamics)):
-                        frame_labels = []
-                        for cluster_index in range(len(clusters_dynamics[frame_index])):
-                            node_id = f"{frame_index}-{cluster_index}"
-                            label = G.nodes[node_id]['Label']
-                            frame_labels.append(label)
-                        updated_labels[frame_index] = frame_labels
-
-                    # Apply updated labels
-                    for frame_index, labels in updated_labels.items():
-                        group = self._interface.groups[frame_index]
-                        group.clustering(
-                            **clust_settings).cluster_labels = labels
-
-                    self._track_clusters_cache[cluster_tuple] = updated_labels
-
-                updated_labels_list.append(
-                    self._track_clusters_cache[cluster_tuple])
-            return updated_labels_list
-
-        def clean(self):
-            self._track_clusters_cache = {}
-
-        def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Any]] = None) -> nx.DiGraph:
+        def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Clustering]] = None) -> nx.DiGraph:
             """
             Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.
 
@@ -270,8 +246,8 @@ class Interface(ABC):
 
             :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.
             """
-            clusters_dynamics = clusters_dynamics or [list(group.clustering(
-                **cluster_settings).get_cluster_mapping()) for group in self._interface.groups]
+            clusters_dynamics: List[List[Clustering]] = clusters_dynamics or [group.clustering(
+                **cluster_settings).labels_nodes_dict() for group in self._interface.groups]
 
             # Initialize the final labels from the last frame
             final_labels = self._interface.groups[-1].clustering(**
@@ -283,7 +259,7 @@ class Interface(ABC):
                 for cluster_index, cluster in enumerate(frame):
                     node_id = f"{frame_index}-{cluster_index}"
                     G.add_node(node_id, frame=frame_index, cluster=cluster,
-                               label=None)  # Initially, labels are None
+                               Label=None)  # Initially, labels are None
 
                     if frame_index > 0:  # Connect clusters to their predecessors
                         # Simplify connections if the number of clusters remains constant
@@ -329,6 +305,60 @@ class Interface(ABC):
 
             return G
 
+        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, Dict[str:str]]]:
+            """
+            Tracks the clusters across frames based on the provided clusterization settings.
+
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
+
+            updated_labels_list = []
+            for clust_settings in clusterization_settings_list:
+                # Extract the dynamics of clusters across frames
+                cluster_tuple = Interface.request_to_tuple(clust_settings)
+                if cluster_tuple not in self._track_clusters_cache:
+                    clusters_dynamics = [group.clustering(
+                        **clust_settings).labels_nodes_dict() for group in self._interface.groups]
+
+                    G = self.cluster_graph(clust_settings,
+                                           clusters_dynamics=clusters_dynamics)
+                    # Extract updated labels
+                    # updated labels - dict for each group in dynamics
+                    updated_labels = {}
+                    for frame_index in range(len(clusters_dynamics)):
+                        # dict - old_label:new_label
+                        frame_labels = {}
+                        for cluster_index in range(len(clusters_dynamics[frame_index])):
+                            node_id = f"{frame_index}-{cluster_index}"
+                            new_label = G.nodes[node_id]['Label']+'*'
+                            frame_labels[G.nodes[node_id]
+                                         ['cluster']] = new_label
+                        updated_labels[frame_index] = frame_labels
+
+                    # Apply updated labels
+                    for frame_index, labels in updated_labels.items():
+                        group: Group = self._interface.groups[frame_index]
+                        print(
+                            f'{group.clustering(**clust_settings).cluster_labels = }\n{labels = }')
+                        group.clustering(
+                            **clust_settings).cluster_labels = list(labels.values())
+                        print(
+                            f'Updated {group.clustering(**clust_settings).cluster_labels}')
+                        if group.is_clustering_graph_initialized(**clust_settings):
+                            warnings.warn(
+                                'Clustering tracked after clustering graph was initialized. This is unexpected behavior, trying to handle.')
+                            group.clustering_graph(
+                                reinitialize=True, **clust_settings)
+
+                    self._track_clusters_cache[cluster_tuple] = updated_labels
+
+                updated_labels_list.append(
+                    self._track_clusters_cache[cluster_tuple])
+            return updated_labels_list
+
         def get_unique_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[str]]:
             """
             Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.
@@ -344,7 +374,7 @@ class Interface(ABC):
             for tracked_clusters in tracked_clusters_list:
                 unique_clusters = set()
                 for clusters in tracked_clusters.values():
-                    unique_clusters.update(clusters)
+                    unique_clusters.update(clusters.values())
                 unique_clusters_list.append(list(unique_clusters))
 
             return unique_clusters_list
@@ -364,7 +394,7 @@ class Interface(ABC):
             for tracked_clusters in tracked_clusters_list:
                 cluster_presence = {}
                 for frame_index, clusters in tracked_clusters.items():
-                    for cluster in clusters:
+                    for cluster in clusters.values():
                         if cluster not in cluster_presence:
                             cluster_presence[cluster] = []
                         cluster_presence[cluster].append(frame_index)
