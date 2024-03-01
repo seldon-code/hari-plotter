@@ -187,6 +187,23 @@ class TestPlotter:
                      },
                  },
              },],
+            [
+                "Static: Graph line",
+                {
+                    "parameters": ["Time", "Opinion"],
+
+                },
+            ],
+            ["Static: Graph line",
+             {
+                 "parameters": ["Time", "Opinion"],
+                 "color": {
+                     "mode": "Graph Parameter",
+                     "settings": {
+                         "parameter": "Opinion",
+                     },
+                 },
+             },],
 
         ]
 

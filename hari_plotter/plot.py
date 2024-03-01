@@ -1447,8 +1447,10 @@ class plot_graph_line(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'mean'):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'Mean',
+                 color: dict | None = None, linestyle: str | None = None, ):
         self.parameters = tuple(parameters)
+        self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -1458,8 +1460,48 @@ class plot_graph_line(Plot):
 
         self._static_data = None
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_static_plot_requests()[0])
+        def line_color_to_line_color_settings(line_color) -> dict:
+            if isinstance(line_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_color.keys()):
+                    raise ValueError(
+                        'Line color is incorrectly formatted')
+                return line_color
+            if isinstance(line_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': line_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.line_color_settings: dict = line_color_to_line_color_settings(
+            color)
+
+        if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Graph Line Color']['modes']:
+            raise ValueError(
+                f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Graph Line Color']['modes']}")
+
+        def line_style_to_line_style_settings(line_style) -> dict:
+            if isinstance(line_style, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_style.keys()):
+                    raise ValueError(
+                        'Line style is incorrectly formatted')
+                return line_style
+            if isinstance(line_style, (str, float)):
+                return {'mode': 'Constant Style', 'settings': {'style': line_style}}
+            else:
+                return {'mode': 'Constant Style'}
+
+        self.line_style_settings: dict = line_style_to_line_style_settings(
+            linestyle)
+
+        if self.line_style_settings['mode'] not in self.color_scheme.method_logger['Line Style']['modes']:
+            raise ValueError(
+                f"Line style is incorrectly formatted: Mode {self.line_style_settings['mode']} not in known modes {self.color_scheme.method_logger['Line Style']['modes']}")
+
+        self._static_data = None
+
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.line_style_settings), self.color_scheme.requires_tracking(self.line_color_settings)]
 
     def get_static_plot_requests(self):
         return [{'method': 'calculate_function_of_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'function': self.function}}]
@@ -1483,6 +1525,10 @@ class plot_graph_line(Plot):
         x_lim, y_lim = self.get_limits(axis_limits)
 
         data = self.data(static_data_cache)
+        colors = np.array(self.color_scheme.graph_line_color(
+            group_number=group_number, **self.line_color_settings))
+        linestyle = self.color_scheme.line_linestyle(
+            group_number=group_number, **self.line_style_settings)
 
         x_parameter, y_parameter = self.parameters
 
@@ -1494,7 +1540,7 @@ class plot_graph_line(Plot):
         if self.scale[1] == 'Tanh':
             y_values = np.tanh(y_values)
 
-        ax.plot(x_values, y_values)
+        ax.plot(x_values, y_values, color=colors, linestyle=linestyle)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)

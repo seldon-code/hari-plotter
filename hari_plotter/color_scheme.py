@@ -98,12 +98,14 @@ class ColorScheme:
         self._node_color_cache = {}
         self._cluster_marker_cache = {}
         self._node_marker_cache = {}
+        self._graph_color_cache = {}
 
     def clear(self) -> None:
         self._cluster_color_cache = {}
         self._node_color_cache = {}
         self._cluster_marker_cache = {}
         self._node_marker_cache = {}
+        self._graph_color_cache = {}
 
     def get_image(self, settings, group_number: int) -> int:
         image = 'Current' if settings is None else settings.get(
@@ -340,7 +342,7 @@ class ColorScheme:
 
             if request_tuple not in self._node_color_cache:
                 data = self.interface.dynamic_data_cache[image][{
-                    'method': 'calculate_node_values', 'group_number': group_number, 'settings': request_settings}]
+                    'method': 'calculate_node_values', 'settings': request_settings}]
                 floats = data[settings['parameter']]
                 norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
                 cm = plt.get_cmap(colormap)
@@ -500,7 +502,7 @@ class ColorScheme:
 
             if request_tuple not in self._node_color_cache:
                 data = self.interface.dynamic_data_cache[image][{
-                    'method': 'calculate_node_values', 'group_number': group_number, 'settings': request_settings}]
+                    'method': 'calculate_node_values', 'settings': request_settings}]
                 floats = data[settings['parameter']]
                 norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
                 cm = plt.get_cmap(colormap)
@@ -539,6 +541,43 @@ class ColorScheme:
             data = self.get_parameter_based_cluster_node_color(
                 image=image, parameter=settings['parameter'], clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
             return [data[node] for node in nodes]
+
+    @method_logger('Graph Line Color', modes=('Constant Color', 'Graph Parameter'))
+    def graph_line_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                         mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        mode = mode or 'Constant Color'
+        image = self.get_image(settings, group_number)
+        if mode == 'Constant Color':
+            if settings is not None and 'Color' in settings:
+                return ColorScheme.to_rgba(settings['Color'])
+            return self.default_line_color
+        elif mode == 'Graph Parameter':
+            if settings is None or 'parameter' not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
+            colormap = settings.get('colormap', self.default_color_map)
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+            value_limits = settings.get('value_limits', (0., 1.))
+            request_settings = {'parameters': (
+                settings['parameter'],), }
+            request_settings['function'] = settings.get('function', 'Mean')
+            request = {**request_settings,
+                       'colormap': colormap, 'image': image, 'none_color': none_color, 'value_limits': value_limits}
+            request_tuple = ColorScheme.request_to_tuple(request)
+
+            if request_tuple not in self._graph_color_cache:
+                data = self.interface.dynamic_data_cache[image][{
+                    'method': 'calculate_function_of_node_values', 'settings': request_settings}]
+                value = data[settings['parameter']]
+                print(f'{value = }')
+                norm = colors.Normalize(
+                    vmin=value_limits[0], vmax=value_limits[1])
+                cm = plt.get_cmap(colormap)
+                self._graph_color_cache[request_tuple] = cm(norm(value))
+
+            data = self._graph_color_cache[request_tuple]
+            return data
 
     @method_logger('Color Map', modes=('Independent Colormap',))
     def colorbar(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
