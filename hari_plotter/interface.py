@@ -467,7 +467,7 @@ class HariGraphInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data.gatherer.methods
+        return self.data.gatherer.node_parameters
 
 
 class HariDynamicsInterface(Interface):
@@ -497,7 +497,7 @@ class HariDynamicsInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data[0].gatherer.methods
+        return self.data[0].gatherer.node_parameters
 
 
 class SimulationInterface(Interface):
@@ -527,4 +527,4 @@ class SimulationInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data.dynamics[0].gatherer.methods
+        return self.data.dynamics[0].gatherer.node_parameters

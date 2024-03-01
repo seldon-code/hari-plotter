@@ -285,7 +285,7 @@ class Plotter:
     def _plot(self, fig, axs: List[list], group_number: int):
         # Data fetching for static plots
         track_clusters_requests = [item for i in range(self.num_rows) for j in range(
-            self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests()]
+            self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests() if item]
         self.interface.cluster_tracker.track_clusters(track_clusters_requests)
 
         # Determine the rendering order
@@ -313,6 +313,8 @@ class Plotter:
 
         self._plot(fig, axs, group_number)
 
+        return fig, axs
+
     def plot_dynamics(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
@@ -320,16 +322,7 @@ class Plotter:
         """
         with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
 
-            # self.interface.static_data_cache_requests = [item for i in range(self.num_rows) for j in range(
-            #     self.num_cols) for plot in self.plots[i][j] for item in plot.get_static_plot_requests()]
-            # self.interface.dynamic_data_cache_requests = [item for i in range(self.num_rows) for j in range(
-            #     self.num_cols) for plot in self.plots[i][j] for item in plot.get_dynamic_plot_requests()]
-
-            # self.interface.collect_static_data()
-
             for group_number in range(len(self.interface.groups)):
-
-                # self.interface.collect_dynamic_data(group_number)
 
                 fig, axs = self.create_fig_and_axs()
 

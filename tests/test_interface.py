@@ -33,3 +33,6 @@ class TestInterface:
 
     def test_get_final_value(self):
         self.H_interface.cluster_tracker.get_final_value(self.cl, 'Opinion')
+
+    def test_available_parameters(self):
+        self.H_interface.available_parameters

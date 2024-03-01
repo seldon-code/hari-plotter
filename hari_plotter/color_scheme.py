@@ -91,6 +91,9 @@ class ColorScheme:
         self.default_timeline_color = ColorScheme.to_rgba('grey')
         self.default_timeline_linestyle = '--'
 
+        self.default_line_color = ColorScheme.to_rgba('black')
+        self.default_line_linestyle = '-'
+
         self._cluster_color_cache = {}
         self._node_color_cache = {}
         self._cluster_marker_cache = {}
@@ -104,7 +107,7 @@ class ColorScheme:
 
     def get_image(self, settings, group_number: int) -> int:
         image = 'Current' if settings is None else settings.get(
-            'Image', group_number)
+            'group_number', group_number)
         if image == 'Current':
             return group_number
         image = int(image)
@@ -129,16 +132,14 @@ class ColorScheme:
         """Returns a list of property names that have been registered."""
         return list(self.method_logger.keys())
 
-    def update_clusters(self, clusters, clustering_settings):
-        if not self.interface.cluster_tracker.is_tracked(clusterization_settings=clustering_settings):
-            print('initialization')
-            print(f'{clusters = }')
-            cluster_dict = self.interface.cluster_tracker.track_clusters(
-                clusterization_settings=clustering_settings)
-            print(f'{cluster_dict = }')
-            clusters = [cluster_dict[cluster] for cluster in clusters]
-            print(f'{clusters = }')
-        return clusters
+    def requires_tracking(self, settings) -> Union[bool, dict]:
+        mode = settings.get('mode', None)
+        if mode in ('Cluster Marker', 'Cluster Color', 'Cluster Parameter Color'):
+            if 'settings' not in settings or 'clustering_settings' not in settings['settings']:
+                raise ValueError(
+                    f'{mode} requires tracking, but no clustering settings is provided in settings {settings}')
+            return settings['settings']['clustering_settings']
+        return False
 
 #############################
 # Markers
@@ -193,8 +194,7 @@ class ColorScheme:
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
             # marker for nodes that are not in the cluster
             none_marker = settings.get('None Marker', self.default_none_marker)
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
+
             data = self.get_cluster_node_marker(
                 image=image, clustering_settings=settings['clustering_settings'], none_marker=none_marker)
             return [data[node] for node in nodes]
@@ -216,8 +216,7 @@ class ColorScheme:
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
             # marker for nodes that are not in the cluster
             none_marker = settings.get('None Marker', self.default_none_marker)
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
+
             data = self.get_cluster_marker(
                 clustering_settings=settings['clustering_settings'], none_marker=none_marker)
             return [data[cluster] for cluster in clusters]
@@ -230,6 +229,15 @@ class ColorScheme:
             if settings is not None and 'linestyle' in settings:
                 return settings['linestyle']
             return self.default_timeline_linestyle
+
+    @method_logger('Line Style', modes=('Constant Style',))
+    def line_linestyle(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        mode = mode or 'Constant Style'
+        if mode == 'Constant Style':
+            if settings is not None and 'linestyle' in settings:
+                return settings['linestyle']
+            return self.default_line_linestyle
 
 #############################
 # Colors
@@ -351,9 +359,6 @@ class ColorScheme:
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
 
-            self.update_clusters(clusters=[],
-                                 clustering_settings=settings['clustering_settings'])
-
             data = self.get_cluster_node_color(
                 image=image, clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
             return [data[node] for node in nodes]
@@ -370,8 +375,7 @@ class ColorScheme:
             # color for nodes that are not in the cluster
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
-            self.update_clusters(clusters=[],
-                                 clustering_settings=settings['clustering_settings'])
+
             data = self.get_parameter_based_cluster_node_color(
                 image=image, parameter=settings['parameter'], clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
             return [data[node] for node in nodes]
@@ -395,8 +399,7 @@ class ColorScheme:
             # color for nodes that are not in the cluster
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
+
             data = self.get_cluster_color(
                 clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
             return [data[cluster] for cluster in clusters]
@@ -413,8 +416,6 @@ class ColorScheme:
             # color for nodes that are not in the cluster
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
 
             data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
                                                           clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
@@ -434,8 +435,7 @@ class ColorScheme:
             # color for nodes that are not in the cluster
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
+
             data = self.get_cluster_color(
                 clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
             return [data[cluster] for cluster in clusters]
@@ -452,8 +452,6 @@ class ColorScheme:
             # color for nodes that are not in the cluster
             none_color = ColorScheme.to_rgba(
                 settings.get('None Color', self.default_none_color))
-            clusters = self.update_clusters(clusters=clusters,
-                                            clustering_settings=settings['clustering_settings'])
 
             data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
                                                           clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
@@ -476,6 +474,71 @@ class ColorScheme:
             if settings is not None and 'Color' in settings:
                 return ColorScheme.to_rgba(settings['Color'])
             return self.default_timeline_color
+
+    @method_logger('Line Color', modes=('Constant Color', 'Parameter Colormap', 'Cluster Color', 'Cluster Parameter Color'))
+    def line_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                   mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        mode = mode or 'Constant Color'
+        image = self.get_image(settings, group_number)
+        print(f'{image = }')
+        if mode == 'Constant Color':
+            if settings is not None and 'Color' in settings:
+                return ColorScheme.to_rgba(settings['Color'])
+            return self.default_line_color
+        elif mode == 'Parameter Colormap':
+            if settings is None or 'parameter' not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
+            request_settings = {'parameters': (settings['parameter'],)}
+            request_settings['scale'] = settings.get('scale', 'Linear')
+            colormap = settings.get('colormap', self.default_color_map)
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+            request = {**request_settings,
+                       'colormap': colormap, 'image': image, 'none_color': none_color}
+            request_tuple = ColorScheme.request_to_tuple(request)
+
+            if request_tuple not in self._node_color_cache:
+                data = self.interface.dynamic_data_cache[image][{
+                    'method': 'calculate_node_values', 'group_number': group_number, 'settings': request_settings}]
+                floats = data[settings['parameter']]
+                norm = colors.Normalize(vmin=min(floats), vmax=max(floats))
+                cm = plt.get_cmap(colormap)
+                self._node_color_cache[request_tuple] = defaultdict(lambda: none_color, {node: cm(
+                    norm(value)) for node, value in zip(data['Nodes'], floats)})
+
+            data = self._node_color_cache[request_tuple]
+            return [data[node] for node in nodes]
+
+        elif mode == 'Cluster Color':
+            if settings is None or "clustering_settings" not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
+            colormap = settings.get('colormap', self.default_color_map)
+            # color for nodes that are not in the cluster
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+
+            data = self.get_cluster_node_color(
+                image=image, clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
+            return [data[node] for node in nodes]
+
+        elif mode == 'Cluster Parameter Color':
+            if settings is None or "clustering_settings" not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
+            if settings is None or 'parameter' not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
+            # request_settings['scale'] = settings.get('scale', 'Linear')
+            colormap = settings.get('colormap', self.default_color_map)
+            # color for nodes that are not in the cluster
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+
+            data = self.get_parameter_based_cluster_node_color(
+                image=image, parameter=settings['parameter'], clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
+            return [data[node] for node in nodes]
 
     @method_logger('Color Map', modes=('Independent Colormap',))
     def colorbar(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
@@ -502,9 +565,13 @@ class ColorScheme:
 
     @staticmethod
     def to_rgba(color):
+        print(f'{color = }')
         if isinstance(color, str):
-            # Convert string colors (names or hex) to RGBA using matplotlib
-            rgba = to_rgba(color)
+            if color == '':
+                rgba = (0, 0, 0, 0)
+            else:
+                # Convert string colors (names or hex) to RGBA using matplotlib
+                rgba = to_rgba(color)
         elif isinstance(color, (list, tuple)):
             if len(color) == 3:
                 # Assuming RGB, append alpha value 1.0 to make it RGBA

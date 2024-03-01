@@ -1,3 +1,5 @@
+import __future__
+
 import os
 import pathlib
 import re
@@ -6,6 +8,7 @@ from typing import Any, Dict, Optional, Union
 import toml
 
 from .hari_dynamics import HariDynamics
+from .lazy_hari_graph import LazyHariGraph
 from .model import Model, ModelFactory
 
 
@@ -140,7 +143,7 @@ class Simulation:
     def __len__(self) -> int:
         return len(self.dynamics)
 
-    def __getitem__(self, index):
+    def __getitem__(self, index) -> LazyHariGraph:
         return self.dynamics[index]
 
     def __repr__(self) -> str:

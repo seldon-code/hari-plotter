@@ -190,6 +190,9 @@ class plot_histogram(Plot):
         if self.histogram_color_settings['mode'] not in self.color_scheme.method_logger['Distribution Color']['modes']:
             raise ValueError('Histogram color is incorrectly formatted')
 
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.histogram_color_settings)]
+
     def settings_to_code(self) -> str:
         return ('\'parameters\':'+str(self.parameters) +
                 ',\'scale\':'+str(self.scale) +
@@ -350,7 +353,11 @@ class plot_hexbin(Plot):
         self.colormap_settings = colormap_to_colormap_settings(colormap)
 
         if self.colormap_settings['mode'] not in self.color_scheme.method_logger['Color Map']['modes']:
-            raise ValueError('Colormap is incorrectly formatted')
+            raise ValueError(
+                f"Colormap is incorrectly formatted: Mode {self.colormap_settings['mode']} not in known modes {self.color_scheme.method_logger['Color Map']['modes']}")
+
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.colormap_settings)]
 
     def settings_to_code(self) -> str:
         return ('\'parameters\':'+str(self.parameters) +
@@ -523,7 +530,7 @@ class plot_scatter(Plot):
                 # check if only 'mode' and 'settings' in dict
                 if not all(key in {'mode', 'settings'} for key in scatter_color.keys()):
                     raise ValueError(
-                        'Histogram color is incorrectly formatted')
+                        'Scatter color is incorrectly formatted')
                 return scatter_color
             if isinstance(scatter_color, (str, float)):
                 return {'mode': 'Constant Color', 'settings': {'color': scatter_color}}
@@ -534,14 +541,15 @@ class plot_scatter(Plot):
             color)
 
         if self.scatter_color_settings['mode'] not in self.color_scheme.method_logger['Scatter Color']['modes']:
-            raise ValueError('Histogram color is incorrectly formatted')
+            raise ValueError(
+                f"Scatter color is incorrectly formatted: Mode {self.scatter_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Scatter Color']['modes']}")
 
         def scatter_marker_to_scatter_marker_settings(scatter_marker) -> dict:
             if isinstance(scatter_marker, dict):
                 # check if only 'mode' and 'settings' in dict
                 if not all(key in {'mode', 'settings'} for key in scatter_marker.keys()):
                     raise ValueError(
-                        'Histogram marker is incorrectly formatted')
+                        'Scatter marker is incorrectly formatted')
                 return scatter_marker
             if isinstance(scatter_marker, (str, float)):
                 return {'mode': 'Constant Marker', 'settings': {'marker': scatter_marker}}
@@ -550,6 +558,9 @@ class plot_scatter(Plot):
 
         self.scatter_marker_settings: dict = scatter_marker_to_scatter_marker_settings(
             marker)
+
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.scatter_color_settings), self.color_scheme.requires_tracking(self.scatter_marker_settings)]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -584,7 +595,6 @@ class plot_scatter(Plot):
         x_values = np.array(data[x_parameter])
         y_values = np.array(data[y_parameter])
         nodes = data['Nodes']
-        # print(f'{nodes = }')
 
         # Remove NaN values
         valid_indices = ~np.isnan(x_values) & ~np.isnan(y_values)
@@ -672,7 +682,7 @@ class plot_clustering_centroids(Plot):
                 # check if only 'mode' and 'settings' in dict
                 if not all(key in {'mode', 'settings'} for key in centroid_color.keys()):
                     raise ValueError(
-                        'Histogram color is incorrectly formatted')
+                        'Centroid color is incorrectly formatted')
                 return centroid_color
             if isinstance(centroid_color, (str, float)):
                 return {'mode': 'Constant Color', 'settings': {'color': centroid_color}}
@@ -683,14 +693,15 @@ class plot_clustering_centroids(Plot):
             color)
 
         if self.centroid_color_settings['mode'] not in self.color_scheme.method_logger['Scatter Color']['modes']:
-            raise ValueError('Histogram color is incorrectly formatted')
+            raise ValueError(
+                f"Centroid color is incorrectly formatted: Mode {self.centroid_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Centroid Color']['modes']}")
 
         def centroid_marker_to_centroid_marker_settings(centroid_marker) -> dict:
             if isinstance(centroid_marker, dict):
                 # check if only 'mode' and 'settings' in dict
                 if not all(key in {'mode', 'settings'} for key in centroid_marker.keys()):
                     raise ValueError(
-                        'Histogram marker is incorrectly formatted')
+                        'Centroid marker is incorrectly formatted')
                 return centroid_marker
             if isinstance(centroid_marker, (str, float)):
                 return {'mode': 'Constant Marker', 'settings': {'marker': centroid_marker}}
@@ -700,8 +711,12 @@ class plot_clustering_centroids(Plot):
         self.centroid_marker_settings: dict = centroid_marker_to_centroid_marker_settings(
             marker)
 
-    # def get_track_clusterings_requests(self):
-    #     return [self.clustering_settings]
+        if self.centroid_marker_settings['mode'] not in self.color_scheme.method_logger['Centroid Marker']['modes']:
+            raise ValueError(
+                f"Centroid marker is incorrectly formatted: Mode {self.centroid_marker_settings['mode']} not in known modes {self.color_scheme.method_logger['Centroid Marker']['modes']}")
+
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.centroid_marker_settings), self.color_scheme.requires_tracking(self.centroid_marker_settings)]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -739,7 +754,7 @@ class plot_clustering_centroids(Plot):
             clusters=labels, group_number=group_number, **self.centroid_color_settings)
 
         if centroids.shape[1] != 2:
-            raise ValueError(f'Centroids ({centroids}) shape is incorrect')
+            raise ValueError(f"Centroids ({centroids}) shape is incorrect")
 
         x_values = centroids[:, x_feature_index]
         y_values = centroids[:, y_feature_index]
@@ -827,7 +842,7 @@ class plot_clustering_fill(Plot):
             fill_color)
 
     def get_track_clusterings_requests(self):
-        return [self.clustering_settings]
+        return [self.color_scheme.requires_tracking(self.fill_color_settings)]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -915,10 +930,11 @@ class plot_clustering_degree_of_membership(Plot):
         self.colormap_settings = colormap_to_colormap_settings(colormap)
 
         if self.colormap_settings['mode'] not in self.color_scheme.method_logger['Color Map']['modes']:
-            raise ValueError('Colormap is incorrectly formatted')
+            raise ValueError(
+                f"Colormap is incorrectly formatted: Mode {self.colormap_settings['mode']} not in known modes {self.color_scheme.method_logger['Color Map']['modes']}")
 
     def get_track_clusterings_requests(self):
-        return [self.clustering_settings]
+        return [self.color_scheme.requires_tracking(self.colormap_settings)]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -997,7 +1013,7 @@ class plot_clustering_density(Plot):
             fill_color)
 
     def get_track_clusterings_requests(self):
-        return [self.clustering_settings]
+        return [self.clustering_settings, self.color_scheme.requires_tracking(self.fill_color_settings)]
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
@@ -1242,7 +1258,8 @@ class plot_time_line(Plot):
             color)
 
         if self.time_color_settings['mode'] not in self.color_scheme.method_logger['Timeline Color']['modes']:
-            raise ValueError('Time color is incorrectly formatted')
+            raise ValueError(
+                f"Time color is incorrectly formatted: Mode {self.time_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Timeline Color']['modes']}")
 
         def time_style_to_time_style_settings(time_style) -> dict:
             if isinstance(time_style, dict):
@@ -1260,7 +1277,8 @@ class plot_time_line(Plot):
             linestyle)
 
         if self.time_style_settings['mode'] not in self.color_scheme.method_logger['Timeline Style']['modes']:
-            raise ValueError('Time style is incorrectly formatted')
+            raise ValueError(
+                f"Time style is incorrectly formatted: Mode {self.time_style_settings['mode']} not in known modes {self.color_scheme.method_logger['Timeline Style']['modes']}")
 
     def get_dynamic_plot_requests(self):
         return [{'method': 'mean_time', 'settings': {}}]
@@ -1302,19 +1320,58 @@ class plot_node_lines(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str = 'coolwarm'):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: dict | None = None, linestyle: str | None = None, ):
         self.parameters = tuple(parameters)
+        self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self._x_lim = x_lim
         self._y_lim = y_lim
-        self.colormap = colormap
+
+        def line_color_to_line_color_settings(line_color) -> dict:
+            if isinstance(line_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_color.keys()):
+                    raise ValueError(
+                        'Line color is incorrectly formatted')
+                return line_color
+            if isinstance(line_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': line_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.line_color_settings: dict = line_color_to_line_color_settings(
+            color)
+
+        if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Line Color']['modes']:
+            raise ValueError(
+                f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Line Color']['modes']}")
+
+        def line_style_to_line_style_settings(line_style) -> dict:
+            if isinstance(line_style, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_style.keys()):
+                    raise ValueError(
+                        'Line style is incorrectly formatted')
+                return line_style
+            if isinstance(line_style, (str, float)):
+                return {'mode': 'Constant Style', 'settings': {'style': line_style}}
+            else:
+                return {'mode': 'Constant Style'}
+
+        self.line_style_settings: dict = line_style_to_line_style_settings(
+            linestyle)
+
+        if self.line_style_settings['mode'] not in self.color_scheme.method_logger['Line Style']['modes']:
+            raise ValueError(
+                f"Line style is incorrectly formatted: Mode {self.line_style_settings['mode']} not in known modes {self.color_scheme.method_logger['Line Style']['modes']}")
 
         self._static_data = None
 
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_static_plot_requests()[0])
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.line_style_settings), self.color_scheme.requires_tracking(self.line_color_settings)]
 
     def get_static_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
@@ -1332,11 +1389,12 @@ class plot_node_lines(Plot):
         x_lim, y_lim = self.get_limits(axis_limits)
 
         data = self.data(static_data_cache)
+        nodes = data['Nodes']
 
-        # print(f'{data = }')
-        # print(f'{data = }')
-        # print(f'{data.keys() = }')
-        # print(f'{data["Time"] = }')
+        colors = np.array(self.color_scheme.line_color(nodes=nodes,
+                                                       group_number=group_number, **self.line_color_settings))
+        linestyle = self.color_scheme.line_linestyle(
+            group_number=group_number, **self.line_style_settings)
 
         x_parameter, y_parameter = self.parameters
 
@@ -1354,17 +1412,19 @@ class plot_node_lines(Plot):
         if self.scale[1 if time_is_x_axis else 0] == 'Tanh':
             y_values = np.tanh(y_values)
 
-        # Color map for final state values
-        cmap = plt.get_cmap(self.colormap)
-        final_values = y_values[:, -1] if time_is_x_axis else x_values[:, -1]
-        colors = cmap(final_values / max(final_values))
-
         # Plotting
-        for i, color in enumerate(colors):
-            if time_is_x_axis:
-                ax.plot(x_values, y_values[i], color=color)
-            else:
-                ax.plot(y_values[i], x_values, color=color)
+        if Plot.is_single_color(colors):
+            for node_values in y_values:
+                ax.plot(x_values, node_values,
+                        color=colors, linestyle=linestyle)
+        else:
+            for node_values, color in zip(y_values, colors):
+                if time_is_x_axis:
+                    ax.plot(x_values, node_values,
+                            color=color, linestyle=linestyle)
+                else:
+                    ax.plot(node_values, x_values,
+                            color=color, linestyle=linestyle)
 
         # Set limits
         if x_lim is not None:
@@ -1776,7 +1836,7 @@ class plot_opinions(Plot):
 
                 # Plot the mean opinion line for each valid cluster
                 ax.plot(
-                    time, opinions[i], label=f'{labels[i]}', color=color)
+                    time, opinions[i], label=f"{labels[i]}", color=color)
 
                 # Fill the area between min and max opinions for each valid cluster
                 ax.fill_between(time, min_opinions[i], max_opinions[i],
