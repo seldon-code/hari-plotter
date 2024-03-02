@@ -545,6 +545,9 @@ class ColorScheme:
     @method_logger('Graph Line Color', modes=('Constant Color', 'Graph Parameter'))
     def graph_line_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
                          mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+        '''
+        Graph parameters functions list can be accessed in Group.common_functions.keys()
+        '''
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
         if mode == 'Constant Color':

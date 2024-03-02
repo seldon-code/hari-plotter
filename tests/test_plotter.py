@@ -204,6 +204,16 @@ class TestPlotter:
                      },
                  },
              },],
+            ["Static: Graph Range",
+             {
+                 "parameters": ["Time", "Opinion"],
+                 "color": {
+                     "mode": "Graph Parameter",
+                     "settings": {
+                         "parameter": "Opinion",
+                     },
+                 },
+             },],
 
         ]
 

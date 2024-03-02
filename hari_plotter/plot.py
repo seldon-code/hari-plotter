@@ -1449,6 +1449,10 @@ class plot_graph_line(Plot):
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'Mean',
                  color: dict | None = None, linestyle: str | None = None, ):
+        '''
+        Graph parameters functions list can be accessed in Group.common_functions.keys()
+        '''
+
         self.parameters = tuple(parameters)
         self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
@@ -1562,9 +1566,11 @@ class plot_fill_between(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], functions: Optional[List[str]] = None,
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: dict | None = None):
         self.parameters = tuple(parameters)
-        self.functions = functions or ['min', 'max']
+        self.color_scheme = color_scheme
+        self.functions = functions or ('Min', 'Max')
         self.scale = tuple(scale or ('Linear', 'Linear'))
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
@@ -1573,11 +1579,24 @@ class plot_fill_between(Plot):
 
         self._static_data = None
 
-        # Generate data keys for both functions
-        self.data_key_min = Interface.request_to_tuple(
-            self.get_static_plot_requests()[0])
-        self.data_key_max = Interface.request_to_tuple(
-            self.get_static_plot_requests()[1])
+        def line_color_to_line_color_settings(line_color) -> dict:
+            if isinstance(line_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_color.keys()):
+                    raise ValueError(
+                        'Line color is incorrectly formatted')
+                return line_color
+            if isinstance(line_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': line_color}}
+            else:
+                return {'mode': 'Constant Color'}
+
+        self.line_color_settings: dict = line_color_to_line_color_settings(
+            color)
+
+        if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Graph Line Color']['modes']:
+            raise ValueError(
+                f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Graph Line Color']['modes']}")
 
     def get_static_plot_requests(self):
         return [
@@ -1602,8 +1621,13 @@ class plot_fill_between(Plot):
     def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: dict, static_data_cache: List[dict], axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data_min = self.data(static_data_cache, self.data_key_min)
-        data_max = self.data(static_data_cache, self.data_key_max)
+        request_min, request_max = self.get_static_plot_requests()
+
+        data_min = self.data(static_data_cache, request_min)
+        data_max = self.data(static_data_cache, request_max)
+
+        colors = np.array(self.color_scheme.graph_line_color(
+            group_number=group_number, **self.line_color_settings))
 
         x_parameter, y_parameter = self.parameters
 
@@ -1618,7 +1642,8 @@ class plot_fill_between(Plot):
             y_values_max = np.tanh(y_values_max)
 
         # Fill the area between the min and max curves
-        ax.fill_between(x_values, y_values_min, y_values_max, alpha=0.5)
+        ax.fill_between(x_values, y_values_min, y_values_max,
+                        color=colors)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)
@@ -1708,7 +1733,7 @@ class plot_fill_between_clustering(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None):
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, alpha: float = 0.5):
         assert len(
             parameters) == 3, "Three parameters are required, with the last or first being 'Time'."
 
@@ -1719,6 +1744,8 @@ class plot_fill_between_clustering(Plot):
         self.show_y_label = show_y_label
         self._x_lim = x_lim
         self._y_lim = y_lim
+
+        self.alpha = alpha
 
         self._static_data = None
 
