@@ -582,6 +582,47 @@ class ColorScheme:
             data = self._graph_color_cache[request_tuple]
             return data
 
+    @method_logger('Cluster Line Color', modes=('Constant Color', 'Cluster Color', 'Cluster Parameter Color'))
+    def cluster_line_colors(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
+                            mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
+        mode = mode or 'Constant Color'
+        image = self.get_image(settings, group_number)
+
+        if mode == 'Constant Color':
+            if settings is not None and 'Color' in settings:
+                return ColorScheme.to_rgba(settings['Color'])
+            return self.default_line_color
+
+        elif mode == 'Cluster Color':
+            if settings is None or "clustering_settings" not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
+            colormap = settings.get('colormap', self.default_color_map)
+            # color for nodes that are not in the cluster
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+
+            data = self.get_cluster_color(
+                clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
+            return [data[cluster] for cluster in clusters]
+
+        elif mode == 'Cluster Parameter Color':
+            if settings is None or "clustering_settings" not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
+            if settings is None or 'parameter' not in settings:
+                raise ValueError(
+                    f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
+            # request_settings['scale'] = settings.get('scale', 'Linear')
+            colormap = settings.get('colormap', self.default_color_map)
+            # color for nodes that are not in the cluster
+            none_color = ColorScheme.to_rgba(
+                settings.get('None Color', self.default_none_color))
+
+            data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
+                                                          clustering_settings=settings['clustering_settings'], colormap=colormap, none_color=none_color)
+            return [data[cluster] for cluster in clusters]
+
     @method_logger('Color Map', modes=('Independent Colormap',))
     def colorbar(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
                  mode: str = None, settings: Union[Dict[str, Any], None] = None) -> Colormap:

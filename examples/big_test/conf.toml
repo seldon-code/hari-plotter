@@ -1,0 +1,21 @@
+[simulation]
+model = "ActivityDriven"
+rng_seed = 12345678019
+
+[model]
+max_iterations = 2000
+
+[ActivityDriven]
+dt = 0.01
+m = 10
+eps = 0.01
+gamma = 2.1
+reciprocity = 0.5
+homophily = 3.0
+alpha = 3.0
+K = 3
+
+[network]
+number_of_agents = 1000
+connections_per_agent = 10
+
