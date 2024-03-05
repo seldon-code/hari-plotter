@@ -1653,112 +1653,132 @@ class plot_fill_between(Plot):
                 y_parameter, y_parameter))
 
 
-# @Plotter.plot_type("Static: Clustering Line")
-# class plot_clustering_line(Plot):
-#     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-#                  scale: Optional[Tuple[str] | None] = None,
-#                  show_x_label: bool = True, show_y_label: bool = True,
-#                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
-#                  color: dict | None = None, linestyle: str | None = None, ):
-#         self.parameters = tuple(parameters)
-#         self.color_scheme = color_scheme
-#         self.clustering_settings = clustering_settings
-#         self.scale = tuple(scale or ('Linear', 'Linear'))
-#         self.show_x_label = show_x_label
-#         self.show_y_label = show_y_label
-#         self._x_lim = x_lim
-#         self._y_lim = y_lim
+@Plotter.plot_type("Static: Clustering Line")
+class plot_clustering_line(Plot):
+    def __init__(self, color_scheme: ColorScheme, parameter: str, clustering_settings: dict = {},
+                 scale: Optional[Tuple[str] | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: dict | None = None, linestyle: str | None = None, show_legend: bool = True):
+        self.parameter = parameter
+        self.parameters = ('Time', parameter)
+        self.color_scheme = color_scheme
+        self.clustering_settings = clustering_settings
+        self.scale = tuple(scale or ('Linear', 'Linear'))
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self._x_lim = x_lim
+        self._y_lim = y_lim
+        self.show_legend = show_legend
 
-#         self._static_data = None
+        self._static_data = None
 
-#         def line_color_to_line_color_settings(line_color) -> dict:
-#             if isinstance(line_color, dict):
-#                 # check if only 'mode' and 'settings' in dict
-#                 if not all(key in {'mode', 'settings'} for key in line_color.keys()):
-#                     raise ValueError(
-#                         'Line color is incorrectly formatted')
-#                 return line_color
-#             if isinstance(line_color, (str, float)):
-#                 return {'mode': 'Constant Color', 'settings': {'color': line_color}}
-#             else:
-#                 return {'mode': 'Constant Color'}
+        def line_color_to_line_color_settings(line_color) -> dict:
+            if isinstance(line_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_color.keys()):
+                    raise ValueError(
+                        'Line color is incorrectly formatted')
+                return line_color
+            if isinstance(line_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': line_color}}
+            else:
+                return {'mode': 'Constant Color'}
 
-#         self.line_color_settings: dict = line_color_to_line_color_settings(
-#             color)
+        self.line_color_settings: dict = line_color_to_line_color_settings(
+            color)
 
-#         if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Cluster Line Color']['modes']:
-#             raise ValueError(
-#                 f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Cluster Line Color']['modes']}")
+        if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Cluster Line Color']['modes']:
+            raise ValueError(
+                f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Cluster Line Color']['modes']}")
 
-#         def line_style_to_line_style_settings(line_style) -> dict:
-#             if isinstance(line_style, dict):
-#                 # check if only 'mode' and 'settings' in dict
-#                 if not all(key in {'mode', 'settings'} for key in line_style.keys()):
-#                     raise ValueError(
-#                         'Line style is incorrectly formatted')
-#                 return line_style
-#             if isinstance(line_style, (str, float)):
-#                 return {'mode': 'Constant Style', 'settings': {'style': line_style}}
-#             else:
-#                 return {'mode': 'Constant Style'}
+        def line_style_to_line_style_settings(line_style) -> dict:
+            if isinstance(line_style, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_style.keys()):
+                    raise ValueError(
+                        'Line style is incorrectly formatted')
+                return line_style
+            if isinstance(line_style, (str, float)):
+                return {'mode': 'Constant Style', 'settings': {'style': line_style}}
+            else:
+                return {'mode': 'Constant Style'}
 
-#         self.line_style_settings: dict = line_style_to_line_style_settings(
-#             linestyle)
+        self.line_style_settings: dict = line_style_to_line_style_settings(
+            linestyle)
 
-#         if self.line_style_settings['mode'] not in self.color_scheme.method_logger['Line Style']['modes']:
-#             raise ValueError(
-#                 f"Line style is incorrectly formatted: Mode {self.line_style_settings['mode']} not in known modes {self.color_scheme.method_logger['Line Style']['modes']}")
+        if self.line_style_settings['mode'] not in self.color_scheme.method_logger['Line Style']['modes']:
+            raise ValueError(
+                f"Line style is incorrectly formatted: Mode {self.line_style_settings['mode']} not in known modes {self.color_scheme.method_logger['Line Style']['modes']}")
 
-#     def get_track_clusterings_requests(self):
-#         return [self.clustering_settings, self.color_scheme.requires_tracking(self.line_color_settings), self.color_scheme.requires_tracking(self.line_style_settings)]
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings, self.color_scheme.requires_tracking(self.line_color_settings), self.color_scheme.requires_tracking(self.line_style_settings)]
 
-#     def get_static_plot_requests(self):
-#         return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}, {'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
+    def get_static_plot_requests(self):
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': (self.parameter, 'Label', 'Time'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-#     def data(self, interface:Interface):
-#         if self._static_data is not None:
-#             return self._static_data
+    def data(self, interface: Interface):
+        if self._static_data is not None:
+            return self._static_data
 
-#         data = interface.static_data_cache[self.get_static_plot_requests()[0]]
+        data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
-#         data = self.transform_data(data, transform_parameter='Label')
+        data = self.transform_data(data, transform_parameter='Label')
 
-#         x_parameter, y_parameter = self.parameters
+        x_parameter, y_parameter = self.parameters
 
-#         # Transform data to suitable format for plotting
-#         x_values = np.array(data[x_parameter])
-#         y_values = np.array(data[y_parameter])
+        # Transform data to suitable format for plotting
+        x_values = np.array(data[x_parameter])
+        y_values = np.array(data[y_parameter])
 
-#         if self.scale[0] == 'Tanh':
-#             x_values = np.tanh(x_values)
-#         if self.scale[1] == 'Tanh':
-#             y_values = np.tanh(y_values)
+        if self.scale[0] == 'Tanh':
+            x_values = np.tanh(x_values)
+        if self.scale[1] == 'Tanh':
+            y_values = np.tanh(y_values)
 
-#         self._static_data = {'x': x_values, 'y': y_values}
-#         return self._static_data
+        labels = data['Label']
 
-#     def plot(self, ax: plt.Axes, group_number: int, interface:Interface, axis_limits: dict):
-#         x_lim, y_lim = self.get_limits(axis_limits)
+        self._static_data = {'x': x_values,
+                             'y': list(y_values), 'labels': labels}
+        return self._static_data
 
-#         data = self.data(interface)
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
 
-#         # print(f'{data = }')
+        data = self.data(interface)
+        x = data['x']
+        labels = data['labels']
 
-#         ax.plot(data['x'], data['y'].T)
+        linestyle = self.color_scheme.line_linestyle(
+            clusters=labels, group_number=group_number, **self.line_style_settings)
+        colors = np.array(self.color_scheme.cluster_line_colors(
+            clusters=labels, group_number=group_number, **self.line_color_settings))
 
-#         if x_lim is not None:
-#             ax.set_xlim(*x_lim)
-#         if y_lim is not None:
-#             ax.set_ylim(*y_lim)
+        if Plot.is_single_color(colors):
+            for values, label in zip(data['y'], labels):
+                ax.plot(x, values, label=label,
+                        linestyle=linestyle, color=colors)
+        else:
+            for values, label, color in zip(data['y'], labels, colors):
+                ax.plot(x, values, label=label,
+                        linestyle=linestyle, color=color)
 
-#         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
 
-#         if self.show_x_label:
-#             ax.set_xlabel(Plotter._parameter_dict.get(
-#                 self.parameters[0], self.parameters[0]))
-#         if self.show_y_label:
-#             ax.set_ylabel(Plotter._parameter_dict.get(
-#                 self.parameters[1], self.parameters[1]))
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+        if self.show_legend:
+            ax.legend()
 
 
 # @Plotter.plot_type("Static: Clustering Range")

@@ -214,6 +214,25 @@ class TestPlotter:
                      },
                  },
              },],
+            ["Static: Clustering Line",
+             {
+                 "parameter": "Opinion",
+                 "clustering_settings": cl,
+             },],
+            ["Static: Clustering Line",
+             {
+                 "parameter": "Opinion",
+                 "clustering_settings": cl,
+                 "color": {
+                     "mode": "Cluster Parameter Color",
+                     "settings": {
+                         "clustering_settings": cl,
+                         "parameter": "Opinion",
+                         "group_number": -1,
+                         "None Color": "",
+                     },
+                 },
+             },],
 
         ]
 
