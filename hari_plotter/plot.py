@@ -275,7 +275,7 @@ class plot_histogram(Plot):
 
             sns.kdeplot(y=values, ax=ax, fill=True, color=histogram_color)
             sns.histplot(y=values, kde=False, ax=ax,
-                         binrange=y_lim, element="step", fill=False, stat="density")
+                         binrange=y_lim, element="step", fill=False, stat="density", color=histogram_color)
 
             if self.show_y_label:
                 ax.set_ylabel(Plotter._parameter_dict.get(
@@ -284,7 +284,6 @@ class plot_histogram(Plot):
                 ax.set_xlabel('Density')
 
         else:
-
             if self.scale[0] == 'Tanh':
                 values = np.tanh(values)
 
@@ -295,7 +294,7 @@ class plot_histogram(Plot):
 
             sns.kdeplot(data=values, ax=ax, fill=True, color=histogram_color)
             sns.histplot(data=values, kde=False, ax=ax,
-                         binrange=x_lim, element="step", fill=False, stat="density")
+                         binrange=x_lim, element="step", fill=False, stat="density", color=histogram_color)
 
             if self.show_x_label:
                 ax.set_xlabel(Plotter._parameter_dict.get(

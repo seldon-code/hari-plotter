@@ -75,8 +75,9 @@ class ColorScheme:
 
     def __init__(self, interface: Interface = None) -> None:
         self.interface = interface
-        self.default_distribution_color = ColorScheme.to_rgba('blue')
-        self.default_scatter_color = ColorScheme.to_rgba('blue')
+        self.default_distribution_color = ColorScheme.to_rgba(
+            (0.23, 0.30, 0.75))
+        self.default_scatter_color = ColorScheme.to_rgba((0.23, 0.30, 0.75))
         self.default_none_color = ColorScheme.to_rgba((0, 255, 0))
         self.default_color_map = 'coolwarm'
         self.available_colormaps = plt.colormaps()

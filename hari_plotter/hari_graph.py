@@ -737,7 +737,7 @@ class HariGraph(nx.DiGraph):
 
             # If label is defined, the weight is the length of the label.
             # If not defined, the weight is assumed to be 1.
-            weight = len(self.nodes[node].get('Label', [node]))
+            weight = len(node)
 
             total_opinion += opinion * weight
             total_weight += weight
