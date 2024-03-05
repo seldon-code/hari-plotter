@@ -237,6 +237,10 @@ class Interface(ABC):
                     cluster_tuple in self._track_clusters_cache)
             return is_tracked_list
 
+        @staticmethod
+        def generate_node_id(frame_index, cluster_identifier):
+            return (frame_index, cluster_identifier)
+
         def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Clustering]] = None) -> nx.DiGraph:
             """
             Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.
@@ -246,66 +250,107 @@ class Interface(ABC):
 
             :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.
             """
-            clusters_dynamics: List[List[Clustering]] = clusters_dynamics or [group.clustering(
+            clusters_dynamics = clusters_dynamics or [group.clustering(
                 **cluster_settings).labels_nodes_dict() for group in self._interface.groups]
 
-            # Initialize the final labels from the last frame
-            final_labels = self._interface.groups[-1].clustering(**
-                                                                 cluster_settings).cluster_labels
             G = nx.DiGraph()
 
-            # Build the graph
+            # Build the graph with connections based on the highest overlap
             for frame_index, frame in enumerate(clusters_dynamics):
-                for cluster_index, cluster in enumerate(frame):
-                    node_id = f"{frame_index}-{cluster_index}"
-                    G.add_node(node_id, frame=frame_index, cluster=cluster,
-                               Label=None)  # Initially, labels are None
+                for cluster_name in frame.keys():
+                    node_id = self.generate_node_id(frame_index, cluster_name)
+                    G.add_node(node_id, frame=frame_index,
+                               cluster=cluster_name, Label=cluster_name)
 
-                    if frame_index > 0:  # Connect clusters to their predecessors
-                        # Simplify connections if the number of clusters remains constant
-                        if len(frame) == len(clusters_dynamics[frame_index - 1]):
-                            # Direct connection from each cluster to its corresponding cluster in the next frame
-                            prev_node_id = f"{frame_index - 1}-{cluster_index}"
-                            G.add_edge(prev_node_id, node_id)
-                        else:
-                            for prev_cluster_index, prev_cluster in enumerate(clusters_dynamics[frame_index - 1]):
-                                prev_node_id = f"{frame_index - 1}-{prev_cluster_index}"
-                                # Implement logic to determine connections (e.g., based on overlap)
+                if frame_index > 0:  # There are previous frame clusters to connect to
+                    current_frame_clusters = frame
+                    prev_frame_clusters = clusters_dynamics[frame_index - 1]
+                    is_more_clusters_in_current_frame = len(
+                        current_frame_clusters) >= len(prev_frame_clusters)
+
+                    # Determine comparison direction based on the number of clusters
+                    if is_more_clusters_in_current_frame:
+                        # More clusters in the current frame, or the number is equal, match each current cluster to one from the previous frame
+                        for current_cluster_name, current_cluster in current_frame_clusters.items():
+                            current_node_id = self.generate_node_id(
+                                frame_index, current_cluster_name)
+                            current_set = set(
+                                map(tuple, current_cluster))
+                            best_match = None
+                            max_overlap = 0
+                            for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
+                                prev_set = set(map(tuple, prev_cluster))
+                                prev_node_id = self.generate_node_id(
+                                    frame_index - 1, prev_cluster_name)
+
                                 overlap = len(
-                                    set(cluster).intersection(set(prev_cluster)))
-                                if overlap > 0:  # Adjust this threshold as necessary
-                                    G.add_edge(prev_node_id, node_id)
+                                    current_set.intersection(prev_set))
 
-            # Label Propagation
-            for cluster_index, label in enumerate(final_labels):
-                node_id = f"{len(clusters_dynamics)-1}-{cluster_index}"
-                # Assign final labels to the last frame's clusters
-                G.nodes[node_id]['Label'] = label
+                                if overlap > max_overlap:
+                                    best_match = prev_node_id
+                                    max_overlap = overlap
 
-            def propagate_labels_with_splits(G, clusters_dynamics):
-                for frame_index in range(len(clusters_dynamics) - 1, 0, -1):
-                    for cluster_index in range(len(clusters_dynamics[frame_index])):
-                        node_id = f"{frame_index}-{cluster_index}"
-                        current_label = G.nodes[node_id]['Label']
+                            if best_match:
+                                G.add_edge(best_match, current_node_id)
+                    else:
+                        # More clusters in the previous frame, match each previous cluster to one from the current frame
+                        for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
+                            prev_set = set(map(tuple, prev_cluster))
+                            prev_node_id = self.generate_node_id(
+                                frame_index - 1, prev_cluster_name)
 
-                        predecessors = list(G.predecessors(node_id))
-                        # If the current node has multiple predecessors, it's a split in reverse
-                        if len(predecessors) > 1:
-                            # Assign new labels to each predecessor node based on the split
-                            for i, pred in enumerate(predecessors):
-                                # Create new labels for splits as "original.i"
-                                new_label = f"{current_label}.{i+1}"
-                                G.nodes[pred]['Label'] = new_label
-                        # If there's only one predecessor, propagate the label directly
-                        elif len(predecessors) == 1:
-                            G.nodes[predecessors[0]]['Label'] = current_label
+                            best_match = None
+                            max_overlap = 0
+                            for current_cluster_name, current_cluster in current_frame_clusters.items():
+                                current_node_id = self.generate_node_id(
+                                    frame_index, current_cluster_name)
+                                current_set = set(map(tuple, current_cluster))
+                                overlap = len(
+                                    prev_set.intersection(current_set))
+
+                                if overlap > max_overlap:
+                                    best_match = current_node_id
+                                    max_overlap = overlap
+
+                            if best_match:
+                                G.add_edge(prev_node_id, best_match)
+
+            def propagate_labels_with_splits(G: nx.DiGraph):
+                # Find all nodes with no predecessors (root nodes)
+                root_nodes = [node for node in G.nodes() if len(
+                    list(G.successors(node))) == 0]
+
+                # Check for root nodes with duplicate names and issue a warning if found
+                root_names = [G.nodes[node]['cluster'] for node in root_nodes]
+                if len(root_names) != len(set(root_names)):
+                    warnings.warn(
+                        f"Warning: Multiple root nodes have the same name: {root_names}")
+
+                def propagate_label(node, current_label):
+                    """Recursively propagate labels through the graph."""
+                    G.nodes[node]['Updated label'] = current_label
+
+                    predecessors = list(G.predecessors(node))
+                    if len(predecessors) == 1:
+                        # Single successor inherits the label
+                        propagate_label(predecessors[0], current_label)
+                    elif len(predecessors) > 1:
+                        # Multiple predecessors indicate a split; assign new labels
+                        for i, succ in enumerate(predecessors):
+                            new_label = f"{current_label}.{i+1}"
+                            propagate_label(succ, new_label)
+
+                # Start label propagation from each root node
+                for root_node in root_nodes:
+                    initial_label = G.nodes[root_node]['Label']
+                    propagate_label(root_node, initial_label)
 
             # Call the function to propagate labels with the handling of splits
-            propagate_labels_with_splits(G, clusters_dynamics)
+            propagate_labels_with_splits(G)
 
             return G
 
-        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, Dict[str:str]]]:
+        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, Dict[str, str]]]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
 
@@ -323,30 +368,35 @@ class Interface(ABC):
                     clusters_dynamics = [group.clustering(
                         **clust_settings).labels_nodes_dict() for group in self._interface.groups]
 
-                    G = self.cluster_graph(clust_settings,
-                                           clusters_dynamics=clusters_dynamics)
+                    G = self.cluster_graph(
+                        clust_settings, clusters_dynamics=clusters_dynamics)
                     # Extract updated labels
-                    # updated labels - dict for each group in dynamics
                     updated_labels = {}
                     for frame_index in range(len(clusters_dynamics)):
-                        # dict - old_label:new_label
+                        # Initialize the dictionary for this frame's label mappings
                         frame_labels = {}
-                        for cluster_index in range(len(clusters_dynamics[frame_index])):
-                            node_id = f"{frame_index}-{cluster_index}"
-                            new_label = G.nodes[node_id]['Label']+'*'
-                            frame_labels[G.nodes[node_id]
-                                         ['cluster']] = new_label
+
+                        # Find all nodes belonging to the current frame
+                        nodes_in_frame = [node for node, attrs in G.nodes(
+                            data=True) if attrs.get('frame') == frame_index]
+
+                        # Update the frame's label mappings based on the nodes' current and updated labels
+                        for node_id in nodes_in_frame:
+                            original_label = G.nodes[node_id]['Label']
+                            # Fallback to original if no update
+                            updated_label = G.nodes[node_id].get(
+                                'Updated label', original_label)
+                            frame_labels[original_label] = updated_label
+
+                        # Store the updated label mappings for the current frame
                         updated_labels[frame_index] = frame_labels
 
                     # Apply updated labels
                     for frame_index, labels in updated_labels.items():
                         group: Group = self._interface.groups[frame_index]
-                        print(
-                            f'{group.clustering(**clust_settings).cluster_labels = }\n{labels = }')
                         group.clustering(
                             **clust_settings).cluster_labels = list(labels.values())
-                        print(
-                            f'Updated {group.clustering(**clust_settings).cluster_labels}')
+
                         if group.is_clustering_graph_initialized(**clust_settings):
                             warnings.warn(
                                 'Clustering tracked after clustering graph was initialized. This is unexpected behavior, trying to handle.')
