@@ -233,6 +233,27 @@ class TestPlotter:
                      },
                  },
              },],
+            ["Static: Clustering Range",
+             {
+                 "parameter": "Opinion",
+                 "range_parameter": "Opinion Standard Deviation",
+                 "clustering_settings": cl,
+                 "color": {
+                     "mode": "Cluster Parameter Color",
+                     "settings": {
+                         "clustering_settings": cl,
+                         "parameter": "Opinion",
+                         "group_number": -1,
+                         "None Color": "",
+                     },
+                 },
+             },],
+            ["Static: Clustering Range",
+             {
+                 "parameter": "Opinion",
+                 "range_parameter": "Opinion Standard Deviation",
+                 "clustering_settings": cl,
+             },],
 
         ]
 

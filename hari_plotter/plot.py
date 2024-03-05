@@ -1781,96 +1781,115 @@ class plot_clustering_line(Plot):
             ax.legend()
 
 
-# @Plotter.plot_type("Static: Clustering Range")
-# class plot_fill_between_clustering(Plot):
-#     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-#                  scale: Optional[Tuple[str] | None] = None,
-#                  show_x_label: bool = True, show_y_label: bool = True,
-#                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, alpha: float = 0.5):
-#         assert len(
-#             parameters) == 3, "Three parameters are required, with the last or first being 'Time'."
+@Plotter.plot_type("Static: Clustering Range")
+class plot_fill_between_clustering(Plot):
+    def __init__(self, color_scheme: ColorScheme, parameter: str, range_parameter: str, clustering_settings: dict = {},
+                 scale: Optional[Tuple[str] | None] = None,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 color: dict | None = None, show_legend: bool = True, alpha: float = 0.3):
+        self.parameter = parameter
+        self.parameters = ('Time', 'Parameter')
+        self.color_scheme = color_scheme
+        self.range_parameter = range_parameter
+        self.clustering_settings = clustering_settings
+        self.scale = tuple(scale or ('Linear', 'Linear'))
+        self.show_x_label = show_x_label
+        self.show_y_label = show_y_label
+        self._x_lim = x_lim
+        self._y_lim = y_lim
+        self.show_legend = show_legend
+        self.alpha = alpha
 
-#         self.parameters = tuple(parameters)
-#         self.clustering_settings = clustering_settings
-#         self.scale = tuple(scale or ('Linear', 'Linear'))
-#         self.show_x_label = show_x_label
-#         self.show_y_label = show_y_label
-#         self._x_lim = x_lim
-#         self._y_lim = y_lim
+        self._static_data = None
 
-#         self.alpha = alpha
+        def line_color_to_line_color_settings(line_color) -> dict:
+            if isinstance(line_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in line_color.keys()):
+                    raise ValueError(
+                        'Line color is incorrectly formatted')
+                return line_color
+            if isinstance(line_color, (str, float)):
+                return {'mode': 'Constant Color', 'settings': {'color': line_color}}
+            else:
+                return {'mode': 'Constant Color'}
 
-#         self._static_data = None
+        self.line_color_settings: dict = line_color_to_line_color_settings(
+            color)
 
-#         # self.data_key = Interface.request_to_tuple(
-#         #     self.get_static_plot_requests()[0])
+        if self.line_color_settings['mode'] not in self.color_scheme.method_logger['Cluster Line Color']['modes']:
+            raise ValueError(
+                f"Line color is incorrectly formatted: Mode {self.line_color_settings['mode']} not in known modes {self.color_scheme.method_logger['Cluster Line Color']['modes']}")
 
-#     def get_static_plot_requests(self):
-#         parameters = tuple(set(self.parameters)+'Label')
-#         print(f'{parameters = }')
-#         return [{'method': 'clustering_graph_values', 'settings': {'parameters': parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
+    def get_track_clusterings_requests(self):
+        return [self.clustering_settings, self.color_scheme.requires_tracking(self.line_color_settings)]
 
-#     def data(self, interface:Interface):
-#         if self._static_data is not None:
-#             return self._static_data
+    def get_static_plot_requests(self):
+        return [{'method': 'clustering_graph_values', 'settings': {'parameters': (self.parameter, self.range_parameter, 'Label', 'Time'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-#         data = interface.static_data_cache[self.get_static_plot_requests()[0]]
+    def data(self, interface: Interface):
+        if self._static_data is not None:
+            return self._static_data
 
-#         data = self.transform_data(data, transform_parameter='Label')
+        data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
-#         x_parameter, y1_parameter, y2_parameter = self.parameters
+        data = self.transform_data(data, transform_parameter='Label')
 
-#         # Transform data to suitable format for plotting
-#         x_values = np.array(data[x_parameter])
-#         y1_values = np.array(data[y1_parameter])
-#         y2_values = np.array(data[y2_parameter])
+        # Transform data to suitable format for plotting
+        x_values = np.array(data['Time'])
+        value = np.array(data[self.parameter])
 
-#         if self.scale[0] == 'Tanh':
-#             x_values = np.tanh(x_values)
-#         if self.scale[1] == 'Tanh':
-#             y1_values = np.tanh(y1_values)
-#             y2_values = np.tanh(y2_values)
+        labels = data['Label']
 
-#         self._static_data = {'x': x_values, 'y1': y1_values, 'y2': y2_values}
-#         return self._static_data
+        value_delta = np.array(data[self.range_parameter])
+        min_value = value-value_delta
+        max_value = value+value_delta
 
-#     def plot(self, ax: plt.Axes, group_number: int, interface:Interface, axis_limits: dict):
-#         x_lim, y_lim = self.get_limits(axis_limits)
+        if self.scale[1] == 'Tanh':
+            min_value = np.tanh(min_value)
+            value = np.tanh(value)
+            max_value = np.tanh(max_value)
 
-#         data = self.data(interface)
+        self._static_data = {'x': x_values,
+                             'y': list(value), 'y_min': list(min_value), 'y_max': list(max_value), 'labels': labels}
+        return self._static_data
 
-#         # Assuming x_values are common for all intervals
-#         x_values = data['x']
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
+        x_lim, y_lim = self.get_limits(axis_limits)
 
-#         # Iterate over each set of intervals
-#         # Assuming data['y1'] and data['y2'] have the same first dimension
-#         for i in range(data['y1'].shape[0]):
-#             y1_values = data['y1'][i, :]
-#             y2_values = data['y2'][i, :]
+        data = self.data(interface)
+        x = data['x']
+        labels = data['labels']
 
-#             # Use tanh scaling if specified
-#             if self.scale[1] == 'Tanh':
-#                 y1_values = np.tanh(y1_values)
-#                 y2_values = np.tanh(y2_values)
+        colors = np.array(self.color_scheme.cluster_line_colors(
+            clusters=labels, group_number=group_number, **self.line_color_settings))
 
-#             # Fill the area between y1 and y2 for this set of intervals
-#             ax.fill_between(x_values, y1_values, y2_values, alpha=0.5)
+        if Plot.is_single_color(colors):
+            for values, values_min, values_max, label in zip(data['y'], data['y_min'], data['y_max'], labels):
+                ax.fill_between(x, values_min, values_max, alpha=self.alpha,
+                                label=label, color=colors)
+        else:
+            for values, values_min, values_max, label, color in zip(data['y'], data['y_min'], data['y_max'], labels, colors):
+                ax.fill_between(x, values_min, values_max, alpha=self.alpha,
+                                label=label, color=color)
 
-#         # Setting x and y limits if provided
-#         if x_lim is not None:
-#             ax.set_xlim(*x_lim)
-#         if y_lim is not None:
-#             ax.set_ylim(*y_lim)
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
 
-#         Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
 
-#         # Setting labels
-#         if self.show_x_label:
-#             ax.set_xlabel(Plotter._parameter_dict.get(
-#                 self.parameters[0], self.parameters[0]))
-#         if self.show_y_label:
-#             ax.set_ylabel(Plotter._parameter_dict.get(
-#                 self.parameters[1], self.parameters[1]))
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameters[0], self.parameters[0]))
+        if self.show_y_label:
+            ax.set_ylabel(Plotter._parameter_dict.get(
+                self.parameters[1], self.parameters[1]))
+
+        if self.show_legend:
+            ax.legend()
 
 
 @Plotter.plot_type("Static: Opinions")
