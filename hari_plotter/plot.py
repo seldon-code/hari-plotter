@@ -92,25 +92,18 @@ class Plot(ABC):
     @staticmethod
     def transform_data(data_list, transform_parameter: str = 'Nodes'):
         # Extract unique transform_parameter's and sort them
-        # print(f'{list(data_list[0].keys()) = }')
-        # print(f'{transform_parameter = }')
-        # print(f'{data_list[0][transform_parameter] = }')
         transform_parameter_values = {
             transform_parameter_value for data in data_list for transform_parameter_value in data[transform_parameter]}
         transform_parameter_values = {
             elem for elem in transform_parameter_values if elem is not None}
-        # print(f'{transform_parameter_values = }')
         transform_parameter_values = sorted(transform_parameter_values)
-        # print(f'{transform_parameter_values = }')
         transform_parameter_value_index = {transform_parameter_value: i for i,
                                            transform_parameter_value in enumerate(transform_parameter_values)}
-        # print(f'{transform_parameter_value_index = }')
 
         # Extract time steps
         time_steps = [data['Time'] for data in data_list]
 
         # Initialize parameters dictionary
-        # print(f'{list(data_list[0].keys()) = }')
         params = {key: np.full((len(transform_parameter_values), len(time_steps)), np.nan)
                   for key in data_list[0] if key not in [transform_parameter, 'Time', 'Nodes']}
 
@@ -121,13 +114,8 @@ class Plot(ABC):
                     # Map each transform_parameter_value's value to the corresponding row in the parameter's array
                     for transform_parameter_value, value in zip(data[transform_parameter], data[param]):
                         if transform_parameter_value is not None:
-                            # print(f'{transform_parameter_value = }')
                             idx = transform_parameter_value_index[transform_parameter_value]
-                            # print(f'{param = } {idx = } { t = } {value = }')
                             params[param][idx, t] = value
-                        else:
-                            pass
-                            # print(f'{param = } {value = } ')
 
         return {
             'Time': np.array(time_steps),
@@ -239,7 +227,7 @@ class plot_histogram(Plot):
     def get_dynamic_plot_requests(self) -> List[dict]:
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         """
         Plot a histogram on the given ax with the provided data data.
 
@@ -263,7 +251,8 @@ class plot_histogram(Plot):
             raise ValueError('Histogram expects only one parameter')
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
 
         nodes = data['Nodes']
 
@@ -413,7 +402,7 @@ class plot_hexbin(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         """
         Plot a hexbin on the given ax with the provided x and y values.
 
@@ -436,7 +425,8 @@ class plot_hexbin(Plot):
 
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
 
         x_parameter = self.parameters[0]
         y_parameter = self.parameters[1]
@@ -565,7 +555,7 @@ class plot_scatter(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         """
         Plot a scatter plot on the given ax with the provided x and y values.
 
@@ -589,7 +579,8 @@ class plot_scatter(Plot):
 
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
 
         x_parameter, y_parameter = self.parameters
         x_values = np.array(data[x_parameter])
@@ -721,7 +712,7 @@ class plot_clustering_centroids(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         """
         Plots the decision boundaries for a 2D slice of the clustering object's data.
 
@@ -736,7 +727,7 @@ class plot_clustering_centroids(Plot):
         """
 
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering: ParameterBasedClustering = dynamic_data_cache[self.get_dynamic_plot_requests()[
+        clustering: ParameterBasedClustering = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
 
         x_feature_name, y_feature_name = self.parameters
@@ -847,9 +838,9 @@ class plot_clustering_fill(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering: Clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[
+        clustering: Clustering = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
 
         labels = clustering.cluster_labels
@@ -939,9 +930,9 @@ class plot_clustering_degree_of_membership(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering: Clustering = dynamic_data_cache[
+        clustering: Clustering = interface.dynamic_data_cache[group_number][
             self.get_dynamic_plot_requests()[0]]
         colormap = self.color_scheme.colorbar(
             group_number=group_number, **self.colormap_settings)
@@ -1018,9 +1009,9 @@ class plot_clustering_density(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
-        clustering: Clustering = dynamic_data_cache[self.get_dynamic_plot_requests()[
+        clustering: Clustering = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
         labels = clustering.cluster_labels
 
@@ -1120,9 +1111,10 @@ class draw(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'get_mean_graph', 'settings': {}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         # Fetch the HariGraph instance using the data_key
-        image = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        image = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
 
         # Use the specified or default positions for nodes
         self.pos = self.pos or image.position_nodes(seed=self.seed)
@@ -1283,10 +1275,11 @@ class plot_time_line(Plot):
     def get_dynamic_plot_requests(self):
         return [{'method': 'mean_time', 'settings': {}}]
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: dict, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = dynamic_data_cache[self.get_dynamic_plot_requests()[0]]
+        data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
 
         color = self.color_scheme.timeline_color(
             group_number=group_number, **self.time_color_settings)
@@ -1376,19 +1369,20 @@ class plot_node_lines(Plot):
     def get_static_plot_requests(self):
         return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
 
-    def data(self, static_data_cache: Interface.StaticDataCache):
+    def data(self, interface: Interface):
         if self._static_data is not None:
             return self._static_data
 
-        data_list = static_data_cache[self.get_static_plot_requests()[0]]
+        data_list = interface.static_data_cache[self.get_static_plot_requests()[
+            0]]
         self._static_data = self.transform_data(data_list)
         return self._static_data
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
 
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = self.data(static_data_cache)
+        data = self.data(interface)
         nodes = data['Nodes']
 
         colors = np.array(self.color_scheme.line_color(nodes=nodes,
@@ -1510,11 +1504,11 @@ class plot_graph_line(Plot):
     def get_static_plot_requests(self):
         return [{'method': 'calculate_function_of_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'function': self.function}}]
 
-    def data(self, static_data_cache: Interface.StaticDataCache):
+    def data(self, interface: Interface):
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.get_static_plot_requests()[0]]
+        data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
         keys = list(data[0].keys())
 
@@ -1525,10 +1519,10 @@ class plot_graph_line(Plot):
 
         return self._static_data
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
 
-        data = self.data(static_data_cache)
+        data = self.data(interface)
         colors = np.array(self.color_scheme.graph_line_color(
             group_number=group_number, **self.line_color_settings))
         linestyle = self.color_scheme.line_linestyle(
@@ -1606,8 +1600,8 @@ class plot_fill_between(Plot):
                 'parameters': self.parameters, 'scale': self.scale, 'function': self.functions[1]}}
         ]
 
-    def data(self, static_data_cache: Interface.StaticDataCache, function_key):
-        data = static_data_cache[function_key]
+    def data(self, interface: Interface, function_key):
+        data = interface.static_data_cache[function_key]
 
         keys = list(data[0].keys())
 
@@ -1618,13 +1612,13 @@ class plot_fill_between(Plot):
 
         return _static_data
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         x_lim, y_lim = self.get_limits(axis_limits)
 
         request_min, request_max = self.get_static_plot_requests()
 
-        data_min = self.data(static_data_cache, request_min)
-        data_max = self.data(static_data_cache, request_max)
+        data_min = self.data(interface, request_min)
+        data_max = self.data(interface, request_max)
 
         colors = np.array(self.color_scheme.graph_line_color(
             group_number=group_number, **self.line_color_settings))
@@ -1722,11 +1716,11 @@ class plot_fill_between(Plot):
 #     def get_static_plot_requests(self):
 #         return [{'method': 'clustering_graph_values', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}, {'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-#     def data(self, static_data_cache: Interface.StaticDataCache):
+#     def data(self, interface:Interface):
 #         if self._static_data is not None:
 #             return self._static_data
 
-#         data = static_data_cache[self.get_static_plot_requests()[0]]
+#         data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
 #         data = self.transform_data(data, transform_parameter='Label')
 
@@ -1744,10 +1738,10 @@ class plot_fill_between(Plot):
 #         self._static_data = {'x': x_values, 'y': y_values}
 #         return self._static_data
 
-#     def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
+#     def plot(self, ax: plt.Axes, group_number: int, interface:Interface, axis_limits: dict):
 #         x_lim, y_lim = self.get_limits(axis_limits)
 
-#         data = self.data(static_data_cache)
+#         data = self.data(interface)
 
 #         # print(f'{data = }')
 
@@ -1797,11 +1791,11 @@ class plot_fill_between(Plot):
 #         print(f'{parameters = }')
 #         return [{'method': 'clustering_graph_values', 'settings': {'parameters': parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
-#     def data(self, static_data_cache: Interface.StaticDataCache):
+#     def data(self, interface:Interface):
 #         if self._static_data is not None:
 #             return self._static_data
 
-#         data = static_data_cache[self.get_static_plot_requests()[0]]
+#         data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
 #         data = self.transform_data(data, transform_parameter='Label')
 
@@ -1821,10 +1815,10 @@ class plot_fill_between(Plot):
 #         self._static_data = {'x': x_values, 'y1': y1_values, 'y2': y2_values}
 #         return self._static_data
 
-#     def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
+#     def plot(self, ax: plt.Axes, group_number: int, interface:Interface, axis_limits: dict):
 #         x_lim, y_lim = self.get_limits(axis_limits)
 
-#         data = self.data(static_data_cache)
+#         data = self.data(interface)
 
 #         # Assuming x_values are common for all intervals
 #         x_values = data['x']
@@ -1896,11 +1890,11 @@ class plot_opinions(Plot):
     def get_track_clusterings_requests(self):
         return [self.clustering_settings]
 
-    def data(self, static_data_cache: Interface.StaticDataCache) -> dict:
+    def data(self, interface: Interface) -> dict:
         if self._static_data is not None:
             return self._static_data
 
-        data = static_data_cache[self.get_static_plot_requests()[0]]
+        data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
         data = self.transform_data(data, transform_parameter='Label')
         # print(f'{data = }')
@@ -1934,8 +1928,8 @@ class plot_opinions(Plot):
                              'Opinion': opinion, 'Max opinion': max_opinion, 'Cluster size': cluster_size}
         return self._static_data
 
-    def plot(self, ax: plt.Axes, group_number: int,  dynamic_data_cache: Interface.DynamicDataCache, static_data_cache: Interface.StaticDataCache, axis_limits: dict):
-        data = self.data(static_data_cache)
+    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
+        data = self.data(interface)
         x_lim, y_lim = self.get_limits(axis_limits)
 
         time = data['Time']

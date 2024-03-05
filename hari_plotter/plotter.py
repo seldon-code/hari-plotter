@@ -298,8 +298,8 @@ class Plotter:
             # print(f'{i,j = }')
             ax = axs[i][j]
             for plot in self.plots[i][j]:
-                plot.plot(ax=ax, group_number=group_number, dynamic_data_cache=self.interface.dynamic_data_cache[group_number],
-                          static_data_cache=self.interface.static_data_cache, axis_limits=axis_limits)
+                plot.plot(ax=ax, group_number=group_number,
+                          interface=self.interface, axis_limits=axis_limits)
 
                 # Store axis limits for future reference
                 axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
