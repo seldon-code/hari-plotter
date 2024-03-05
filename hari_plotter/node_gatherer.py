@@ -420,6 +420,11 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         """Returns a mapping of node IDs to the minimum opinion value among their inner opinions."""
         return {node: min(data.get('Inner opinions', {None: data['Opinion']}).values()) for node, data in self.G.nodes(data=True)}
 
+    @node_parameter_logger('Opinion Standard Deviation')
+    def std_opinion(self) -> Dict[Tuple[int], float]:
+        """Returns a mapping of node IDs to the standard deviation of opinion values among their inner opinions."""
+        return {node: np.std(list(data.get('Inner opinions', {None: data['Opinion']}).values())) for node, data in self.G.nodes(data=True)}
+
     @node_parameter_logger('Label')
     def label(self) -> Dict[Tuple[int], str]:
         """Returns a mapping of node IDs to their labels."""

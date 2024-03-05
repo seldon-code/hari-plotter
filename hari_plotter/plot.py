@@ -1866,7 +1866,7 @@ class plot_opinions(Plot):
                  scale: Optional[Tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
-                 min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True):
+                 min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True, mode='Std'):
         self.parameters = ('Time', 'Opinion')
         self.clustering_settings = clustering_settings
         self.scale = scale or tuple('Linear', 'Linear')
@@ -1876,6 +1876,8 @@ class plot_opinions(Plot):
         self._y_lim = y_lim
         self.min_cluster_size = min_cluster_size
         self.colormap = colormap
+
+        self.mode = mode
 
         self.show_colorbar = show_colorbar
         self.show_legend = show_legend
@@ -1887,6 +1889,8 @@ class plot_opinions(Plot):
         self.min_value = None
 
     def get_static_plot_requests(self):
+        if self.mode == 'Std':
+            return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('Time', 'Opinion', 'Opinion Standard Deviation', 'Cluster size', 'Label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
         return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('Time', 'Min opinion', 'Opinion', 'Max opinion', 'Cluster size', 'Label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
 
     def get_track_clusterings_requests(self):
@@ -1904,9 +1908,16 @@ class plot_opinions(Plot):
         # Transform data to suitable format for plotting
         time = np.array(data['Time'])
         labels = data['Label']
-        min_opinion = np.array(data['Min opinion'])
+
         opinion = np.array(data['Opinion'])
-        max_opinion = np.array(data['Max opinion'])
+        if self.mode == 'Std':
+            std_opinion = np.array(data['Opinion Standard Deviation'])
+            min_opinion = opinion-std_opinion
+            max_opinion = opinion+std_opinion
+        else:
+            min_opinion = np.array(data['Min opinion'])
+            max_opinion = np.array(data['Max opinion'])
+
         cluster_size = np.array(data['Cluster size'])
 
         if self.scale[0] == 'Tanh':
