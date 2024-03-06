@@ -1984,7 +1984,6 @@ class plot_opinions(Plot):
         data = interface.static_data_cache[self.get_static_plot_requests()[0]]
 
         data = self.transform_data(data, transform_parameter='Label')
-        # print(f'{data = }')
 
         # Transform data to suitable format for plotting
         time = np.array(data['Time'])
@@ -2025,8 +2024,6 @@ class plot_opinions(Plot):
         opinions = data['Opinion']
         max_opinions = data['Max opinion']
         cluster_sizes = data['Cluster size']
-
-        # print(f'{cluster_sizes.shape = }')
 
         # Filter clusters by size
         valid_clusters = np.any(cluster_sizes >= self.min_cluster_size, axis=1)

@@ -271,7 +271,6 @@ class ColorScheme:
         if request_tuple not in self._node_color_cache:
             clustering: Clustering = self.interface.groups[image].clustering(
                 **clustering_settings)
-            print(f'colorscheme {id(clustering) = }')
             cluster_mapping = clustering.nodes_labels_dict()
             cluster_to_color_mapping = self.get_cluster_color(
                 clustering_settings=clustering_settings, colormap=colormap, none_color=none_color)
@@ -482,7 +481,6 @@ class ColorScheme:
                    mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
-        print(f'{image = }')
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
                 return ColorScheme.to_rgba(settings['Color'])
@@ -573,7 +571,6 @@ class ColorScheme:
                 data = self.interface.dynamic_data_cache[image][{
                     'method': 'calculate_function_of_node_values', 'settings': request_settings}]
                 value = data[settings['parameter']]
-                print(f'{value = }')
                 norm = colors.Normalize(
                     vmin=value_limits[0], vmax=value_limits[1])
                 cm = plt.get_cmap(colormap)
@@ -648,7 +645,6 @@ class ColorScheme:
 
     @staticmethod
     def to_rgba(color):
-        print(f'{color = }')
         if isinstance(color, str):
             if color == '':
                 rgba = (0, 0, 0, 0)

@@ -141,7 +141,6 @@ class Group:
         return self.clusterings[clustering_key]['clustering']
 
     def get_clustering(self, **settings) -> Clustering:
-        # print(f'{settings = }')
         if 'clustering_settings' in settings:
             return self.clustering(**(settings['clustering_settings']))
         else:
@@ -174,14 +173,11 @@ class Group:
     def clustering_graph_values(self, parameters: Tuple[str], clustering_settings: tuple,  **settings) -> Dict[str, np.ndarray]:
 
         graph = self.clustering_graph(**clustering_settings)
-        # print(str(graph))
 
         params_no_time = [param for param in parameters if param != 'Time']
         results = graph.gatherer.gather(params_no_time)
         if 'Time' in parameters:
             results['Time'] = self.mean_time()
-
-        # print(f'{results = }')
 
         return results
 
@@ -227,7 +223,6 @@ class Group:
         results = self.mean_graph.gatherer.gather(params_no_time)
         if 'Time' in parameters:
             results['Time'] = self.mean_time()
-        # print(f'{results.keys() = }')
         return results
 
     def calculate_function_of_node_values(self, parameters: Tuple[str], function='Mean', **settings) -> dict:
@@ -260,7 +255,6 @@ class Group:
                 continue
             elif param in node_data:
                 # Apply the function to other parameters
-                # print(f'{node_data[param] = }')
                 results[param] = func(node_data[param])
 
         return results

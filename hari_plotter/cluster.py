@@ -557,12 +557,9 @@ class KMeansClustering(ParameterBasedClustering):
         elif scale is None:
             scale = ['Linear'] * len(parameter_names)
 
-        # print(f'{data.keys() = }')
         # Prepare data array
         data = np.array([data[param] for param in parameter_names if parameter_names not in [
                         'Time', 'Nodes']]).T
-
-        # print(f'{data = }')
 
         # Remove NaN values
         valid_indices = ~np.isnan(data).any(axis=1)

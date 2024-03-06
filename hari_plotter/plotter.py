@@ -286,12 +286,10 @@ class Plotter:
 
         # Determine the rendering order
         render_order = self._determine_plot_order()
-        # print(f'{render_order = }')
 
         axis_limits = dict()
 
         for (i, j) in render_order:
-            # print(f'{i,j = }')
             ax = axs[i][j]
             for plot in self.plots[i][j]:
                 plot.plot(ax=ax, group_number=group_number,
