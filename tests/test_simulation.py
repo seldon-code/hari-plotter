@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from hari_plotter import HariGraph, Model, Simulation
+from hari_plotter import HariGraph, Model, ModelFactory, Simulation
 
 
 class TestSimulation:

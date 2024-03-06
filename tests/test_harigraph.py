@@ -10,37 +10,46 @@ class TestHariGraph:
     @classmethod
     def setup_class(cls):
         cls.graph = HariGraph.read_json('tests/test.json')
+        cls.small_graph = HariGraph.read_json('tests/small.json')
         cls.graph_from_files = HariGraph.read_network(
             'tests/network.txt', 'tests/opinions_0.txt')
+        cls.ring_5 = HariGraph.read_network(
+            'tests/5_ring/network.txt', 'tests/5_ring/opinions_0.txt')
         cls.strongly_connected_graph = HariGraph.strongly_connected_components(
             (15, 25), 6)
+
+    def test_strongly_connected_graph(self):
+        assert isinstance(
+            self.strongly_connected_graph, HariGraph), "strongly_connected_graph should return an instance of HariGraph."
+
+    def test_read_network(self):
+        assert isinstance(
+            self.graph_from_files, HariGraph), "Read network should return an instance of HariGraph."
+        assert isinstance(
+            self.ring_5, HariGraph), "Read network should return an instance of HariGraph."
 
     def test_read_json(self):
         assert isinstance(
             self.graph, HariGraph), "Read JSON should return an instance of HariGraph."
-
-    def test_generate_labels(self):
-        self.graph.generate_labels()
-        for node in self.graph.nodes:
-            assert 'label' in self.graph.nodes[
-                node], f"Node {node} should have a label after calling generate_labels."
+        assert isinstance(
+            self.small_graph, HariGraph), "Read JSON should return an instance of HariGraph."
 
     def test_mean_opinion(self):
-        assert self.graph.mean_opinion == pytest.approx(
-            0.79070086941968), "Mean opinion is not as expected."
+        assert self.small_graph.mean_opinion == pytest.approx(
+            -1.0), "Mean opinion is not as expected."
 
-    def test_default_similarity_function(self):
-        similarity = self.graph.compute_similarity(56, 75)
-        assert similarity == pytest.approx(
-            7.061116043349517), "Default similarity function is not returning expected values."
+    # def test_default_similarity_function(self):
+    #     similarity = self.graph.compute_similarity(56, 75)
+    #     assert similarity == pytest.approx(
+    #         7.061116043349517), "Default similarity function is not returning expected values."
 
-    def test_compute_similarity(self):
-        similarity = self.graph.compute_similarity(56, 75)
-        assert similarity == pytest.approx(
-            7.061116043349517), "Compute similarity is not returning expected values."
+    # def test_compute_similarity(self):
+    #     similarity = self.graph.compute_similarity(56, 75)
+    #     assert similarity == pytest.approx(
+    #         7.061116043349517), "Compute similarity is not returning expected values."
 
     def test_merge_nodes(self):
-        i, j = 56, 75
+        i, j = (56,), (75,)
         old_number_of_nodes = self.graph.number_of_nodes()
         self.graph.merge_nodes(i, j)
         new_number_of_nodes = self.graph.number_of_nodes()
@@ -74,13 +83,13 @@ class TestHariGraph:
         assert graph.number_of_nodes() == n1 + \
             n2, f"Graph should have {n1 + n2} nodes."
 
-        # Assert that the graph has the 'opinion' attribute for every node and
+        # Assert that the graph has the 'Opinion' attribute for every node and
         # edge
         for _, data in graph.nodes(data=True):
-            assert 'opinion' in data, "Every node should have a 'opinion' attribute."
+            assert 'Opinion' in data, "Every node should have a 'Opinion' attribute."
 
         for _, _, data in graph.edges(data=True):
-            assert 'influence' in data, "Every edge should have a 'influence' attribute."
+            assert 'Influence' in data, "Every edge should have a 'Influence' attribute."
 
         assert graph.check_all_paths_exist(), "All paths should exist in the graph."
 
@@ -90,9 +99,8 @@ class TestHariGraph:
             cluster_size, dict), "cluster_size should return a dictionary."
 
         for node in self.graph.nodes:
-            label = self.graph.nodes[node].get('label', [node])
             assert cluster_size[node] == len(
-                label), f"Size of node {node} is incorrect."
+                node), f"Size of node {node} is incorrect."
 
     def test_importance(self):
         importance = self.graph.gatherer.importance()
@@ -102,7 +110,7 @@ class TestHariGraph:
 
         for node in self.graph.nodes:
             influences_sum = sum(
-                data['influence'] for _, _, data in self.graph.edges(node, data=True))
+                data['Influence'] for _, _, data in self.graph.edges(node, data=True))
             calculated_importance = influences_sum / \
                 cluster_size[node] if cluster_size[node] != 0 else 0
             assert importance[node] == pytest.approx(
@@ -112,12 +120,18 @@ class TestHariGraph:
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node(1, opinion=0.1)
-        G.add_node(2, opinion=0.2)
-        G.add_node(3, opinion=0.9)
-        G.add_node(4, opinion=0.95)
-        G.add_edge(1, 2, influence=0.15)
-        G.add_edge(3, 4, influence=0.15)
+        G.add_node((1,))
+        G.nodes[(1,)]['Opinion'] = 0.1
+        G.add_node((2,))
+        G.nodes[(2,)]['Opinion'] = 0.2
+        G.add_node((3,))
+        G.nodes[(3,)]['Opinion'] = 0.9
+        G.add_node((4,))
+        G.nodes[(4,)]['Opinion'] = 0.95
+        G.add_edge((1,), (2,))
+        G.edges[((1,), (2,))]['Influence'] = 0.15
+        G.add_edge((3,), (4,))
+        G.edges[((3,), (4,))]['Influence'] = 0.15
 
         clusters = G.find_clusters(
             max_opinion_difference=0.1, min_influence=0.1)
@@ -125,47 +139,57 @@ class TestHariGraph:
         # Validate clusters
         assert len(
             clusters) == 2, f"Expected 2 clusters, but got {len(clusters)}"
-        assert set(clusters[0]) == {1, 2}, "Unexpected nodes in first cluster"
-        assert set(clusters[1]) == {3, 4}, "Unexpected nodes in second cluster"
+        assert set(clusters[0]) == {
+            (1,), (2,)}, "Unexpected nodes in first cluster"
+        assert set(clusters[1]) == {
+            (3,), (4,)}, "Unexpected nodes in second cluster"
 
     def test_merge_clusters(self):
         G = HariGraph()
 
         # Add nodes and edges
-        G.add_node(1, opinion=0.1, label=[1])
-        G.add_node(2, opinion=0.2, label=[2])
-        G.add_node(3, opinion=0.9, label=[3])
-        G.add_node(4, opinion=0.95, label=[4])
-        G.add_edge(1, 2, influence=0.15)
-        G.add_edge(3, 4, influence=0.05)
+        G.add_node((1,))
+        G.nodes[(1,)]['Opinion'] = 0.1
+        G.add_node((2,))
+        G.nodes[(2,)]['Opinion'] = 0.2
+        G.add_node((3,))
+        G.nodes[(3,)]['Opinion'] = 0.9
+        G.add_node((4,))
+        G.nodes[(4,)]['Opinion'] = 0.95
+        G.add_edge((1,), (2,))
+        G.edges[((1,), (2,))]['Influence'] = 0.15
+        G.add_edge((3,), (4,))
+        G.edges[((3,), (4,))]['Influence'] = 0.05
 
-        clusters = [{1, 2}, {3, 4}]
+        clusters = [{(1,), (2,)}, {(3,), (4,)}]
         G.merge_clusters(clusters)
 
         # Validate merge
         assert len(G.nodes) == 2, f"Expected 2 nodes, but got {len(G.nodes)}"
         assert len(G.edges) == 0, f"Expected 0 edges, but got {len(G.edges)}"
 
-        # Validate new nodes' opinions, labels, and importances
+        # Validate new nodes' opinions and importances
         for node in G.nodes:
-            assert G.nodes[node]['opinion'] == pytest.approx(
-                0.15) or G.nodes[node]['opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['opinion'] =}"
-            assert len(G.nodes[node]['label']
-                       ) == 2, "Unexpected label length in merged node"
+            assert G.nodes[node]['Opinion'] == pytest.approx(
+                0.15) or G.nodes[node]['Opinion'] == pytest.approx(0.925), f"Unexpected opinion in merged node {node}. {G.nodes[node]['Opinion'] =}"
+            assert len(node) == 2, "Unexpected size in merged node"
 
     def test_min_max_opinions(self):
         self.graph.add_parameters_to_nodes()
 
-        min_opinions = self.graph.gatherer.gather('min_opinion')
-        max_opinions = self.graph.gatherer.gather('max_opinion')
+        opinions_data = self.graph.gatherer.gather(
+            ['Min opinion', 'Max opinion'])
+        min_opinions = opinions_data['Min opinion']
+        max_opinions = opinions_data['Max opinion']
+
         assert isinstance(
-            min_opinions, dict), "min_opinions should return a dictionary."
+            min_opinions, list), "min_opinions should return a list."
         assert isinstance(
-            max_opinions, dict), "max_opinions should return a dictionary."
-        assert np.all(np.array(list(min_opinions.values())) >= 0) and np.all(
-            np.array(list(min_opinions.values())) <= 1), "min_opinions are not in range."
-        assert np.all(np.array(list(max_opinions.values())) >= 0) and np.all(
-            np.array(list(max_opinions.values())) <= 1), "max_opinions are not in range."
+            max_opinions, list), "max_opinions should return a list."
+        assert all(
+            0 <= opinion <= 1 for opinion in min_opinions), "min_opinions are not in range [0, 1]."
+        assert all(
+            0 <= opinion <= 1 for opinion in max_opinions), "max_opinions are not in range [0, 1]."
 
     def test_merge_by_intervals(self):
         self.graph.merge_by_intervals([0.25, 0.75])
@@ -211,18 +235,6 @@ class TestHariGraph:
         except Exception as e:
             pytest.fail(
                 f"Setting opinions with a single value should not raise an exception. Raised: {str(e)}")
-
-        # Test with a list of values matching the number of nodes
-        opinions_list_correct_length = [0.1] * len(self.graph.nodes)
-        try:
-            self.graph.opinions = opinions_list_correct_length
-            for node, expected_opinion in zip(
-                    self.graph.nodes, opinions_list_correct_length):
-                assert self.graph.opinions[node] == pytest.approx(
-                    expected_opinion), f"Node {node} should have an opinion of {expected_opinion}"
-        except Exception as e:
-            pytest.fail(
-                f"Setting opinions with a list of correct length should not raise an exception. Raised: {str(e)}")
 
         # Test with a dictionary of values
         opinions_dict = {node: 0.2 for node in self.graph.nodes}

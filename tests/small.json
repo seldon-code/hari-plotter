@@ -1,0 +1,72 @@
+{
+    "Nodes": [
+        {
+            "id": [
+                0
+            ],
+            "Opinion": -4.0,
+            "Cluster size": 1,
+            "Inner opinions": {
+                "0": -1
+            }
+        },
+        {
+            "id": [
+                1
+            ],
+            "Opinion": 0.0,
+            "Cluster size": 1,
+            "Inner opinions": {
+                "1": 0
+            }
+        },
+        {
+            "id": [
+                2
+            ],
+            "Opinion": 1.0,
+            "Cluster size": 1,
+            "Inner opinions": {
+                "2": 1
+            }
+        }
+    ],
+    "Edges": [
+        {
+            "source": [
+                0
+            ],
+            "target": [
+                2
+            ],
+            "Influence": 1.0
+        },
+        {
+            "source": [
+                1
+            ],
+            "target": [
+                2
+            ],
+            "Influence": 2.0
+        },
+        {
+            "source": [
+                2
+            ],
+            "target": [
+                1
+            ],
+            "Influence": 3.0
+        },
+        {
+            "source": [
+                2
+            ],
+            "target": [
+                0
+            ],
+            "Influence": 4.0
+        }
+    ]
+}

@@ -1,0 +1,5 @@
+{
+  "dependencies": {
+    "@appland/appmap": "^3.126.1"
+  }
+}

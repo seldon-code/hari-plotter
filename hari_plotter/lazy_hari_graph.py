@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Dict, Union
+from typing import Any, Callable, Dict, List, Tuple, Union
 
 from .hari_graph import HariGraph
 
@@ -61,17 +61,17 @@ class LazyHariGraph:
         return self._hari_graph is not None
 
     @property
-    def mapping(self) -> Dict[Any, Any]:
+    def mapping(self) -> List[List[Tuple[int]]]:
         """
         Get the current mapping of the LazyHariGraph.
 
         Returns:
-            Dict[Any, Any]: The current mapping.
+            List[List[Tuple[int]]]: The current mapping.
         """
         return self._mapping
 
     @mapping.setter
-    def mapping(self, new_mapping: Dict[Any, Any]) -> None:
+    def mapping(self, new_mapping: List[List[Tuple[int]]]) -> None:
         """
         Sets a new mapping and reinitializes the internal HariGraph instance with this mapping.
 
@@ -82,7 +82,7 @@ class LazyHariGraph:
         if self.is_initialized:
             self.reinitialize()
 
-    def _is_trivial_mapping(self, mapping: Dict[Any, Any]) -> bool:
+    def _is_trivial_mapping(self, mapping: List[List[Tuple[int]]]) -> bool:
         """
         Checks whether a given mapping is trivial.
 
@@ -92,18 +92,20 @@ class LazyHariGraph:
         Returns:
             bool: True if the mapping is trivial, otherwise False.
         """
-        return all(k == v for k, v in mapping.items())
+        return all(len(i) == 1 for i in mapping)
 
     @property
     def is_correctly_mapped(self) -> bool:
         """
         Checks whether the graph's mapping matches the real cluster mapping of the internal HariGraph.
 
+        Mappings are expected to have sorted elements of sorted elements!
+
         Returns:
             bool: True if the mappings match, otherwise False.
         """
-        real_mapping = self._hari_graph.get_cluster_mapping()
-        return self._mapping != real_mapping
+
+        return self._mapping == self._hari_graph.get_cluster_mapping()
 
     def get_graph(self) -> HariGraph:
         """

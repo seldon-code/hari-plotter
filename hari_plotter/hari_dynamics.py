@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-import os
-from typing import Dict, List, Optional, Set, Union
-
-import matplotlib.pyplot as plt
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from .hari_graph import HariGraph
 from .lazy_hari_graph import LazyHariGraph
@@ -36,8 +33,8 @@ class HariDynamics:
     """
 
     def __init__(self):
-        self.lazy_hari_graphs = []
-        self.groups = []
+        self.lazy_hari_graphs: List[LazyHariGraph] = []
+        self.groups: List[List[int]] = []
 
     @property
     def initialized(self) -> List[int]:
@@ -106,16 +103,33 @@ class HariDynamics:
 
         return dynamics_instance
 
-    def __getitem__(self, index: int) -> LazyHariGraph:
-        if index < 0:
-            # Adjust the index for negative values
-            index += len(self.lazy_hari_graphs)
+    def __getitem__(self, index):
+        # Handle slices
+        if isinstance(index, slice):
+            return [self.lazy_hari_graphs[i] for i in range(*index.indices(len(self.lazy_hari_graphs)))]
 
-        if index < 0 or index >= len(self.lazy_hari_graphs):
-            raise IndexError(
-                "Index out of range of available LazyHariGraph objects.")
+        # Handle lists of integers
+        elif isinstance(index, list):
+            # Ensure all elements in the list are integers
+            if not all(isinstance(i, int) for i in index):
+                raise TypeError("All indices must be integers")
+            return [self.lazy_hari_graphs[i] for i in index]
 
-        return self.lazy_hari_graphs[index]
+        # Handle single integer
+        elif isinstance(index, int):
+            if index < 0:
+                # Adjust the index for negative values
+                index += len(self.lazy_hari_graphs)
+
+            if index < 0 or index >= len(self.lazy_hari_graphs):
+                raise IndexError(
+                    "Index out of range of available LazyHariGraph objects.")
+
+            return self.lazy_hari_graphs[index]
+
+        else:
+            raise TypeError(
+                "Invalid index type. Must be an integer, slice, or list of integers.")
 
     def __iter__(self) -> LazyHariGraph:
         return iter(self.lazy_hari_graphs)
@@ -210,13 +224,13 @@ class HariDynamics:
         return [[self.lazy_hari_graphs[i] for i in group_indices]
                 for group_indices in self.groups]
 
-    def merge_nodes_by_mapping(self, mapping: Dict[int, int]):
+    def merge_nodes_by_mapping(self, mapping: Tuple[int]):
         """
         Merge nodes in each LazyHariGraph based on the provided mapping.
         If a graph was already initialized, uninitialize it first.
 
         Parameters:
-            mapping (Dict[int, int]): A dictionary representing how nodes should be merged.
+            mapping (Tuple[int]): A dictionary representing how nodes should be merged.
         """
 
         for lazy_graph in self.lazy_hari_graphs:
@@ -248,6 +262,9 @@ class HariDynamics:
 
         mapping = target_lazy_graph.get_cluster_mapping()
         self.merge_nodes_by_mapping(mapping)
+
+    def __len__(self) -> int:
+        return len(self.lazy_hari_graphs)
 
     def __str__(self):
         initialized_count = sum(

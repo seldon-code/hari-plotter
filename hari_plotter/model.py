@@ -7,110 +7,99 @@ import toml
 from .hari_graph import HariGraph
 
 
-class Model(ABC):
-    """
-    Base abstract class for different types of models.
-    """
-    _registry: Dict[str, Type["Model"]] = {}
-
-    def __new__(cls, model_type: str, params: Dict[str, Any]):
-        """
-        Create a new instance of the Model or its registered subclass based on the model_type.
-
-        Parameters:
-            model_type: Type of the model to be instantiated.
-            params: Parameters for initializing the model.
-
-        Returns:
-            Instance of the Model or its registered subclass.
-        """
-        if cls == Model:  # Checking if the class being instantiated is the base class
-            if model_type in cls._registry:
-                return super(Model, cls._registry[model_type]).__new__(cls._registry[model_type])
-            else:
-                raise ValueError(f"Unknown model type: {model_type}")
-        return super(Model, cls).__new__(cls)
-
-    def __init__(self, model_type: str, params: Dict[str, Any]):
-        """
-        Initialize a Model instance.
-
-        Parameters:
-            model_type: Type of the model being instantiated.
-            params: Parameters for initializing the model.
-        """
-        self.model_type = model_type
-        self.params = params
+class ModelFactory:
+    _registry: Dict[str, Type['Model']] = {}
 
     @classmethod
-    def register(cls, model_type: str) -> Callable[[Type], Type]:
+    def register(cls, model_type: str):
         """
-        Class method to register subclasses for different model types.
+        Decorator for registering model classes with a specific model type.
 
         Parameters:
-            model_type: The type of the model that the subclass represents.
+            model_type: The type of the model to register.
 
         Returns:
-            Decorator for registering the subclass.
+            A decorator function that registers the given class.
         """
-        def decorator(subclass: Type) -> Type:
-            cls._registry[model_type] = subclass
-            return subclass
+        def decorator(model_class: Type['Model']) -> Type['Model']:
+            cls._registry[model_type] = model_class
+            return model_class
         return decorator
 
     @classmethod
-    def from_toml(cls, filename: str) -> "Model":
+    def create_model(cls, model_type: str, params: Dict[str, Any]) -> 'Model':
         """
-        Load model parameters from a TOML file and instantiate the corresponding Model subclass.
+        Create a model instance based on the model type and parameters.
 
         Parameters:
-            filename: Path to the TOML file containing model configuration.
+            model_type: The type of the model to create.
+            params: Parameters for the model.
 
         Returns:
-            Instance of the appropriate Model subclass based on the TOML file.
+            An instance of the requested model type.
+        """
+        if model_type not in cls._registry:
+            raise ValueError(f"Unknown model type: {model_type}")
+        model_class = cls._registry[model_type]
+        return model_class(params)
+
+    @classmethod
+    def from_toml(cls, filename: str) -> 'Model':
+        """
+        Create a model instance from a TOML configuration file.
+
+        Parameters:
+            filename: Path to the TOML file.
+
+        Returns:
+            An instance of the model defined in the TOML file.
         """
         data = toml.load(filename)
         model_type = data.get("simulation", {}).get("model")
         params = data.get(model_type, {})
+        return cls.create_model(model_type, params)
 
-        if model_type not in cls._registry:
-            raise ValueError(f"Unknown model type: {model_type}")
 
-        return cls._registry[model_type](model_type, params)
+class Model(ABC):
+    """
+    Base abstract class for different types of models.
+    """
+
+    def __init__(self, params: Dict[str, Any]):
+        """
+        Initialize a Model instance.
+
+        Parameters:
+            params: Parameters for initializing the model.
+        """
+        self.params = params
+
+    @property
+    def dt(self):
+        return self.params.get("dt", 1)
 
     @abstractmethod
     def get_tension(self) -> float:
         """
         Abstract method to compute and return the tension value.
-
-        Returns:
-            The computed tension value.
         """
-        raise NotImplementedError(
-            "The get_tension method must be implemented in subclasses")
+        pass
 
     @abstractmethod
     def get_influence(self) -> np.ndarray:
         """
         Abstract method to compute and return the influence values.
-
-        Returns:
-            Array containing the computed influence values.
         """
-        raise NotImplementedError(
-            "The get_influence method must be implemented in subclasses")
+        pass
 
     def __repr__(self) -> str:
         """
         Return a string representation of the Model instance.
-
-        Returns:
-            String representation of the Model.
         """
-        return f"Model(model_type={self.model_type}, params={self.params})"
+        return f"{self.__class__.__name__}(params={self.params})"
 
 
-@Model.register("ActivityDriven")
+@ModelFactory.register("ActivityDriven")
 class ActivityDrivenModel(Model):
     """
     Model representing the ActivityDriven dynamics.
@@ -177,7 +166,7 @@ class ActivityDrivenModel(Model):
         return influences
 
 
-@Model.register("DeGroot")
+@ModelFactory.register("DeGroot")
 class DeGrootModel(Model):
     """
     Model representing the DeGroot dynamics.

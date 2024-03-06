@@ -1,3 +1,5 @@
+import __future__
+
 import os
 import pathlib
 import re
@@ -6,7 +8,8 @@ from typing import Any, Dict, Optional, Union
 import toml
 
 from .hari_dynamics import HariDynamics
-from .model import Model
+from .lazy_hari_graph import LazyHariGraph
+from .model import Model, ModelFactory
 
 
 class Simulation:
@@ -31,11 +34,11 @@ class Simulation:
             dynamics: HariDynamics instance used for the simulation. Default is None.
             rng_seed: Seed for random number generation. Default is None.
         """
-        self.dynamics = dynamics
-        self.model = model
-        self.rng_seed = rng_seed
-        self.max_iterations = max_iterations
-        self.network = network
+        self.dynamics: HariDynamics = dynamics
+        self.model: Model = model
+        self.rng_seed: int = rng_seed
+        self.max_iterations: int = max_iterations
+        self.network: dict = network
 
     @classmethod
     def from_toml(cls, filename: str) -> 'Simulation':
@@ -51,7 +54,7 @@ class Simulation:
         data = toml.load(filename)
         model_type = data.get("simulation", {}).get("model")
         model_params = data.get(model_type, {})
-        model = Model(model_type, model_params)
+        model = ModelFactory.create_model(model_type, model_params)
         rng_seed = data.get("simulation", {}).get("rng_seed", None)
         max_iterations = data.get("model", {}).get("max_iterations", None)
         network = data.get("network", {})
@@ -80,7 +83,7 @@ class Simulation:
 
         model_type = data.get("simulation", {}).get("model")
         model_params = data.get(model_type, {})
-        model = Model(model_type, model_params)
+        model = ModelFactory.create_model(model_type, model_params)
         rng_seed = data.get("simulation", {}).get("rng_seed", None)
         max_iterations = data.get("model", {}).get("max_iterations", None)
         network = data.get("network", {})
@@ -129,6 +132,19 @@ class Simulation:
         }
         with open(filename, 'w') as f:
             toml.dump(data, f)
+
+    def group(self, *args, **kwargs):
+        self.dynamics.group(*args, **kwargs)
+
+    @property
+    def dt(self):
+        return self.model.dt
+
+    def __len__(self) -> int:
+        return len(self.dynamics)
+
+    def __getitem__(self, index) -> LazyHariGraph:
+        return self.dynamics[index]
 
     def __repr__(self) -> str:
         """

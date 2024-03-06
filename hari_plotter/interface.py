@@ -1,9 +1,14 @@
+from __future__ import annotations
+
+import warnings
 from abc import ABC, abstractmethod, abstractproperty
-from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
+import networkx as nx
 import numpy as np
 
+from .cluster import Clustering
+from .group import Group
 from .hari_dynamics import HariDynamics
 from .hari_graph import HariGraph
 from .simulation import Simulation
@@ -20,12 +25,13 @@ class Interface(ABC):
     REQUIRED_TYPE: Optional[Type[Any]] = None
     available_classes: Dict[Type[Any], Type['Interface']] = {}
 
-    def __init__(self, data: Any):
+    def __init__(self, data: Any, group_length: int = 0):
         """
         Initialize the Interface instance.
 
         Args:
             data: The underlying data object to which the interface applies.
+            group_length[int]: length of groups
 
         Raises:
             ValueError: If the data is not an instance of REQUIRED_TYPE.
@@ -34,6 +40,121 @@ class Interface(ABC):
             raise ValueError(
                 f"data must be an instance of {self.REQUIRED_TYPE}")
         self.data = data
+        self._group_cache = [None]*group_length
+        self.groups = self.GroupIterable(self)
+        self.static_data_cache = self.StaticDataCache(self)
+        self.dynamic_data_cache = [self.DynamicDataCache(
+            self, i) for i in range(len(self.groups))]
+        self.cluster_tracker = self.ClusterTracker(self)
+
+        self._nodes = None
+        self._node_parameters = None
+
+    @property
+    def node_parameters(self):
+        if not self._node_parameters:
+            self._node_parameters = self.groups[0].node_parameters
+        return self._node_parameters
+
+    @property
+    def nodes(self):
+        if self._nodes:
+            return self._nodes
+        self._nodes = set().union(*[group.nodes for group in self.groups])
+        return self._nodes
+
+    class StaticDataCache:
+        def __init__(self, interface_instance):
+            self._interface = interface_instance
+            self.cache = {}
+
+        def __getitem__(self, request):
+            method_name = request['method']
+            settings = request['settings']
+            data_key = Interface.request_to_tuple(request)
+            if data_key not in self.cache:
+                data_for_all_groups = []
+                for group in self._interface.groups:
+                    data = getattr(group, method_name)(**settings)
+                    data_for_all_groups.append(data)
+                self.cache[data_key] = data_for_all_groups
+            return self.cache[data_key]
+
+        def clean(self):
+            self.cache = {}
+
+    class DynamicDataCache:
+        def __init__(self, interface_instance, i: int):
+            self._interface = interface_instance
+            self.i = i
+            self.cache = {}
+
+        def __getitem__(self, request):
+            method_name = request['method']
+            settings = request['settings']
+            data_key = Interface.request_to_tuple(request)
+            if data_key not in self.cache:
+                self.cache[data_key] = getattr(
+                    self._interface.groups[self.i], method_name)(**settings)
+            return self.cache[data_key]
+
+        def clean(self):
+            self.cache = {}
+
+    def clean_cache(self):
+        self.cluster_tracker.clean()
+        self.static_data_cache.clean()
+        for c in self.dynamic_data_cache:
+            c.clean()
+
+    class GroupIterable:
+        def __init__(self, interface_instance: Interface):
+            self._interface: Interface = interface_instance
+
+        def __getitem__(self, index):
+            # Handle slices
+            if isinstance(index, slice):
+                return [self._get_group(i) for i in range(*index.indices(len(self._interface._group_cache)))]
+
+            # Handle lists of integers
+            elif isinstance(index, list):
+                # Ensure all elements in the list are integers
+                if not all(isinstance(i, int) for i in index):
+                    raise TypeError("All indices must be integers")
+                return [self._get_group(i) for i in index]
+
+            # Handle single integer
+            elif isinstance(index, int):
+                return self._get_group(index)
+
+            else:
+                raise TypeError(
+                    "Invalid index type. Must be an integer, slice, or list of integers.")
+
+        def _get_group(self, i) -> Group:
+            # Adjust index for negative values
+            if i < 0:
+                i += len(self._interface._group_cache)
+
+            if 0 <= i < len(self._interface._group_cache):
+                if self._interface._group_cache[i] is None:
+                    self._interface._group_cache[i] = self._interface._initialize_group(
+                        i)
+                return self._interface._group_cache[i]
+            else:
+                raise IndexError("Group index out of range")
+
+        def __iter__(self):
+            for i in range(len(self._interface._group_cache)):
+                yield self[i]
+
+        def __len__(self) -> int:
+            return len(self._interface._group_cache)
+
+    @abstractproperty
+    def time_range(self) -> List[float]:
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -43,7 +164,7 @@ class Interface(ABC):
             Interface.available_classes[cls.REQUIRED_TYPE] = cls
 
     @classmethod
-    def create_interface(cls, data: Any) -> 'Interface':
+    def create_interface(cls, data: Any) -> Interface:
         """Create an interface for the given data.
 
         Args:
@@ -61,6 +182,23 @@ class Interface(ABC):
         else:
             raise ValueError("Invalid data type, no matching interface found.")
 
+    @abstractmethod
+    def _initialize_group(self, i: int) -> Group:
+        """Abstract method to define the behavior for data grouping."""
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
+    @abstractmethod
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1):
+        """Abstract method to regroup dynamics."""
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
+
+    def regroup(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.clean_cache()
+        self._group_cache = [None]*num_intervals
+        self._regroup_dynamics(num_intervals, interval_size, offset)
+
     @classmethod
     def info(cls) -> str:
         """Return a string representation of the available classes and their mapping.
@@ -72,123 +210,282 @@ class Interface(ABC):
             [f"{key.__name__} -> {value.__name__}" for key, value in cls.available_classes.items()])
         return f"Available Classes: {mappings}"
 
-    @abstractmethod
-    def images(self):
-        """Return an iterator of image data."""
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    @abstractmethod
-    def groups(self):
-        """Abstract method to define the behavior for data grouping."""
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    def _calculate_mean_node_values(self, group: List, params: List[str]) -> dict:
-        """
-        Calculate the mean node values based on parameters.
-
-        Args:
-            group (List): List containing data for each node.
-            params (List[str]): List of parameter names.
-
-        Returns:
-            dict: A dictionary containing mean node values.
-        """
-        node_values_accumulator = defaultdict(lambda: defaultdict(list))
-        results = defaultdict(list)
-
-        # Process each image in the group
-        for image in group:
-            node_values = self.get_node_values(image, params)
-
-            # Accumulate the parameter values for each node
-            for node, parameters in node_values.items():
-                for param, value in parameters.items():
-                    node_values_accumulator[node][param].append(value)
-
-        # Calculate results for each node and parameter
-        for node, parameters in node_values_accumulator.items():
-            results['node'].append(node)
-            for param, values in parameters.items():
-                if param.startswith("max_"):
-                    # Compute max value for parameters starting with 'max_'
-                    results[param].append(max(values))
-                elif param.startswith("min_"):
-                    # Compute min value for parameters starting with 'min_'
-                    results[param].append(min(values))
-                else:
-                    # Compute mean value for other parameters
-                    results[param].append(np.mean(values))
-
-        return results
-
-    def _calculate_node_values(self, group: List, params: List[str]) -> dict:
-        """
-        Calculate node values based on parameters.
-
-        Args:
-            group (List): List containing data for each node.
-            params (List[str]): List of parameter names.
-
-        Returns:
-            dict: A dictionary containing node values.
-        """
-        node_values_accumulator = defaultdict(lambda: defaultdict(list))
-        results = defaultdict(lambda: defaultdict(list))
-
-        # Process each image in the group
-        for image in group:
-            node_values = self.get_node_values(image, params)
-
-            # print(f'{len(node_values.keys()) = }')
-            # print(f'{node_values[0].keys() = }')
-            # print(f'{node_values[0]["neighbor_mean_opinion"] = }')
-
-            # Accumulate the parameter values for each node
-            for node, parameters in node_values.items():
-                for param, value in parameters.items():
-                    node_values_accumulator[node][param].append(value)
-
-        # Transfer values from the accumulator to the results
-        for node, parameters in node_values_accumulator.items():
-            for param, values in parameters.items():
-                results[node][param] = values
-
-        return results
-
-    @abstractmethod
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Abstract method to fetch mean node values based on parameters.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Returns:
-            Iterator[dict]: An iterator containing dictionaries of mean node values.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    @abstractmethod
-    def node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Abstract method to fetch node values based on parameters.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Returns:
-            Iterator[dict]: An iterator containing dictionaries of node values.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
     @abstractproperty
     def available_parameters(self) -> list:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
+
+    class ClusterTracker:
+        def __init__(self, interface):
+            # Initialize with an instance of the enclosing class if needed to access its attributes and methods
+            self._interface: Interface = interface
+            self._track_clusters_cache = {}
+
+        def clean(self):
+            self._track_clusters_cache = {}
+
+        def is_tracked(self, clusterization_settings: Union[dict, List[dict]]) -> List[bool]:
+            """
+            Tracks the clusters across frames based on the provided clusterization settings.
+
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
+            is_tracked_list = []
+            for clust_settings in clusterization_settings_list:
+                # Extract the dynamics of clusters across frames
+                cluster_tuple = Interface.request_to_tuple(clust_settings)
+                is_tracked_list.append(
+                    cluster_tuple in self._track_clusters_cache)
+            return is_tracked_list
+
+        @staticmethod
+        def generate_node_id(frame_index, cluster_identifier):
+            return (frame_index, cluster_identifier)
+
+        def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Clustering]] = None) -> nx.DiGraph:
+            """
+            Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.
+
+            :param cluster_settings: Settings for clusterization.
+            :param clusters_dynamics: A list of lists where each sub-list represents the clusters in a frame.
+
+            :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.
+            """
+            clusters_dynamics = clusters_dynamics or [group.clustering(
+                **cluster_settings).labels_nodes_dict() for group in self._interface.groups]
+
+            G = nx.DiGraph()
+
+            # Build the graph with connections based on the highest overlap
+            for frame_index, frame in enumerate(clusters_dynamics):
+                for cluster_name in frame.keys():
+                    node_id = self.generate_node_id(frame_index, cluster_name)
+                    G.add_node(node_id, frame=frame_index,
+                               cluster=cluster_name, Label=cluster_name)
+
+                if frame_index > 0:  # There are previous frame clusters to connect to
+                    current_frame_clusters = frame
+                    prev_frame_clusters = clusters_dynamics[frame_index - 1]
+                    is_more_clusters_in_current_frame = len(
+                        current_frame_clusters) >= len(prev_frame_clusters)
+
+                    # Determine comparison direction based on the number of clusters
+                    if is_more_clusters_in_current_frame:
+                        # More clusters in the current frame, or the number is equal, match each current cluster to one from the previous frame
+                        for current_cluster_name, current_cluster in current_frame_clusters.items():
+                            current_node_id = self.generate_node_id(
+                                frame_index, current_cluster_name)
+                            current_set = set(
+                                map(tuple, current_cluster))
+                            best_match = None
+                            max_overlap = 0
+                            for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
+                                prev_set = set(map(tuple, prev_cluster))
+                                prev_node_id = self.generate_node_id(
+                                    frame_index - 1, prev_cluster_name)
+
+                                overlap = len(
+                                    current_set.intersection(prev_set))
+
+                                if overlap > max_overlap:
+                                    best_match = prev_node_id
+                                    max_overlap = overlap
+
+                            if best_match:
+                                G.add_edge(best_match, current_node_id)
+                    else:
+                        # More clusters in the previous frame, match each previous cluster to one from the current frame
+                        for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
+                            prev_set = set(map(tuple, prev_cluster))
+                            prev_node_id = self.generate_node_id(
+                                frame_index - 1, prev_cluster_name)
+
+                            best_match = None
+                            max_overlap = 0
+                            for current_cluster_name, current_cluster in current_frame_clusters.items():
+                                current_node_id = self.generate_node_id(
+                                    frame_index, current_cluster_name)
+                                current_set = set(map(tuple, current_cluster))
+                                overlap = len(
+                                    prev_set.intersection(current_set))
+
+                                if overlap > max_overlap:
+                                    best_match = current_node_id
+                                    max_overlap = overlap
+
+                            if best_match:
+                                G.add_edge(prev_node_id, best_match)
+
+            def propagate_labels_with_splits(G: nx.DiGraph):
+                # Find all nodes with no predecessors (root nodes)
+                root_nodes = [node for node in G.nodes() if len(
+                    list(G.successors(node))) == 0]
+
+                # Check for root nodes with duplicate names and issue a warning if found
+                root_names = [G.nodes[node]['cluster'] for node in root_nodes]
+                if len(root_names) != len(set(root_names)):
+                    warnings.warn(
+                        f"Warning: Multiple root nodes have the same name: {root_names}")
+
+                def propagate_label(node, current_label):
+                    """Recursively propagate labels through the graph."""
+                    G.nodes[node]['Updated label'] = current_label
+
+                    predecessors = list(G.predecessors(node))
+                    if len(predecessors) == 1:
+                        # Single successor inherits the label
+                        propagate_label(predecessors[0], current_label)
+                    elif len(predecessors) > 1:
+                        # Multiple predecessors indicate a split; assign new labels
+                        for i, succ in enumerate(predecessors):
+                            new_label = f"{current_label}.{i+1}"
+                            propagate_label(succ, new_label)
+
+                # Start label propagation from each root node
+                for root_node in root_nodes:
+                    initial_label = G.nodes[root_node]['Label']
+                    propagate_label(root_node, initial_label)
+
+            # Call the function to propagate labels with the handling of splits
+            propagate_labels_with_splits(G)
+
+            return G
+
+        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, Dict[str, str]]]:
+            """
+            Tracks the clusters across frames based on the provided clusterization settings.
+
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
+
+            updated_labels_list = []
+            for clust_settings in clusterization_settings_list:
+                # Extract the dynamics of clusters across frames
+                cluster_tuple = Interface.request_to_tuple(clust_settings)
+                if cluster_tuple not in self._track_clusters_cache:
+                    clusters_dynamics = [group.clustering(
+                        **clust_settings).labels_nodes_dict() for group in self._interface.groups]
+
+                    G = self.cluster_graph(
+                        clust_settings, clusters_dynamics=clusters_dynamics)
+                    # Extract updated labels
+                    updated_labels = {}
+                    for frame_index in range(len(clusters_dynamics)):
+                        # Initialize the dictionary for this frame's label mappings
+                        frame_labels = {}
+
+                        # Find all nodes belonging to the current frame
+                        nodes_in_frame = [node for node, attrs in G.nodes(
+                            data=True) if attrs.get('frame') == frame_index]
+
+                        # Update the frame's label mappings based on the nodes' current and updated labels
+                        for node_id in nodes_in_frame:
+                            original_label = G.nodes[node_id]['Label']
+                            # Fallback to original if no update
+                            updated_label = G.nodes[node_id].get(
+                                'Updated label', original_label)
+                            frame_labels[original_label] = updated_label
+
+                        # Store the updated label mappings for the current frame
+                        updated_labels[frame_index] = frame_labels
+
+                    # Apply updated labels
+                    for frame_index, labels in updated_labels.items():
+                        group: Group = self._interface.groups[frame_index]
+                        group.clustering(
+                            **clust_settings).cluster_labels = list(labels.values())
+
+                        if group.is_clustering_graph_initialized(**clust_settings):
+                            warnings.warn(
+                                'Clustering tracked after clustering graph was initialized. This is unexpected behavior, trying to handle.')
+                            group.clustering_graph(
+                                reinitialize=True, **clust_settings)
+
+                    self._track_clusters_cache[cluster_tuple] = updated_labels
+
+                updated_labels_list.append(
+                    self._track_clusters_cache[cluster_tuple])
+            return updated_labels_list
+
+        def get_unique_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[str]]:
+            """
+            Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.
+            Each inner list corresponds to one clustering type if multiple types are provided.
+
+            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
+            :return: A list of lists, each containing unique cluster names for one type of clustering.
+            """
+            tracked_clusters_list = self.track_clusters(
+                clusterization_settings)
+            unique_clusters_list = []
+
+            for tracked_clusters in tracked_clusters_list:
+                unique_clusters = set()
+                for clusters in tracked_clusters.values():
+                    unique_clusters.update(clusters.values())
+                unique_clusters_list.append(list(unique_clusters))
+
+            return unique_clusters_list
+
+        def get_cluster_presence(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[str, List[int]]]:
+            """
+            Retrieves a list of dictionaries, each mapping unique clusters to the frames in which they appear, based on the given clusterization settings.
+            Each dictionary corresponds to one clustering type if multiple types are provided.
+
+            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
+            :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.
+            """
+            tracked_clusters_list = self.track_clusters(
+                clusterization_settings)
+            cluster_presence_list = []
+
+            for tracked_clusters in tracked_clusters_list:
+                cluster_presence = {}
+                for frame_index, clusters in tracked_clusters.items():
+                    for cluster in clusters.values():
+                        if cluster not in cluster_presence:
+                            cluster_presence[cluster] = []
+                        cluster_presence[cluster].append(frame_index)
+                cluster_presence_list.append(cluster_presence)
+
+            return cluster_presence_list
+
+        def get_final_value(self, clusterization_settings: Union[dict, List[dict]], parameter) -> Dict[str, float]:
+            '''
+            Returns the value of the parameter in the last group cluster appeared  
+            '''
+            presence = self.get_cluster_presence(clusterization_settings)[0]
+            final_image = {cluster: images[-1]
+                           for cluster, images in presence.items()}
+            final_values = {}
+            for cluster, group_number in final_image.items():
+                data = self._interface.groups[group_number].clustering_graph_values(
+                    parameters=(parameter, 'Label'), clustering_settings=clusterization_settings)
+                final_values[cluster] = data[parameter][data['Label'].index(
+                    cluster)]
+            return final_values
+
+    @abstractmethod
+    def __len__(self):
+        pass
+
+    @staticmethod
+    def request_to_tuple(request):
+        def convert(item):
+            if isinstance(item, dict):
+                return tuple(sorted((k, convert(v)) for k, v in item.items()))
+            elif isinstance(item, list):
+                return tuple(convert(v) for v in item)
+            else:
+                return item
+
+        return convert(request)
 
 
 class HariGraphInterface(Interface):
@@ -196,69 +493,25 @@ class HariGraphInterface(Interface):
 
     REQUIRED_TYPE = HariGraph
 
-    def images(self) -> Iterator[dict]:
-        """
-        Return an iterator of image data for the HariGraph.
+    def __init__(self, data):
+        super().__init__(data=data, group_length=1)
+        self.data: HariGraph
+        self._group_size = 1
 
-        Yields:
-            dict: The image data for the HariGraph with an assigned time of 0.
-        """
-        image = self.data.copy()
-        time = 0
-        yield {'image': image, 'time': time}
+    def __len__(self):
+        return 1
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in HariGraph.
+    def _initialize_group(self, i: int = 0) -> Group:
+        if i != 0 or self._group_size != 1:
+            Warning.warn(
+                'An attempt to create the dynamics from a singe image')
+        return Group([self.data]*self._group_size, time=np.array([0]))
 
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    def get_node_values(self, image: Any, params: List[str]) -> dict:
-        """
-        Fetch the values for the given nodes based on provided parameters.
-
-        Args:
-            image (Any): The image data or identifier for which node values are fetched.
-            params (List[str]): List of parameter names.
-
-        Returns:
-            dict: A dictionary containing node values based on provided parameters.
-        """
-        return self.data.gatherer.gather(params)
-
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the mean values for nodes based on provided parameters for the HariGraph.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing mean node values and the time stamp.
-        """
-        data = {'data': self._calculate_mean_node_values(
-            [None])}  # No group for single image
-        data['time'] = 0
-        yield data
-
-    def node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the node values based on provided parameters for the HariGraph.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing node values and the time stamp.
-        """
-        data = {'data': self._calculate_node_values(
-            [None])}  # No group for single image
-        data['time'] = 0
-        yield data
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        if num_intervals != 1 and interval_size != 1:
+            Warning.warn(
+                'An attempt to create the dynamics from a singe image')
+        self._group_size = interval_size
 
     @property
     def available_parameters(self) -> list:
@@ -268,7 +521,11 @@ class HariGraphInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data.gatherer.methods
+        return self.data.gatherer.node_parameters
+
+    @property
+    def time_range(self) -> List[float]:
+        return [0., 0.]
 
 
 class HariDynamicsInterface(Interface):
@@ -276,78 +533,19 @@ class HariDynamicsInterface(Interface):
 
     REQUIRED_TYPE = HariDynamics
 
-    def images(self) -> Iterator[dict]:
-        """
-        Return an iterator of image data for the HariDynamics.
+    def __init__(self, data):
+        super().__init__(data=data, group_length=len(data.groups))
+        self.data: HariDynamics
 
-        Iterates over the groups present in the data and yields the last image 
-        from each group along with its corresponding time.
+    def __len__(self):
+        return len(self.data.groups)
 
-        Yields:
-            dict: Dictionary containing the image data and its associated time.
-        """
-        for group in self.data.groups:
-            image = self.data[group[-1]].copy()
-            time = group[-1]
-            yield {'image': image, 'time': time}
+    def _initialize_group(self, i: int) -> Group:
+        group = self.data.groups[i]
+        return Group([self.data[j] for j in group], time=np.array(group))
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in HariDynamics.
-
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    def get_node_values(self, image: Any, params: List[str]) -> dict:
-        """
-        Fetch the values for the given nodes based on provided parameters.
-
-        Args:
-            image (Any): The image data or identifier for which node values are fetched.
-            params (List[str]): List of parameter names.
-
-        Returns:
-            dict: A dictionary containing node values based on provided parameters.
-        """
-        return self.data[image].gatherer.gather(params)
-
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the mean values for nodes based on provided parameters for the HariDynamics.
-
-        Iterates over the groups present in the data, calculates mean values for each 
-        group and yields the results.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing mean node values and the time stamp.
-        """
-        for group in self.data.groups:
-            data = {'data': self._calculate_mean_node_values(group, params)}
-            data['time'] = group[-1]
-            yield data
-
-    def node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the node values based on provided parameters for the HariDynamics.
-
-        Iterates over the groups present in the data and yields node values for each group.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing node values and the time stamp.
-        """
-        for group in self.data.groups:
-            data = {'data': self._calculate_node_values(group, params)}
-            data['time'] = group[-1]
-            yield data
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.data.group(num_intervals, interval_size, offset)
 
     @property
     def available_parameters(self) -> list:
@@ -357,7 +555,11 @@ class HariDynamicsInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data[0].gatherer.methods
+        return self.data[0].gatherer.node_parameters
+
+    @property
+    def time_range(self) -> List[float]:
+        return [0., float(len(self.data)-1)]
 
 
 class SimulationInterface(Interface):
@@ -365,79 +567,19 @@ class SimulationInterface(Interface):
 
     REQUIRED_TYPE = Simulation
 
-    def images(self) -> Iterator[dict]:
-        """
-        Return an iterator of image data for the Simulation.
+    def __init__(self, data):
+        super().__init__(data=data, group_length=len(data.dynamics.groups))
+        self.data: Simulation
 
-        Iterates over the groups present in the dynamics data and yields the last 
-        image from each group along with its corresponding adjusted time.
+    def __len__(self):
+        return len(self.data.dynamics.groups)
 
-        Yields:
-            dict: Dictionary containing the image data and its associated time.
-        """
-        for group in self.data.dynamics.groups:
-            image = self.data.dynamics[group[-1]].copy()
-            time = group[-1] * self.data.model.params.get("dt", 1)
-            yield {'image': image, 'time': time}
+    def _initialize_group(self, i: int) -> Group:
+        group = self.data.dynamics.groups[i]
+        return Group([self.data.dynamics[j] for j in group], time=np.array(group) * self.data.dt)
 
-    def groups(self) -> Any:
-        """
-        Define the behavior for data grouping in Simulation.
-
-        Raises:
-            NotImplementedError: This method should be implemented in subclasses.
-        """
-        raise NotImplementedError(
-            "This method must be implemented in subclasses")
-
-    def get_node_values(self, image: Any, params: List[str]) -> dict:
-        """
-        Fetch the values for the given nodes based on provided parameters for the Simulation.
-
-        Args:
-            image (Any): The image data or identifier for which node values are fetched.
-            params (List[str]): List of parameter names.
-
-        Returns:
-            dict: A dictionary containing node values based on provided parameters.
-        """
-        return self.data.dynamics[image].gatherer.gather(params)
-
-    def mean_node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the mean values for nodes based on provided parameters for the Simulation.
-
-        Iterates over the groups present in the dynamics data, calculates mean values 
-        for each group using the appropriate time scaling, and yields the results.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing mean node values and the adjusted time stamp.
-        """
-        for group in self.data.dynamics.groups:
-            data = {'data': self._calculate_mean_node_values(group, params)}
-            data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-            yield data
-
-    def node_values(self, params: List[str]) -> Iterator[dict]:
-        """
-        Fetch the node values based on provided parameters for the Simulation.
-
-        Iterates over the groups present in the dynamics data and yields node values 
-        for each group using the appropriate time scaling.
-
-        Args:
-            params (List[str]): List of parameter names.
-
-        Yields:
-            dict: A dictionary containing node values and the adjusted time stamp.
-        """
-        for group in self.data.dynamics.groups:
-            data = {'data': self._calculate_node_values(group, params)}
-            data['time'] = group[-1] * self.data.model.params.get("dt", 1)
-            yield data
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.data.dynamics.group(num_intervals, interval_size, offset)
 
     @property
     def available_parameters(self) -> list:
@@ -447,4 +589,8 @@ class SimulationInterface(Interface):
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.data.dynamics[0].gatherer.methods
+        return self.data.dynamics[0].gatherer.node_parameters
+
+    @property
+    def time_range(self) -> List[float]:
+        return [0., float(len(self.data)-1) * self.data.dt]

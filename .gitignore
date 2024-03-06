@@ -163,3 +163,6 @@ check_formatting.sh
 format.diff
 
 .vscode/
+node_modules
+tmp/
+examples/save_dir
