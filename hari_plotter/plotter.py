@@ -466,7 +466,7 @@ class Plotter:
             return 'Plot is empty'
         for i, row in enumerate(self.plots):
             for j, cell in enumerate(row):
-                info_str += f'\n{i,j}\n'
+                info_str += f'\n{i, j}\n'
                 if len(cell) > 0:
                     for plot in cell:
                         info_str += str(plot) + '\n'
