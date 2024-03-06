@@ -1237,19 +1237,14 @@ class draw(Plot):
         default_style = 'arc3,rad=0.3'  # or any other default style you prefer
 
         for (u, v), width in zip(image.edges(), edge_widths):
-            # Here you might have some logic to determine the style for each edge
-            # For example:
-            # if some_condition:
-            #     style = 'some_specific_style'
-            # else:
-            #     style = default_style
 
             # If no specific style is set, use the default
             style = default_style
 
             # Now draw the edge with the defined style
             nx.draw_networkx_edges(image, self.pos, edgelist=[(u, v)], width=width, ax=ax,
-                                   arrowstyle=f'-|>,head_length={self.arrowhead_length},head_width={self.arrowhead_width}',
+                                   arrowstyle=f'-|>,head_length={
+                                       self.arrowhead_length},head_width={self.arrowhead_width}',
                                    connectionstyle=style)
 
 
