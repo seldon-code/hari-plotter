@@ -129,19 +129,54 @@ class Plot(ABC):
     def get_dynamic_plot_requests(self):
         return []
 
-    def get_track_clusterings_requests(self):
+    def get_track_clusterings_requests(self) -> List[Dict[str, Any]]:
         return []
 
     @staticmethod
-    def is_available(interface: Interface):
+    def is_available(interface: Interface) -> Tuple[bool, str]:
         ''' Returns True if available for this interface and comment why'''
         return True, ''
 
     def settings_to_code(self) -> str:
         return ''
 
-    def is_single_color(color):
+    def is_single_color(color: str | float | np.ndarray) -> bool:
         return isinstance(color, (str, float)) or color.shape == (4,) or color.shape == (3,)
+
+    @staticmethod
+    def tanh_axis_labels(ax: plt.Axes, scale: List[str]):
+        """
+        Adjust axis labels for tanh scaling.
+
+        Parameters:
+        -----------
+        ax : plt.Axes
+            The Axes object to which the label adjustments should be applied.
+        scale : List[str]
+            Which axis to adjust. Choices: 'x', 'y', or 'both'.
+        """
+        tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
+        ticks = np.tanh(tickslabels)
+
+        tickslabels = [r'-$\infty$' if label == -np.inf else r'$\infty$' if label == np.inf else label if abs(
+            label) <= 1.5 else None for label in tickslabels]
+
+        minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
+        minor_ticks = np.tanh(minor_tickslabels)
+
+        if scale[0] == 'Tanh':
+            ax.set_xticks(ticks)
+            ax.set_xticklabels(tickslabels)
+            ax.set_xticks(minor_ticks, minor=True)
+            ax.set_xticklabels([], minor=True)
+            ax.set_xlim([-1, 1])
+
+        if scale[1] == 'Tanh':
+            ax.set_yticks(ticks)
+            ax.set_yticklabels(tickslabels)
+            ax.set_yticks(minor_ticks, minor=True)
+            ax.set_yticklabels([], minor=True)
+            ax.set_ylim([-1, 1])
 
 
 @Plotter.plot_type("Histogram")
@@ -302,7 +337,7 @@ class plot_histogram(Plot):
             if self.show_y_label:
                 ax.set_ylabel('Density')
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
         if x_lim is not None:
             ax.set_xlim(*x_lim)
         if y_lim is not None:
@@ -479,7 +514,7 @@ class plot_hexbin(Plot):
         hb = ax.hexbin(x_values, y_values, gridsize=50, cmap=colormap,
                        bins='log', extent=extent)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)
@@ -637,7 +672,7 @@ class plot_scatter(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -789,7 +824,7 @@ class plot_clustering_centroids(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -874,7 +909,7 @@ class plot_clustering_fill(Plot):
                        origin='lower', aspect='auto', alpha=self.alpha, interpolation='nearest',
                        cmap=cmap, norm=NoNorm())
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -955,7 +990,7 @@ class plot_clustering_degree_of_membership(Plot):
         ax.contourf(xx, yy, Z, alpha=self.alpha,
                     levels=np.linspace(0, 1, 11), cmap=colormap)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1057,7 +1092,7 @@ class plot_clustering_density(Plot):
             palette=colors  # Use the 'colors' list as a palette
         )
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1071,8 +1106,8 @@ class plot_clustering_density(Plot):
 
 @Plotter.plot_type("Draw")
 class draw(Plot):
-    def __init__(self, color_scheme: ColorScheme, parameters: Union[tuple[str], None] = None,
-                 pos: Optional[Dict[Union[int, str], tuple]] = None,
+    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str] | None = None,
+                 pos: Optional[Dict[int | str, tuple]] = None,
                  node_attributes: str = "opinion",
                  edge_attributes: str = 'importance',
                  node_info_mode: str = 'none',
@@ -1279,6 +1314,7 @@ class plot_time_line(Plot):
 
         data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
+        time_range = interface.time_range
 
         color = self.color_scheme.timeline_color(
             group_number=group_number, **self.time_color_settings)
@@ -1290,14 +1326,11 @@ class plot_time_line(Plot):
         if x_parameter == 'Time':
             # Time is on the x-axis, draw a vertical line
             ax.axvline(x=data, color=color, linestyle=linestyle)
+            ax.set_xlim(time_range)
         elif y_parameter == 'Time':
             # Time is on the y-axis, draw a horizontal line
             ax.axhline(y=data, color=color, linestyle=linestyle)
-
-        if x_lim is not None:
-            ax.set_xlim(*x_lim)
-        if y_lim is not None:
-            ax.set_ylim(*y_lim)
+            ax.set_ylim(time_range)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1425,7 +1458,7 @@ class plot_node_lines(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1544,7 +1577,7 @@ class plot_graph_line(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1643,7 +1676,7 @@ class plot_fill_between(Plot):
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1756,19 +1789,27 @@ class plot_clustering_line(Plot):
 
         if Plot.is_single_color(colors):
             for values, label in zip(data['y'], labels):
-                ax.plot(x, values, label=label,
-                        linestyle=linestyle, color=colors)
+                if self.show_legend:
+                    ax.plot(x, values, label=label,
+                            linestyle=linestyle, color=colors)
+                else:
+                    ax.plot(x, values,
+                            linestyle=linestyle, color=colors)
         else:
             for values, label, color in zip(data['y'], labels, colors):
-                ax.plot(x, values, label=label,
-                        linestyle=linestyle, color=color)
+                if self.show_legend:
+                    ax.plot(x, values, label=label,
+                            linestyle=linestyle, color=color)
+                else:
+                    ax.plot(x, values,
+                            linestyle=linestyle, color=color)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -1867,19 +1908,27 @@ class plot_fill_between_clustering(Plot):
 
         if Plot.is_single_color(colors):
             for values, values_min, values_max, label in zip(data['y'], data['y_min'], data['y_max'], labels):
-                ax.fill_between(x, values_min, values_max, alpha=self.alpha,
-                                label=label, color=colors)
+                if self.show_legend:
+                    ax.fill_between(x, values_min, values_max, alpha=self.alpha,
+                                    label=label, color=colors)
+                else:
+                    ax.fill_between(x, values_min, values_max,
+                                    alpha=self.alpha, color=colors)
         else:
             for values, values_min, values_max, label, color in zip(data['y'], data['y_min'], data['y_max'], labels, colors):
-                ax.fill_between(x, values_min, values_max, alpha=self.alpha,
-                                label=label, color=color)
+                if self.show_legend:
+                    ax.fill_between(x, values_min, values_max, alpha=self.alpha,
+                                    label=label, color=color)
+                else:
+                    ax.fill_between(x, values_min, values_max,
+                                    alpha=self.alpha, color=color)
 
         if x_lim is not None:
             ax.set_xlim(*x_lim)
         if y_lim is not None:
             ax.set_ylim(*y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_x_label:
             ax.set_xlabel(Plotter._parameter_dict.get(
@@ -2010,7 +2059,7 @@ class plot_opinions(Plot):
         ax.set_xlim(0, np.max(time))
         ax.set_ylim(y_lim)
 
-        Plotter.tanh_axis_labels(ax=ax, scale=self.scale)
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
         if self.show_colorbar:
             # Add a colorbar to indicate the mapping of the final opinion values to colors

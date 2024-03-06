@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod, abstractproperty
-from collections import defaultdict
 from typing import Any, Dict, Iterator, List, Optional, Type, Union
 
 import networkx as nx
@@ -151,6 +150,11 @@ class Interface(ABC):
 
         def __len__(self) -> int:
             return len(self._interface._group_cache)
+
+    @abstractproperty
+    def time_range(self) -> List[float]:
+        raise NotImplementedError(
+            "This method must be implemented in subclasses")
 
     @classmethod
     def __init_subclass__(cls, **kwargs):
@@ -519,6 +523,10 @@ class HariGraphInterface(Interface):
         """
         return self.data.gatherer.node_parameters
 
+    @property
+    def time_range(self) -> List[float]:
+        return [0., 0.]
+
 
 class HariDynamicsInterface(Interface):
     """Interface specifically designed for the HariDynamics class."""
@@ -549,6 +557,10 @@ class HariDynamicsInterface(Interface):
         """
         return self.data[0].gatherer.node_parameters
 
+    @property
+    def time_range(self) -> List[float]:
+        return [0., float(len(self.data)-1)]
+
 
 class SimulationInterface(Interface):
     """Interface specifically designed for the Simulation class."""
@@ -578,3 +590,7 @@ class SimulationInterface(Interface):
             list: A list of available parameters or methods.
         """
         return self.data.dynamics[0].gatherer.node_parameters
+
+    @property
+    def time_range(self) -> List[float]:
+        return [0., float(len(self.data)-1) * self.data.dt]

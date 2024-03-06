@@ -1,25 +1,21 @@
 from __future__ import annotations
 
-import math
 import os
 import shutil
 import tempfile
 import warnings
-from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
                     Union)
 
 import imageio
 import matplotlib
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-import seaborn as sns
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
-from .cluster import Clustering
 from .color_scheme import ColorScheme
-from .hari_graph import HariGraph
 from .interface import Interface
 
 plt.rcParams['axes.xmargin'] = 0
@@ -38,7 +34,7 @@ class Plotter:
                        'Max opinion': 'Node Max Opinion',
                        'Min opinion': 'Node Min Opinion'}
 
-    _plot_types = {}
+    _plot_types: Dict[str, type['Plot']] = {}
 
     class PlotSaver:
         """
@@ -48,7 +44,7 @@ class Plotter:
         and even create GIFs from a sequence of plots.
         """
 
-        def __init__(self, mode: Union[str, List[str]] = 'show',
+        def __init__(self, mode: str | List[str] = 'show',
                      save_path: Optional[str] = None,
                      save_format: Optional[str] = 'image_{}',
                      gif_path: Optional[str] = None) -> None:
@@ -56,7 +52,7 @@ class Plotter:
             Initialize the PlotSaver instance.
 
             Args:
-                mode (Union[str, List[str]]): The mode(s) in which to operate. 
+                mode (str | List[str]): The mode(s) in which to operate. 
                     It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
                 save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
                 save_format (Optional[str]): string with {} for formatting in the number
@@ -176,11 +172,11 @@ class Plotter:
         self.color_scheme = ColorScheme(new_interface)
 
     @property
-    def is_initialized(self):
+    def is_initialized(self) -> bool:
         return self.interface is not None
 
     @property
-    def figsize(self):
+    def figsize(self) -> Tuple[float, float]:
         """
         Property to get the figure size. If a size was set during initialization, it returns that size.
         Otherwise, it calculates the size based on the sum of size_ratios.
@@ -269,7 +265,7 @@ class Plotter:
         # Append the new plot to the cell's list
         self.plots[row][col].append(plot)
 
-    def create_fig_and_axs(self):
+    def create_fig_and_axs(self) -> Tuple[Figure, Axes]:
         fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
             'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
         # Ensure axs is a 2D array for consistency
@@ -308,14 +304,14 @@ class Plotter:
                 ax.axis('off')
                 ax.set_visible(False)
 
-    def plot(self, group_number: int):
+    def plot(self, group_number: int) -> Tuple[Figure, Axes]:
         fig, axs = self.create_fig_and_axs()
 
         self._plot(fig, axs, group_number)
 
         return fig, axs
 
-    def plot_dynamics(self, mode: Union[str, List[str]] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
+    def plot_dynamics(self, mode: str | List[str] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
         mode : ["show", "save", "gif"]
@@ -333,7 +329,7 @@ class Plotter:
                 if preview:
                     break
 
-    def _determine_plot_order(self):
+    def _determine_plot_order(self) -> List[tuple]:
         """
         Determine the order in which plots should be rendered based on dependencies.
 
@@ -361,25 +357,14 @@ class Plotter:
 
         return sorted_order
 
-    def info(self):
-        info_str = ''
-        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
-            return 'Plot is empty'
-        for i, row in enumerate(self.plots):
-            for j, cell in enumerate(row):
-                info_str += f'\n{i,j}\n'
-                if len(cell) > 0:
-                    for plot in cell:
-                        info_str += str(plot) + '\n'
-                else:
-                    info_str += 'Empty cell'
-        return info_str
-
     def clear_plot(self, row: int, col: int):
+        '''
+        Clears axis on a given position in a grid  
+        '''
         if row < len(self.plots) and col < len(self.plots[row]):
             self.plots[row][col] = []
 
-    def _topological_sort(self, dependency_graph):
+    def _topological_sort(self, dependency_graph: nx.DiGraph):
         """
         Perform a topological sort on the dependency graph.
 
@@ -426,10 +411,12 @@ class Plotter:
         """
         return [method_name for method_name, method in self._plot_types.items() if method.is_available(self.interface)[0]]
 
-    def get_plot_class(self, plot_type: str):
+    def get_plot_class(self, plot_type: str) -> type[Plot]:
+        ''' Converts name of the class to the class'''
         return self._plot_types[plot_type]
 
-    def get_plot_name(self, plot_class) -> str:
+    def get_plot_name(self, plot_class: type[Plot]) -> str:
+        ''' Converts the class to its name'''
         for key, value in self._plot_types.items():
             if value == plot_class:
                 return key
@@ -437,12 +424,12 @@ class Plotter:
         return ''
 
     @property
-    def available_plot_types_hint(self) -> list:
+    def available_plot_types_hint(self) -> str:
         """
         Retrieves the list of available parameters/methods from the interface.
 
         Returns:
-            list: A list of available parameters or methods.
+            str: A list of available parameters or methods.
         """
         info_string = ''
         for method_name, method in self._plot_types.items():
@@ -472,42 +459,10 @@ class Plotter:
         interface = Interface.create_interface(data)
         return cls(interface)
 
-    @staticmethod
-    def tanh_axis_labels(ax: plt.Axes, scale: List[str]):
-        """
-        Adjust axis labels for tanh scaling.
-
-        Parameters:
-        -----------
-        ax : plt.Axes
-            The Axes object to which the label adjustments should be applied.
-        scale : List[str]
-            Which axis to adjust. Choices: 'x', 'y', or 'both'.
-        """
-        tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
-        ticks = np.tanh(tickslabels)
-
-        tickslabels = [r'-$\infty$' if label == -np.inf else r'$\infty$' if label == np.inf else label if abs(
-            label) <= 1.5 else None for label in tickslabels]
-
-        minor_tickslabels = np.arange(-2.5, 2.6, 0.1)
-        minor_ticks = np.tanh(minor_tickslabels)
-
-        if scale[0] == 'Tanh':
-            ax.set_xticks(ticks)
-            ax.set_xticklabels(tickslabels)
-            ax.set_xticks(minor_ticks, minor=True)
-            ax.set_xticklabels([], minor=True)
-            ax.set_xlim([-1, 1])
-
-        if scale[1] == 'Tanh':
-            ax.set_yticks(ticks)
-            ax.set_yticklabels(tickslabels)
-            ax.set_yticks(minor_ticks, minor=True)
-            ax.set_yticklabels([], minor=True)
-            ax.set_ylim([-1, 1])
-
-    def info(self):
+    def info(self) -> str:
+        '''
+        String with the information about the plotter setup
+        '''
         info_str = ''
         if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
             return 'Plot is empty'
@@ -522,6 +477,9 @@ class Plotter:
         return info_str
 
     def to_code(self) -> str:
+        '''
+        Generates a string that can be used to create the current plotter setup. Can be used in GUI as well.
+        '''
         if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
             return ''
 
