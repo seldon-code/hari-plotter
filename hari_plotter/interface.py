@@ -487,6 +487,9 @@ class Interface(ABC):
 
         return convert(request)
 
+    def group_time_range(self) -> List[float]:
+        return [self.groups[0].mean_time(),  self.groups[-1].mean_time()]
+
 
 class HariGraphInterface(Interface):
     """Interface specifically designed for the HariGraph class."""

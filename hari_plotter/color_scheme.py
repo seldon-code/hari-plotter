@@ -81,7 +81,7 @@ class ColorScheme:
         self.default_color_map = 'coolwarm'
         self.available_colormaps = plt.colormaps()
         self.available_markers = list(Line2D.markers.keys())
-        self.default_markers = ['o', 'X', '4', '5', '6', '7',  '<', '>', '^', 'v', '*', '+',
+        self.default_markers = ['o', 'X', '<', '>', '^', 'v', '4', '5', '6', '7', '*', '+',
                                 'D', 'H', 'P', 'd', 'h',  'p', 's', '_', '|', ',', '.',]
         self.default_scatter_marker = self.default_markers[0]
         self.default_none_marker = 'x'

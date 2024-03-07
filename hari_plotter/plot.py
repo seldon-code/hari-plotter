@@ -1163,7 +1163,7 @@ class plot_time_line(Plot):
 
         data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
-        time_range = interface.time_range
+        time_range = interface.group_time_range()
 
         color = self.color_scheme.timeline_color(
             group_number=group_number, **self.time_color_settings)

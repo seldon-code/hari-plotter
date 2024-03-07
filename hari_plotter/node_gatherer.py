@@ -3,8 +3,11 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 from warnings import warn
+
+if TYPE_CHECKING:
+    from .hari_graph import HariGraph
 
 import networkx as nx
 import numpy as np
@@ -20,7 +23,7 @@ class NodeEdgeGatherer(ABC):
     Attributes:
         node_parameter_logger (ParameterLogger): A logger for registering and tracking node parameters.
         edge_parameter_logger (ParameterLogger): A logger for registering and tracking edge parameters.
-        G (nx.Graph): The graph instance from NetworkX containing the nodes and edges for analysis.
+        G (HariGraph): The graph instance from NetworkX containing the nodes and edges for analysis.
     """
 
     class ParameterLogger:
@@ -117,12 +120,12 @@ class NodeEdgeGatherer(ABC):
     node_parameter_logger = ParameterLogger()
     edge_parameter_logger = ParameterLogger()
 
-    def __init__(self, G: nx.Graph) -> None:
+    def __init__(self, G: HariGraph) -> None:
         """
         Initializes a NodeEdgeGatherer instance with a specific graph.
 
         Parameters:
-            G (nx.Graph): The graph containing the nodes and edges for data gathering.
+            G (HariGraph): The graph containing the nodes and edges for data gathering.
         """
         self.G = G
 
@@ -277,7 +280,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
                                         **self.G[predecessor][old_node_id])
                 self.G.remove_node(old_node_id)
 
-    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+    def mean_graph(self, images: List[HariGraph]) -> HariGraph:
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
@@ -293,7 +296,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         if len(images) == 1:
             return images[0].copy()
 
-        mean_graph: nx.Graph = type(self.G)()
+        mean_graph: HariGraph = type(self.G)()
         mean_graph.set_gatherer(type(self))
 
         # Assure all graphs have the same nodes
@@ -458,7 +461,7 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         base_merged_data['Activity'] = activity
         return base_merged_data
 
-    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+    def mean_graph(self, images: List[HariGraph]) -> HariGraph:
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
@@ -474,7 +477,7 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         if len(images) == 1:
             return images[0].copy()
 
-        mean_graph: nx.Graph = type(self.G)()
+        mean_graph: HariGraph = type(self.G)()
         mean_graph.set_gatherer(type(self))
 
         # Assure all graphs have the same nodes

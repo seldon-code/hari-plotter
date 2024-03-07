@@ -13,7 +13,7 @@ coverage = "^7.3.2"
 matplotlib = "^3.8.0"
 networkx = "^3.1"
 toml = "^0.10.2"
-imageio = "^2.31.6"
+imageio = {extras = ["ffmpeg"], version = "^2.34.0"}
 seaborn = "^0.13.0"
 scipy = "^1.11.3"
 scikit-learn = "^1.3.2"
