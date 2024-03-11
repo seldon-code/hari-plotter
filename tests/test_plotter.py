@@ -2,13 +2,26 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from hari_plotter import Graph, Interface, Plotter, Simulation
+from hari_plotter import Graph, Interface, Plotter, Simulation, ColorScheme
+from hari_plotter.color_scheme import initialize_colormap
 from hari_plotter.lazy_graph import LazyGraph
 
 
 class TestPlotter:
     @classmethod
     def setup_class(cls):
+        ColorScheme.default_colormap_name, ColorScheme.default_colormap = initialize_colormap(
+            {
+                "Name": "custom1",
+                "Colors": [
+                    # (223 / 255, 294 / 255, 255 / 255),
+                    (255 / 255, 79 / 255, 20 / 255),
+                    (1 / 255, 180 / 255, 155 / 255),
+                    (71 / 255, 71 / 255, 240 / 255),
+                    # (250 / 255, 200 / 255, 180 / 255),
+                ],
+            }
+        )
         cls.S = Simulation.from_dir("tests/big_test")
         cl = {
             "clustering_method": "K-Means Clustering",

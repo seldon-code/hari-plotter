@@ -12,12 +12,95 @@ import networkx as nx
 import numpy as np
 from matplotlib.colors import Colormap, to_rgba
 from matplotlib.lines import Line2D
+from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 from .cluster import Clustering
 from .interface import Interface
 
 
+def anything_to_rgba(color) -> Tuple[float]:
+    if isinstance(color, str):
+        if color == '':
+            rgba = (0, 0, 0, 0)
+        else:
+            # Convert string colors (names or hex) to RGBA using matplotlib
+            rgba = to_rgba(color)
+    elif isinstance(color, (list, tuple)):
+        if len(color) == 3:
+            # Assuming RGB, append alpha value 1.0 to make it RGBA
+            rgba = tuple(color) + (1.0,)
+        elif len(color) == 4:
+            rgba = tuple(color)
+        else:
+            raise ValueError(
+                "Array color must be length 3 (RGB) or 4 (RGBA)")
+    elif isinstance(color, float) or isinstance(color, int):
+        # Assuming grayscale value, replicate it across R, G, B; set alpha to 1.0
+        if 0 <= color <= 1:
+            rgba = (color, color, color, 1.0)
+        else:
+            raise ValueError("Float color must be in the range [0, 1]")
+    else:
+        raise TypeError("Color must be a string, an array, or a float")
+
+    # Ensure all values are in the [0, 1] range
+    rgba_normalized = tuple(max(0, min(1, c)) for c in rgba)
+    return rgba_normalized
+
+
+def initialize_colormap(colormap: str | Dict[str, Any]) -> Tuple[str, Colormap]:
+    '''
+        Returns colormap name and colormap
+        Example: initialize_colormap(
+        {
+        "Name": "custom1",
+        "Colors": [
+            (255 / 255, 79 / 255, 20 / 255),
+            (1 / 255, 180 / 255, 155 / 255),
+            (71 / 255, 71 / 255, 240 / 255),
+        ],
+        }
+    '''
+    if isinstance(colormap, str):
+        return colormap, plt.get_cmap(colormap)
+
+    colormap_name = colormap['Name']
+    # Check if the colormap already exists
+    if colormap['Name'] in plt.colormaps():
+        warnings.warn(
+            f"Colormap '{colormap_name}' already exists. Using the existing colormap.")
+        return colormap_name, plt.get_cmap(colormap_name)
+
+    # Colormap doesn't exist, create a new one
+    colors = [anything_to_rgba(color) for color in colormap['Colors']]
+    new_colormap = LinearSegmentedColormap.from_list(colormap_name, colors)
+    plt.register_cmap(name=colormap_name, cmap=new_colormap)
+    print(f"Colormap '{colormap_name}' created and registered.")
+    return colormap_name, new_colormap
+
+
 class ColorScheme:
+
+    default_colormap_name, default_colormap = initialize_colormap('coolwarm')
+    default_scatter_color = default_colormap(0)
+    default_distribution_color = default_colormap(0)
+    default_none_color = anything_to_rgba((0, 255, 0))
+
+    available_colormaps = plt.colormaps()
+    available_markers = list(Line2D.markers.keys())
+    default_markers = ('o', 'X', '<', '>', '^', 'v', '4', '5', '6', '7', '*', '+',
+                            'D', 'H', 'P', 'd', 'h',  'p', 's', '_', '|', ',', '.',)
+    default_scatter_marker = default_markers[0]
+    default_none_marker = 'x'
+    default_centroid_marker = '*'
+    default_centroid_color = anything_to_rgba('red')
+
+    default_timeline_color = anything_to_rgba('grey')
+    default_timeline_linestyle = '--'
+
+    default_line_color = anything_to_rgba('black')
+    default_line_linestyle = '-'
+
     class MethodLogger:
         def __init__(self) -> None:
             self.methods = {}
@@ -72,33 +155,9 @@ class ColorScheme:
 
     method_logger = MethodLogger()
 
-    def __init__(self, interface: Interface = None) -> None:
+    def __init__(self, interface: Interface = None, ) -> None:
         self.interface = interface
-        self.default_distribution_color = ColorScheme.to_rgba(
-            (0.23, 0.30, 0.75))
-        self.default_scatter_color = ColorScheme.to_rgba((0.23, 0.30, 0.75))
-        self.default_none_color = ColorScheme.to_rgba((0, 255, 0))
-        self.default_color_map = 'coolwarm'
-        self.available_colormaps = plt.colormaps()
-        self.available_markers = list(Line2D.markers.keys())
-        self.default_markers = ['o', 'X', '<', '>', '^', 'v', '4', '5', '6', '7', '*', '+',
-                                'D', 'H', 'P', 'd', 'h',  'p', 's', '_', '|', ',', '.',]
-        self.default_scatter_marker = self.default_markers[0]
-        self.default_none_marker = 'x'
-        self.default_centroid_marker = '*'
-        self.default_centroid_color = ColorScheme.to_rgba('red')
-
-        self.default_timeline_color = ColorScheme.to_rgba('grey')
-        self.default_timeline_linestyle = '--'
-
-        self.default_line_color = ColorScheme.to_rgba('black')
-        self.default_line_linestyle = '-'
-
-        self._cluster_color_cache = {}
-        self._node_color_cache = {}
-        self._cluster_marker_cache = {}
-        self._node_marker_cache = {}
-        self._graph_color_cache = {}
+        self.clear()
 
     def clear(self) -> None:
         self._cluster_color_cache = {}
@@ -272,12 +331,12 @@ class ColorScheme:
             clustering: Clustering = self.interface.groups[image].clustering(
                 **clustering_settings)
             cluster_mapping = clustering.nodes_labels_dict()
-            cluster_to_color_mapping = self.get_cluster_color(
+            cluster_to_colormapping = self.get_cluster_color(
                 clustering_settings=clustering_settings, colormap=colormap, none_color=none_color)
-            color_mapping = {
-                node: cluster_to_color_mapping[cluster] for node, cluster in cluster_mapping.items()}
+            colormapping = {
+                node: cluster_to_colormapping[cluster] for node, cluster in cluster_mapping.items()}
             self._node_color_cache[request_tuple] = defaultdict(
-                lambda: none_color, color_mapping)
+                lambda: none_color, colormapping)
 
         return self._node_color_cache[request_tuple]
 
@@ -307,12 +366,12 @@ class ColorScheme:
             clustering: Clustering = self.interface.groups[image].clustering(
                 **clustering_settings)
             cluster_mapping = clustering.nodes_labels_dict()
-            cluster_to_color_mapping = self.get_parameter_based_cluster_color(
+            cluster_to_colormapping = self.get_parameter_based_cluster_color(
                 parameter=parameter, clustering_settings=clustering_settings, colormap=colormap, none_color=none_color)
-            color_mapping = {
-                node: cluster_to_color_mapping[cluster] for node, cluster in cluster_mapping.items()}
+            colormapping = {
+                node: cluster_to_colormapping[cluster] for node, cluster in cluster_mapping.items()}
             self._node_color_cache[request_tuple] = defaultdict(
-                lambda: none_color, color_mapping)
+                lambda: none_color, colormapping)
         return self._node_color_cache[request_tuple]
 
     @method_logger('Scatter Color', modes=('Constant Color', 'Parameter Colormap', 'Cluster Color', 'Cluster Parameter Color'))
@@ -323,7 +382,7 @@ class ColorScheme:
 
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_scatter_color
 
         elif mode == 'Parameter Colormap':
@@ -332,8 +391,8 @@ class ColorScheme:
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             request_settings = {'parameters': (settings['parameter'],)}
             request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
-            none_color = ColorScheme.to_rgba(
+            colormap = settings.get('colormap', self.default_colormap_name)
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
             request = {**request_settings,
                        'colormap': colormap, 'image': image, 'none_color': none_color}
@@ -355,9 +414,9 @@ class ColorScheme:
             if settings is None or "clustering_settings" not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_cluster_node_color(
@@ -372,9 +431,9 @@ class ColorScheme:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             # request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_parameter_based_cluster_node_color(
@@ -389,16 +448,16 @@ class ColorScheme:
 
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_centroid_color
 
         elif mode == 'Cluster Color':
             if settings is None or "clustering_settings" not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_cluster_color(
@@ -413,9 +472,9 @@ class ColorScheme:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             # request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
@@ -432,9 +491,9 @@ class ColorScheme:
             if settings is None or "clustering_settings" not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_cluster_color(
@@ -449,9 +508,9 @@ class ColorScheme:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             # request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
@@ -464,7 +523,7 @@ class ColorScheme:
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_distribution_color
 
     @method_logger('Timeline Color', modes=('Constant Color',))
@@ -473,7 +532,7 @@ class ColorScheme:
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_timeline_color
 
     @method_logger('Line Color', modes=('Constant Color', 'Parameter Colormap', 'Cluster Color', 'Cluster Parameter Color'))
@@ -483,7 +542,7 @@ class ColorScheme:
         image = self.get_image(settings, group_number)
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_line_color
         elif mode == 'Parameter Colormap':
             if settings is None or 'parameter' not in settings:
@@ -491,8 +550,8 @@ class ColorScheme:
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             request_settings = {'parameters': (settings['parameter'],)}
             request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
-            none_color = ColorScheme.to_rgba(
+            colormap = settings.get('colormap', self.default_colormap_name)
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
             request = {**request_settings,
                        'colormap': colormap, 'image': image, 'none_color': none_color}
@@ -514,9 +573,9 @@ class ColorScheme:
             if settings is None or "clustering_settings" not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_cluster_node_color(
@@ -531,9 +590,9 @@ class ColorScheme:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             # request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_parameter_based_cluster_node_color(
@@ -550,14 +609,14 @@ class ColorScheme:
         image = self.get_image(settings, group_number)
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_line_color
         elif mode == 'Graph Parameter':
             if settings is None or 'parameter' not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
-            none_color = ColorScheme.to_rgba(
+            colormap = settings.get('colormap', self.default_colormap_name)
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
             value_limits = settings.get('value_limits', (0., 1.))
             request_settings = {'parameters': (
@@ -587,16 +646,16 @@ class ColorScheme:
 
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
-                return ColorScheme.to_rgba(settings['Color'])
+                return anything_to_rgba(settings['Color'])
             return self.default_line_color
 
         elif mode == 'Cluster Color':
             if settings is None or "clustering_settings" not in settings:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "clustering_settings" key is expected')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_cluster_color(
@@ -611,9 +670,9 @@ class ColorScheme:
                 raise ValueError(
                     f'Settings ({settings}) are not formatted correctly. "parameter" key is expected')
             # request_settings['scale'] = settings.get('scale', 'Linear')
-            colormap = settings.get('colormap', self.default_color_map)
+            colormap = settings.get('colormap', self.default_colormap_name)
             # color for nodes that are not in the cluster
-            none_color = ColorScheme.to_rgba(
+            none_color = anything_to_rgba(
                 settings.get('None Color', self.default_none_color))
 
             data = self.get_parameter_based_cluster_color(parameter=settings['parameter'],
@@ -627,7 +686,7 @@ class ColorScheme:
         if mode == 'Independent Colormap':
             if settings is not None and 'Color Pallet' in settings:
                 return plt.get_cmap(settings['Color Pallet'])
-            return plt.get_cmap(self.default_color_map)
+            return plt.get_cmap(self.default_colormap_name)
 
     def copy(self):
         return ColorScheme(self.interface)
@@ -642,33 +701,3 @@ class ColorScheme:
 
     def __getitem__(self, key: str):
         return self.method_logger[key]
-
-    @staticmethod
-    def to_rgba(color):
-        if isinstance(color, str):
-            if color == '':
-                rgba = (0, 0, 0, 0)
-            else:
-                # Convert string colors (names or hex) to RGBA using matplotlib
-                rgba = to_rgba(color)
-        elif isinstance(color, (list, tuple)):
-            if len(color) == 3:
-                # Assuming RGB, append alpha value 1.0 to make it RGBA
-                rgba = tuple(color) + (1.0,)
-            elif len(color) == 4:
-                rgba = tuple(color)
-            else:
-                raise ValueError(
-                    "Array color must be length 3 (RGB) or 4 (RGBA)")
-        elif isinstance(color, float) or isinstance(color, int):
-            # Assuming grayscale value, replicate it across R, G, B; set alpha to 1.0
-            if 0 <= color <= 1:
-                rgba = (color, color, color, 1.0)
-            else:
-                raise ValueError("Float color must be in the range [0, 1]")
-        else:
-            raise TypeError("Color must be a string, an array, or a float")
-
-        # Ensure all values are in the [0, 1] range
-        rgba_normalized = tuple(max(0, min(1, c)) for c in rgba)
-        return rgba_normalized
