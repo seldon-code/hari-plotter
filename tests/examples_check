@@ -1,0 +1,49 @@
+#!/bin/bash
+
+# Save the current directory
+current_dir=$(pwd)
+
+# Define the path to the examples directory relative to the git repository root
+examples_dir="$(git rev-parse --show-toplevel)/examples"
+
+# Change to the examples directory
+cd "$examples_dir"
+
+# Function to execute a notebook and check for errors
+execute_notebook() {
+    # Use a temporary file for the output to avoid overwriting the original notebook
+    tmp_output=$(mktemp)
+    papermill "$1" "$tmp_output"
+    
+    # Check if execution was successful
+    if [ $? -eq 0 ]; then
+        echo "Execution successful for $1"
+    else
+        echo "Execution failed for $1"
+    fi
+    
+    # Remove the temporary output file
+    rm -f "$tmp_output"
+}
+
+# Initialize a flag to track execution status
+EXECUTION_FAILED=0
+
+# Iterate over notebooks in the current directory
+for notebook in *.ipynb; do
+    if ! execute_notebook "$notebook"; then
+        EXECUTION_FAILED=1
+        # Continue checking other notebooks instead of aborting on the first failure
+    fi
+done
+
+# Change back to the original directory
+cd "$current_dir"
+
+# Exit with non-zero status if any execution failed
+if [ $EXECUTION_FAILED -ne 0 ]; then
+    exit 1
+fi
+
+# If everything went well, exit with zero status
+exit 0
