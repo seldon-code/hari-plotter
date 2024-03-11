@@ -4,7 +4,8 @@ from typing import Any, Callable, Dict, Type, Union
 import numpy as np
 import toml
 
-from .hari_graph import HariGraph
+from .graph import Graph
+from .node_gatherer import ActivityDrivenNodeEdgeGatherer
 
 
 class ModelFactory:
@@ -92,6 +93,13 @@ class Model(ABC):
         """
         pass
 
+    @property
+    def load_request(self) -> Dict[str, Any]:
+        '''
+        Results will be sent to Graph.from_network on setup
+        '''
+        return {}
+
     def __repr__(self) -> str:
         """
         Return a string representation of the Model instance.
@@ -105,7 +113,7 @@ class ActivityDrivenModel(Model):
     Model representing the ActivityDriven dynamics.
     """
 
-    def get_tension(self, G: HariGraph, norm_type: str = 'squared') -> float:
+    def get_tension(self, G: Graph, norm_type: str = 'squared') -> float:
         """
         Compute and return the tension for the ActivityDriven model.
 
@@ -138,7 +146,7 @@ class ActivityDrivenModel(Model):
 
         return tension
 
-    def get_influence(self, G: HariGraph) -> np.ndarray:
+    def get_influence(self, G: Graph) -> np.ndarray:
         """
         Compute and return the influence values for the ActivityDriven model.
 
@@ -165,6 +173,13 @@ class ActivityDrivenModel(Model):
 
         return influences
 
+    @property
+    def load_request(self) -> Dict[str, Any]:
+        '''
+        Results will be sent to Graph.from_network on setup
+        '''
+        return {'gatherer': ActivityDrivenNodeEdgeGatherer, 'number_of_bots': self.params.get('n_bots', 0)}
+
 
 @ModelFactory.register("DeGroot")
 class DeGrootModel(Model):
@@ -172,7 +187,7 @@ class DeGrootModel(Model):
     Model representing the DeGroot dynamics.
     """
 
-    def get_tension(self, G: HariGraph, norm_type: str = 'squared') -> float:
+    def get_tension(self, G: Graph, norm_type: str = 'squared') -> float:
         """
         Compute and return the tension for the DeGroot model.
 
@@ -201,7 +216,7 @@ class DeGrootModel(Model):
 
         return tension
 
-    def get_influence(self, G: HariGraph) -> np.ndarray:
+    def get_influence(self, G: Graph) -> np.ndarray:
         """
         Compute and return the influence values for the DeGroot model.
 

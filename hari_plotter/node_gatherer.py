@@ -3,8 +3,11 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
 from warnings import warn
+
+if TYPE_CHECKING:
+    from .graph import Graph
 
 import networkx as nx
 import numpy as np
@@ -20,7 +23,7 @@ class NodeEdgeGatherer(ABC):
     Attributes:
         node_parameter_logger (ParameterLogger): A logger for registering and tracking node parameters.
         edge_parameter_logger (ParameterLogger): A logger for registering and tracking edge parameters.
-        G (nx.Graph): The graph instance from NetworkX containing the nodes and edges for analysis.
+        G (HariGraph): The graph instance from NetworkX containing the nodes and edges for analysis.
     """
 
     class ParameterLogger:
@@ -117,12 +120,12 @@ class NodeEdgeGatherer(ABC):
     node_parameter_logger = ParameterLogger()
     edge_parameter_logger = ParameterLogger()
 
-    def __init__(self, G: nx.Graph) -> None:
+    def __init__(self, G: Graph) -> None:
         """
         Initializes a NodeEdgeGatherer instance with a specific graph.
 
         Parameters:
-            G (nx.Graph): The graph containing the nodes and edges for data gathering.
+            G (HariGraph): The graph containing the nodes and edges for data gathering.
         """
         self.G = G
 
@@ -277,7 +280,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
                                         **self.G[predecessor][old_node_id])
                 self.G.remove_node(old_node_id)
 
-    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+    def mean_graph(self, images: List[Graph]) -> Graph:
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
@@ -293,7 +296,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         if len(images) == 1:
             return images[0].copy()
 
-        mean_graph: nx.Graph = type(self.G)()
+        mean_graph: Graph = type(self.G)()
         mean_graph.set_gatherer(type(self))
 
         # Assure all graphs have the same nodes
@@ -430,6 +433,11 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         """Returns a mapping of node IDs to their labels."""
         return {node: data.get('Label', None) for node, data in self.G.nodes(data=True)}
 
+    @node_parameter_logger('Type')
+    def label(self) -> Dict[Tuple[int], str]:
+        """Returns a mapping of node IDs to their types for all nodes including bots."""
+        return {node: data.get('Type', None) for node, data in self.G.nodes(data=True)}
+
 
 class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
     """
@@ -458,7 +466,7 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         base_merged_data['Activity'] = activity
         return base_merged_data
 
-    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+    def mean_graph(self, images: List[Graph]) -> Graph:
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
@@ -474,7 +482,7 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         if len(images) == 1:
             return images[0].copy()
 
-        mean_graph: nx.Graph = type(self.G)()
+        mean_graph: Graph = type(self.G)()
         mean_graph.set_gatherer(type(self))
 
         # Assure all graphs have the same nodes
@@ -511,3 +519,183 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
     def activity(self) -> Dict[Tuple[int], float]:
         """Returns a mapping of node IDs to their activity levels."""
         return {node: data.get('Activity', np.nan) for node, data in self.G.nodes(data=True)}
+
+
+class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
+    """
+    Extends the ActivityDefaultNodeEdgeGatherer with functionality to accommodate ActivityDrivenModel.
+    """
+    # Copy parameter loggers to extend with activity-related parameters
+    node_parameter_logger = ActivityDefaultNodeEdgeGatherer.node_parameter_logger.copy()
+    edge_parameter_logger = ActivityDefaultNodeEdgeGatherer.edge_parameter_logger.copy()
+
+    def merge_nodes(self, i: Tuple[int], j: Tuple[int]) -> None:
+        """
+        Merges two specified nodes into a single new node within the graph. The new node's attributes are determined
+        by the attributes of the merged nodes, and the edges are updated accordingly.
+
+        Parameters:
+            i (Tuple[int]): Identifier for the first node to be merged.
+            j (Tuple[int]): Identifier for the second node to be merged.
+        """
+        if not (isinstance(i, tuple) and isinstance(j, tuple)):
+            raise TypeError('Node identifiers must be tuples.')
+
+        if self.G.nodes[i]['Type'] == 'Bot' or self.G.nodes[j]['Type'] == 'Bot':
+            warnings.warn('Unexpected behavior: merging a bot')
+
+        merged_data = self.merge([i, j])
+        new_node_id = tuple(sorted(i + j))
+
+        self.G.add_node(new_node_id, **merged_data)
+
+        for u, v, data in list(self.G.edges(data=True)):
+            if u in [i, j] and v not in [i, j]:
+                self.G.add_edge(new_node_id, v, **data)
+            elif v in [i, j] and u not in [i, j]:
+                self.G.add_edge(u, new_node_id, **data)
+            self.G.remove_edge(u, v)
+
+        self.G.remove_node(i)
+        self.G.remove_node(j)
+
+    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining: bool = False) -> None:
+        """
+        Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
+        node. Each new node represents its constituent cluster.
+
+        Parameters:
+            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
+            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
+            merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.
+        """
+        labels = labels or [None] * len(clusters)
+
+        if merge_remaining:
+            all_nodes = set(self.G.nodes)
+            clustered_nodes = {
+                node for cluster in clusters for node in cluster}
+            remaining_nodes = list(all_nodes - clustered_nodes)
+
+            if remaining_nodes:
+                clusters.append(remaining_nodes)
+                labels.append(None)
+
+        for cluster, label in zip(clusters, labels):
+            new_node_id = tuple(sorted(sum(cluster, ())))
+            merged_attributes = self.merge(cluster)
+
+            self.G.add_node(new_node_id, **merged_attributes)
+            if label is not None:
+                self.G.nodes[new_node_id]['Label'] = label
+
+            for old_node_id in cluster:
+                if self.G.nodes[old_node_id]['Type'] == 'Bot':
+                    warnings.warn(
+                        f'Unexpected behavior: merging a bot {old_node_id}')
+                for successor in list(self.G.successors(old_node_id)):
+                    if successor not in cluster:
+                        self.G.add_edge(new_node_id, successor,
+                                        **self.G[old_node_id][successor])
+                for predecessor in list(self.G.predecessors(old_node_id)):
+                    if predecessor not in cluster:
+                        self.G.add_edge(predecessor, new_node_id,
+                                        **self.G[predecessor][old_node_id])
+                self.G.remove_node(old_node_id)
+
+    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
+        """
+        Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
+        cluster size, aggregate opinions, and activity.
+
+        Parameters:
+            node_ids (List[dict]): A list of node attribute dictionaries to be merged.
+
+        Returns:
+            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes, including activity.
+        """
+        if not node_ids:
+            raise ValueError("No nodes provided for merging.")
+
+        nodes = [self.G.nodes[node_id] for node_id in node_ids]
+        size = sum(node.get('Cluster size', 1) for node in nodes)
+        types = [node['Type'] for node in nodes]
+        cluster_type = types[0]
+        if not all(t == cluster_type for t in types):
+            warnings.warn(
+                'Unexpected behavior: merging nodes of different types')
+
+        inner_opinions = {}
+        total_activity = 0
+
+        for node, node_id in zip(nodes, node_ids):
+            if 'Inner opinions' in node:
+                inner_opinions.update(node['Inner opinions'])
+            else:
+                if len(node_id) != 1:
+                    warn(f"Node {node_id} has size {size}, which is unusual.")
+                inner_opinions[node_id[0]] = node['Opinion']
+
+            # Aggregate activity
+            total_activity += node.get('Activity', 0)
+
+        return {
+            'Cluster size': size,
+            'Opinion': sum(node.get('Cluster size', 1) * node['Opinion'] for node in nodes) / size,
+            'Inner opinions': inner_opinions,
+            'Type': cluster_type,
+            'Activity': total_activity
+        }
+
+    def mean_graph(self, images: List[Graph]) -> Graph:
+        """
+        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
+        that are the average of the corresponding attributes in the input graphs.
+
+        Parameters:
+            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
+
+        Returns:
+            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
+        """
+        if not images:
+            raise ValueError("Input list of graphs is empty.")
+        if len(images) == 1:
+            return images[0].copy()
+
+        mean_graph: Graph = type(self.G)()
+        mean_graph.set_gatherer(type(self))
+
+        # Assure all graphs have the same nodes
+        nodes = set(images[0].nodes)
+        if not all(set(g.nodes) == nodes for g in images):
+            raise ValueError(
+                "Not all input graphs have the same set of nodes.")
+
+        # Calculate mean attributes for nodes
+        for node in nodes:
+            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
+            mean_activity = np.mean(
+                [g.nodes[node]['Activity'] for g in images])
+            types = [g.nodes[node]['Type'] for g in images]
+            if not all(t == types[0] for t in types):
+                warnings.warn(
+                    'Unexpected behavior: merging nodes of different types')
+            mean_graph.add_node(node, Opinion=mean_opinion, Type=types[0],
+                                Activity=mean_activity)
+
+        # Calculate mean attributes for edges
+        edges_set = set()
+        for graph in images:
+            edges_set.update(graph.edges)
+
+        for u, v in edges_set:
+            influences = []
+            for graph in images:
+                if graph.has_edge(u, v):
+                    influences.append(graph.edges[u, v]['Influence'])
+            if influences:  # Only add the edge if at least one graph has it
+                mean_influence = np.mean(influences)
+                mean_graph.add_edge(u, v, Influence=mean_influence)
+
+        return mean_graph

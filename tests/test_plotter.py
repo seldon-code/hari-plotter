@@ -2,8 +2,8 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from hari_plotter import HariGraph, Interface, Plotter, Simulation
-from hari_plotter.lazy_hari_graph import LazyHariGraph
+from hari_plotter import Graph, Interface, Plotter, Simulation
+from hari_plotter.lazy_graph import LazyGraph
 
 
 class TestPlotter:
@@ -29,13 +29,13 @@ class TestPlotter:
              },],
             ["Histogram",
              {
-                 "parameters": ["Opinion"],
+                 "parameter": "Opinion",
                  "show_x_label": False,
                  "scale": ["Tanh", "Linear"],
              },],
             ["Histogram",
              {
-                 "parameters": ["Neighbor mean opinion"],
+                 "parameter": "Neighbor mean opinion",
                  "rotated": True,
                  "show_y_label": False,
                  "scale": ["Linear", "Tanh"],
@@ -268,7 +268,7 @@ class TestPlotter:
         plotter.plot_dynamics(
             mode=[],
             save_dir=f"tests/test_pics/{plot_index}",
-            gif_path=f"tests/test_pics/{plot_index}/gif.gif",
+            animation_path=f"tests/test_pics/{plot_index}/gif.gif",
         )
 
     def test_plot_list(self):

@@ -8,7 +8,7 @@ from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
 import numpy as np
 
 from .cluster import Clustering
-from .hari_graph import HariGraph
+from .graph import Graph
 
 
 class Group:
@@ -45,7 +45,7 @@ class Group:
         # Additional functions can be added here as needed
     }
 
-    def __init__(self, images: List[HariGraph], time=None, model=None):
+    def __init__(self, images: List[Graph], time=None, model=None):
         """
         Initializes a Group instance with a list of images, optional time values, and an optional model.
 
@@ -58,7 +58,7 @@ class Group:
         Raises:
             ValueError: If the length of the time list does not match the number of images or an invalid type is provided for time.
         """
-        self.images: List[HariGraph] = images
+        self.images: List[Graph] = images
 
         if time is None:
             self.time = None
@@ -108,7 +108,7 @@ class Group:
         return convert(request)
 
     @property
-    def mean_graph(self) -> HariGraph:
+    def mean_graph(self) -> Graph:
         """
         Lazily computes or retrieves the cached mean graph of the group. The mean graph is a single HariGraph instance
         that represents the average structure and attributes of all graphs in the group.
@@ -120,7 +120,7 @@ class Group:
             self.initialize_mean_graph()
         return self._mean_graph
 
-    def get_mean_graph(self, **settings) -> HariGraph:
+    def get_mean_graph(self, **settings) -> Graph:
         return self.mean_graph
 
     def initialize_mean_graph(self):
@@ -150,7 +150,7 @@ class Group:
         clustering_key = self.request_to_tuple(clustering_settings)
         return clustering_key in self.clusterings and 'graph' in self.clusterings[clustering_key] and self.clusterings[clustering_key]['graph']
 
-    def clustering_graph(self, merge_remaining: bool = False, reinitialize: bool = False,  **clustering_settings) -> HariGraph:
+    def clustering_graph(self, merge_remaining: bool = False, reinitialize: bool = False,  **clustering_settings) -> Graph:
 
         clustering_key = self.request_to_tuple(clustering_settings)
 

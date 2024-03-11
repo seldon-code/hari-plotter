@@ -4,8 +4,11 @@ import os
 import shutil
 import tempfile
 import warnings
-from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
-                    Union)
+from typing import (TYPE_CHECKING, Any, Dict, Iterator, List, Optional,
+                    Sequence, Tuple, Type, Union)
+
+if TYPE_CHECKING:
+    from .plot import Plot
 
 import imageio
 import matplotlib
@@ -34,7 +37,7 @@ class Plotter:
                        'Max opinion': 'Node Max Opinion',
                        'Min opinion': 'Node Min Opinion'}
 
-    _plot_types: Dict[str, type['Plot']] = {}
+    _plot_types: Dict[str, type[Plot]] = {}
 
     class PlotSaver:
         """
@@ -47,16 +50,16 @@ class Plotter:
         def __init__(self, mode: str | List[str] = 'show',
                      save_path: Optional[str] = None,
                      save_format: Optional[str] = 'image_{}',
-                     gif_path: Optional[str] = None) -> None:
+                     animation_path: Optional[str] = None) -> None:
             """
             Initialize the PlotSaver instance.
 
             Args:
                 mode (str | List[str]): The mode(s) in which to operate. 
-                    It can be a list or a single string, e.g. ['show', 'save'] or 'gif'.
+                    It can be a list or a single string, e.g. ['show', 'save'] or 'gif'. Available modes: ["show", "save", "gif", "mp4"]
                 save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
                 save_format (Optional[str]): string with {} for formatting in the number
-                gif_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
+                animation_path (Optional[str]): Path to save gif (used if 'gif' is in mode).
             """
             # Ensure mode is a list even if a single mode string is provided
             self.mode = mode if isinstance(mode, list) else [mode]
@@ -66,10 +69,9 @@ class Plotter:
                 os.makedirs(save_path, exist_ok=True)
             self.save_path = save_path if save_path[-1] == '/' else save_path+'/'
             self.save_format = save_format
-            self.gif_path = gif_path
+            self.animation_path = animation_path
             self.saved_images = []
             self.temp_dir = None
-            self.color_palette = ColorScheme()
 
         @staticmethod
         def is_inside_jupyter() -> bool:
@@ -109,8 +111,8 @@ class Plotter:
                     self.save_format.format(len(self.saved_images))
                 fig.savefig(path)
                 self.saved_images.append(path)
-            # If only 'gif' mode is selected, save figure to a temp directory
-            elif 'gif' in self.mode and not self.save_path:
+            # If only 'gif' or 'mp4' mode is selected, save figure to a temp directory
+            elif ('gif' in self.mode or 'mp4' in self.mode) and not self.save_path:
                 if not self.temp_dir:
                     self.temp_dir = tempfile.mkdtemp()
                 temp_path = os.path.join(
@@ -139,9 +141,16 @@ class Plotter:
                 exc_val (Optional[Exception]): The exception instance if raised inside the context.
                 exc_tb (Optional[object]): The traceback if an exception was raised inside the context.
             """
-            # If 'gif' mode is active and gif_path is provided, create a GIF from the saved images
-            if 'gif' in self.mode and self.gif_path and self.saved_images:
-                with imageio.get_writer(self.gif_path, mode='I') as writer:
+            # If 'gif' mode is active and animation_path is provided, create a GIF from the saved images
+            if 'gif' in self.mode and self.animation_path and self.saved_images:
+                with imageio.get_writer(self.animation_path+'.gif', mode='I') as writer:
+                    for img_path in self.saved_images:
+                        image = imageio.imread(img_path)
+                        writer.append_data(image)
+
+            # # Create MP4 animation if mode is selected
+            if 'mp4' in self.mode and self.animation_path and self.saved_images:
+                with imageio.get_writer(self.animation_path+'.mp4', mode='I', fps=5, codec='libx264') as writer:
                     for img_path in self.saved_images:
                         image = imageio.imread(img_path)
                         writer.append_data(image)
@@ -160,7 +169,7 @@ class Plotter:
             Interface instance to be used for plotting.
         """
         self.interface: Interface = interface
-        self.color_scheme = ColorScheme(self.interface)
+        self.color_scheme: ColorScheme = ColorScheme(self.interface)
         self.plots = [[[]]]
         self._figsize = figsize
         self.num_rows = 1
@@ -309,12 +318,12 @@ class Plotter:
 
         return fig, axs
 
-    def plot_dynamics(self, mode: str | List[str] = 'show', save_dir: Optional[str] = None, gif_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
+    def plot_dynamics(self, mode: str | List[str] = 'show', save_dir: Optional[str] = None, animation_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
-        mode : ["show", "save", "gif"]
+        mode : ["show", "save", "gif", "mp4"]
         """
-        with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", gif_path=gif_path) as saver:
+        with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", animation_path=animation_path) as saver:
 
             for group_number in range(len(self.interface.groups)):
 

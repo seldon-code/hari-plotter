@@ -2,37 +2,41 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from hari_plotter import HariGraph
+from hari_plotter import Graph
+from hari_plotter.node_gatherer import ActivityDrivenNodeEdgeGatherer
 
 
 class TestHariGraph:
 
     @classmethod
     def setup_class(cls):
-        cls.graph = HariGraph.read_json('tests/test.json')
-        cls.small_graph = HariGraph.read_json('tests/small.json')
-        cls.graph_from_files = HariGraph.read_network(
+        cls.graph = Graph.read_json('tests/test.json')
+        cls.small_graph = Graph.read_json('tests/small.json')
+        cls.graph_from_files = Graph.read_network(
             'tests/network.txt', 'tests/opinions_0.txt')
-        cls.ring_5 = HariGraph.read_network(
+        cls.ring_5 = Graph.read_network(
             'tests/5_ring/network.txt', 'tests/5_ring/opinions_0.txt')
-        cls.strongly_connected_graph = HariGraph.strongly_connected_components(
+        cls.strongly_connected_graph = Graph.strongly_connected_components(
             (15, 25), 6)
+        cls.graph_from_files_bots = Graph.read_network(
+            'tests/network.txt', 'tests/opinions_0.txt', gatherer=ActivityDrivenNodeEdgeGatherer,
+            number_of_bots=2)
 
     def test_strongly_connected_graph(self):
         assert isinstance(
-            self.strongly_connected_graph, HariGraph), "strongly_connected_graph should return an instance of HariGraph."
+            self.strongly_connected_graph, Graph), "strongly_connected_graph should return an instance of HariGraph."
 
     def test_read_network(self):
         assert isinstance(
-            self.graph_from_files, HariGraph), "Read network should return an instance of HariGraph."
+            self.graph_from_files, Graph), "Read network should return an instance of HariGraph."
         assert isinstance(
-            self.ring_5, HariGraph), "Read network should return an instance of HariGraph."
+            self.ring_5, Graph), "Read network should return an instance of HariGraph."
 
     def test_read_json(self):
         assert isinstance(
-            self.graph, HariGraph), "Read JSON should return an instance of HariGraph."
+            self.graph, Graph), "Read JSON should return an instance of HariGraph."
         assert isinstance(
-            self.small_graph, HariGraph), "Read JSON should return an instance of HariGraph."
+            self.small_graph, Graph), "Read JSON should return an instance of HariGraph."
 
     def test_mean_opinion(self):
         assert self.small_graph.mean_opinion == pytest.approx(
@@ -73,11 +77,11 @@ class TestHariGraph:
     def test_strongly_connected_components(self):
         n1, n2 = 8, 9  # Number of nodes in the two components
         connect_nodes = 3  # Number of nodes to connect between components
-        graph = HariGraph.strongly_connected_components(
+        graph = Graph.strongly_connected_components(
             (n1, n2), connect_nodes)
 
         assert isinstance(
-            graph, HariGraph), "Method should return an instance of HariGraph."
+            graph, Graph), "Method should return an instance of HariGraph."
 
         # Assert that the number of nodes is correct
         assert graph.number_of_nodes() == n1 + \
@@ -117,7 +121,7 @@ class TestHariGraph:
                 calculated_importance), f"Importance of node {node} is incorrect."
 
     def test_find_clusters(self):
-        G = HariGraph()
+        G = Graph()
 
         # Add nodes and edges
         G.add_node((1,))
@@ -145,7 +149,7 @@ class TestHariGraph:
             (3,), (4,)}, "Unexpected nodes in second cluster"
 
     def test_merge_clusters(self):
-        G = HariGraph()
+        G = Graph()
 
         # Add nodes and edges
         G.add_node((1,))
@@ -246,3 +250,7 @@ class TestHariGraph:
         except Exception as e:
             pytest.fail(
                 f"Setting opinions with a dictionary should not raise an exception. Raised: {str(e)}")
+
+    def test_bots(self):
+        assert sum(np.array(self.graph_from_files_bots.gatherer.gather("Type")[
+                   "Type"]) == 'Bot') == 2, 'Number of bots is different from expected'

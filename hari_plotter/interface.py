@@ -9,8 +9,8 @@ import numpy as np
 
 from .cluster import Clustering
 from .group import Group
-from .hari_dynamics import HariDynamics
-from .hari_graph import HariGraph
+from .dynamics import Dynamics
+from .graph import Graph
 from .simulation import Simulation
 
 
@@ -487,15 +487,18 @@ class Interface(ABC):
 
         return convert(request)
 
+    def group_time_range(self) -> List[float]:
+        return [self.groups[0].mean_time(),  self.groups[-1].mean_time()]
+
 
 class HariGraphInterface(Interface):
     """Interface specifically designed for the HariGraph class."""
 
-    REQUIRED_TYPE = HariGraph
+    REQUIRED_TYPE = Graph
 
     def __init__(self, data):
         super().__init__(data=data, group_length=1)
-        self.data: HariGraph
+        self.data: Graph
         self._group_size = 1
 
     def __len__(self):
@@ -531,11 +534,11 @@ class HariGraphInterface(Interface):
 class HariDynamicsInterface(Interface):
     """Interface specifically designed for the HariDynamics class."""
 
-    REQUIRED_TYPE = HariDynamics
+    REQUIRED_TYPE = Dynamics
 
     def __init__(self, data):
         super().__init__(data=data, group_length=len(data.groups))
-        self.data: HariDynamics
+        self.data: Dynamics
 
     def __len__(self):
         return len(self.data.groups)

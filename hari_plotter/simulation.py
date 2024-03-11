@@ -7,8 +7,8 @@ from typing import Any, Dict, Optional, Union
 
 import toml
 
-from .hari_dynamics import HariDynamics
-from .lazy_hari_graph import LazyHariGraph
+from .dynamics import Dynamics
+from .lazy_graph import LazyGraph
 from .model import Model, ModelFactory
 
 
@@ -22,7 +22,7 @@ class Simulation:
                  model: Model,
                  network: Dict[str, Any],
                  max_iterations: Optional[int] = None,
-                 dynamics: Optional[HariDynamics] = None,
+                 dynamics: Optional[Dynamics] = None,
                  rng_seed: Optional[int] = None):
         """
         Initialize a Simulation instance.
@@ -34,7 +34,7 @@ class Simulation:
             dynamics: HariDynamics instance used for the simulation. Default is None.
             rng_seed: Seed for random number generation. Default is None.
         """
-        self.dynamics: HariDynamics = dynamics
+        self.dynamics: Dynamics = dynamics
         self.model: Model = model
         self.rng_seed: int = rng_seed
         self.max_iterations: int = max_iterations
@@ -88,6 +88,8 @@ class Simulation:
         max_iterations = data.get("model", {}).get("max_iterations", None)
         network = data.get("network", {})
 
+        load_request = model.load_request
+
         # Checking if the required keys are present in the data
         if not model:
             raise ValueError(
@@ -107,7 +109,7 @@ class Simulation:
         else:
             network = [str(datadir / f'network_{i}.txt')
                        for i in range(n_max + 1)]
-        HD = HariDynamics.read_network(network, opinion)
+        HD = Dynamics.read_network(network, opinion, load_request=load_request)
 
         return cls(model=model, rng_seed=rng_seed,
                    max_iterations=max_iterations, network=network, dynamics=HD)
@@ -143,7 +145,7 @@ class Simulation:
     def __len__(self) -> int:
         return len(self.dynamics)
 
-    def __getitem__(self, index) -> LazyHariGraph:
+    def __getitem__(self, index) -> LazyGraph:
         return self.dynamics[index]
 
     def __repr__(self) -> str:

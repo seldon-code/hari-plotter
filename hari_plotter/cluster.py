@@ -13,7 +13,7 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
-from .hari_graph import HariGraph
+from .graph import Graph
 
 
 class Clustering(ABC):
@@ -28,7 +28,7 @@ class Clustering(ABC):
     """
     _clustering_methods = {}
 
-    def __init__(self, G: HariGraph, node_ids: np.ndarray, cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, node_ids: np.ndarray, cluster_indexes: np.ndarray):
         '''
         node_ids (np.ndarray): A numpy array of length N (length of nodes) representing node ids for each data point.
         cluster_indexes (np.ndarray): A numpy array of length N (length of nodes) shows what cluster each point from data belongs to
@@ -72,12 +72,12 @@ class Clustering(ABC):
         return decorator
 
     @abstractclassmethod
-    def from_graph(cls, G: HariGraph, **kwargs) -> Clustering:
+    def from_graph(cls, G: Graph, **kwargs) -> Clustering:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
     @classmethod
-    def create_clustering(cls, G: HariGraph, clustering_method: str = 'K-Means Clustering', **kwargs) -> Clustering:
+    def create_clustering(cls, G: Graph, clustering_method: str = 'K-Means Clustering', **kwargs) -> Clustering:
         """
         Factory method that creates an instance of a subclass of `Clustering` based on the provided method name
         and applies specified scaling functions to the data before clustering.
@@ -166,7 +166,7 @@ class ParameterBasedClustering(Clustering):
         'Tanh': {'direct': np.tanh, 'inverse': np.arctanh}
     }
 
-    def __init__(self, G: HariGraph, node_ids: np.ndarray, cluster_indexes: np.ndarray, parameters: List[str], scales: List[str]):
+    def __init__(self, G: Graph, node_ids: np.ndarray, cluster_indexes: np.ndarray, parameters: List[str], scales: List[str]):
         """
         Initializes the Cluster object with cluster data.
 
@@ -267,7 +267,7 @@ class ParameterBasedClustering(Clustering):
 class ValueIntervalsClustering(ParameterBasedClustering):
     """Value Intervals clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: HariGraph, data: np.ndarray, parameter_boundaries: List[List[float]], node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, data: np.ndarray, parameter_boundaries: List[List[float]], node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
         super().__init__(G, node_ids=node_ids, parameters=parameters,
                          scales=scales, cluster_indexes=cluster_indexes)
         self.parameter_boundaries = parameter_boundaries
@@ -315,7 +315,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     #     return self._indices_mapping.get(cluster_indices, None)
 
     @classmethod
-    def from_graph(cls, G: HariGraph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
+    def from_graph(cls, G: Graph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
         """
         Creates an instance of valueIntervalsClustering from a HariGraph.
 
@@ -467,7 +467,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
 class KMeansClustering(ParameterBasedClustering):
     """A KMeans clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: HariGraph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
         super().__init__(G, node_ids=node_ids, parameters=parameters,
                          scales=scales, cluster_indexes=cluster_indexes)
         self.data = data
@@ -520,7 +520,7 @@ class KMeansClustering(ParameterBasedClustering):
         return nearest_centroid_indices
 
     @classmethod
-    def from_graph(cls, G: HariGraph, clustering_parameters:  Union[Tuple[str] | List[str]],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
+    def from_graph(cls, G: Graph, clustering_parameters:  Union[Tuple[str] | List[str]],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
         """
         Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.

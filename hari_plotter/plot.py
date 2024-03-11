@@ -105,7 +105,10 @@ class Plot(ABC):
 
         # Initialize parameters dictionary
         params = {key: np.full((len(transform_parameter_values), len(time_steps)), np.nan)
-                  for key in data_list[0] if key not in [transform_parameter, 'Time', 'Nodes']}
+                  for key in data_list[0] if key not in [transform_parameter, 'Time', 'Nodes', 'Type']}
+        if 'Type' in data_list[0]:
+            params['Type'] = np.full(
+                (len(transform_parameter_values), len(time_steps)), '')
 
         # Fill in the parameter values
         for t, data in enumerate(data_list):
@@ -181,14 +184,18 @@ class Plot(ABC):
 
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
-    def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
+    def __init__(self, color_scheme: ColorScheme, parameter: str,
                  scale: Optional[Tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, histogram_color: str | dict | float | None = None):
+                 exclude_types: Tuple[str] = (),
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 histogram_color: str | dict | float | None = None):
         self.color_scheme: ColorScheme = color_scheme
-        self.parameters: Tuple[str] = tuple(parameters)
+        self.parameter: str = parameter
+        self.parameters: Tuple[str] = (parameter,)
         self.scale: Tuple[str] = tuple(scale or ('Linear', 'Linear'))
+        self.exclude_types: Tuple[str] = exclude_types
         self.rotated: bool = rotated
         self.show_x_label: bool = show_x_label
         self.show_y_label: bool = show_y_label
@@ -217,7 +224,7 @@ class plot_histogram(Plot):
         return [self.color_scheme.requires_tracking(self.histogram_color_settings)]
 
     def settings_to_code(self) -> str:
-        return ('\'parameters\':'+str(self.parameters) +
+        return ('\'parameter\':'+self.parameter +
                 ',\'scale\':'+str(self.scale) +
                 ',\'rotated\':'+str(self.rotated) +
                 ',\'show_x_label\':'+str(self.show_x_label) +
@@ -253,14 +260,14 @@ class plot_histogram(Plot):
         # Extract the value of 'parameter' and remove it from settings
         parameter_value = settings.pop('parameter', None)
 
-        settings['parameters'] = (parameter_value,)
+        settings['parameter'] = parameter_value
 
         settings['scale'] = (settings['scale'], 'Linear')
 
         return settings
 
     def get_dynamic_plot_requests(self) -> List[dict]:
-        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': (self.parameter, 'Type'), 'scale': self.scale}}]
 
     def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
         """
@@ -290,10 +297,13 @@ class plot_histogram(Plot):
             0]]
 
         nodes = data['Nodes']
+        types = data['Type']
+        acceptable_types = np.array(
+            [t not in self.exclude_types for t in types])
 
-        parameter = self.parameters[0]
-        values = np.array(data[parameter])
-        valid_indices = ~np.isnan(values)
+        self.parameter = self.parameters[0]
+        values = np.array(data[self.parameter])
+        valid_indices = (~np.isnan(values)) & acceptable_types
         values = values[valid_indices]
 
         histogram_color = self.color_scheme.distribution_color(
@@ -314,7 +324,7 @@ class plot_histogram(Plot):
 
             if self.show_y_label:
                 ax.set_ylabel(Plotter._parameter_dict.get(
-                    parameter, parameter))
+                    self.parameter, self.parameter))
             if self.show_x_label:
                 ax.set_xlabel('Density')
 
@@ -333,7 +343,7 @@ class plot_histogram(Plot):
 
             if self.show_x_label:
                 ax.set_xlabel(Plotter._parameter_dict.get(
-                    parameter, parameter))
+                    self.parameter, self.parameter))
             if self.show_y_label:
                 ax.set_ylabel('Density')
 
@@ -1163,7 +1173,7 @@ class plot_time_line(Plot):
 
         data = interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
             0]]
-        time_range = interface.time_range
+        time_range = interface.group_time_range()
 
         color = self.color_scheme.timeline_color(
             group_number=group_number, **self.time_color_settings)
@@ -1193,12 +1203,14 @@ class plot_time_line(Plot):
 class plot_node_lines(Plot):
     def __init__(self, color_scheme: ColorScheme, parameters: tuple[str],
                  scale: Optional[Tuple[str] | None] = None,
+                 exclude_types: Tuple[str] = (),
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  color: dict | None = None, linestyle: str | None = None, ):
         self.parameters = tuple(parameters)
         self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
+        self.exclude_types: Tuple[str] = exclude_types
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self._x_lim = x_lim
@@ -1248,7 +1260,8 @@ class plot_node_lines(Plot):
         return [self.color_scheme.requires_tracking(self.line_style_settings), self.color_scheme.requires_tracking(self.line_color_settings)]
 
     def get_static_plot_requests(self):
-        return [{'method': 'calculate_node_values', 'settings': {'parameters': self.parameters, 'scale': self.scale}}]
+        parameters = self.parameters + ('Type',)
+        return [{'method': 'calculate_node_values', 'settings': {'parameters': parameters, 'scale': self.scale}}]
 
     def data(self, interface: Interface):
         if self._static_data is not None:
@@ -1256,7 +1269,16 @@ class plot_node_lines(Plot):
 
         data_list = interface.static_data_cache[self.get_static_plot_requests()[
             0]]
-        self._static_data = self.transform_data(data_list)
+        data = self.transform_data(data_list)
+        mask = ~np.isin(data['Type'], self.exclude_types)
+        flat_mask = np.any(mask, axis=-1)
+        masked_data = {key: value[flat_mask] for key,
+                       value in data.items() if key not in ('Time', 'Nodes')}
+        masked_data['Time'] = data['Time']
+        masked_data['Nodes'] = [node for node,
+                                m in zip(data['Nodes'], flat_mask) if m]
+
+        self._static_data = masked_data
         return self._static_data
 
     def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
@@ -1788,131 +1810,3 @@ class plot_fill_between_clustering(Plot):
 
         if self.show_legend:
             ax.legend()
-
-
-@Plotter.plot_type("Static: Opinions")
-class plot_opinions(Plot):
-    def __init__(self, color_scheme: ColorScheme, clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
-                 show_x_label: bool = True, show_y_label: bool = True,
-                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
-                 min_cluster_size: int = 2, colormap: str = 'coolwarm', show_colorbar: bool = False, show_legend: bool = True, mode='Std'):
-        self.parameters = ('Time', 'Opinion')
-        self.clustering_settings = clustering_settings
-        self.scale = scale or tuple('Linear', 'Linear')
-        self.show_x_label = show_x_label
-        self.show_y_label = show_y_label
-        self._x_lim = x_lim
-        self._y_lim = y_lim
-        self.min_cluster_size = min_cluster_size
-        self.colormap = colormap
-
-        self.mode = mode
-
-        self.show_colorbar = show_colorbar
-        self.show_legend = show_legend
-
-        self._static_data = None
-        # self.data_key = Interface.request_to_tuple(
-        #     self.get_static_plot_requests()[0])
-        self.max_value = None
-        self.min_value = None
-
-    def get_static_plot_requests(self):
-        if self.mode == 'Std':
-            return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('Time', 'Opinion', 'Opinion Standard Deviation', 'Cluster size', 'Label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
-        return [{'method': 'clustering_graph_values', 'settings': {'parameters': ('Time', 'Min opinion', 'Opinion', 'Max opinion', 'Cluster size', 'Label'), 'scale': self.scale, 'clustering_settings': self.clustering_settings}}]
-
-    def get_track_clusterings_requests(self):
-        return [self.clustering_settings]
-
-    def data(self, interface: Interface) -> dict:
-        if self._static_data is not None:
-            return self._static_data
-
-        data = interface.static_data_cache[self.get_static_plot_requests()[0]]
-
-        data = self.transform_data(data, transform_parameter='Label')
-
-        # Transform data to suitable format for plotting
-        time = np.array(data['Time'])
-        labels = data['Label']
-
-        opinion = np.array(data['Opinion'])
-        if self.mode == 'Std':
-            std_opinion = np.array(data['Opinion Standard Deviation'])
-            min_opinion = opinion-std_opinion
-            max_opinion = opinion+std_opinion
-        else:
-            min_opinion = np.array(data['Min opinion'])
-            max_opinion = np.array(data['Max opinion'])
-
-        cluster_size = np.array(data['Cluster size'])
-
-        if self.scale[0] == 'Tanh':
-            x_values = np.tanh(x_values)
-        if self.scale[1] == 'Tanh':
-            min_opinion = np.tanh(min_opinion)
-            opinion = np.tanh(opinion)
-            max_opinion = np.tanh(max_opinion)
-
-        self.min_value = np.nanmin(min_opinion)
-        self.max_value = np.nanmax(max_opinion)
-
-        self._static_data = {'Time': time, 'Label': labels, 'Min opinion': min_opinion,
-                             'Opinion': opinion, 'Max opinion': max_opinion, 'Cluster size': cluster_size}
-        return self._static_data
-
-    def plot(self, ax: plt.Axes, group_number: int, interface: Interface, axis_limits: dict):
-        data = self.data(interface)
-        x_lim, y_lim = self.get_limits(axis_limits)
-
-        time = data['Time']
-        labels = data['Label']
-        min_opinions = data['Min opinion']
-        opinions = data['Opinion']
-        max_opinions = data['Max opinion']
-        cluster_sizes = data['Cluster size']
-
-        # Filter clusters by size
-        valid_clusters = np.any(cluster_sizes >= self.min_cluster_size, axis=1)
-
-        # Define a colormap
-        cmap = plt.get_cmap(self.colormap)
-        norm = plt.Normalize(np.nanmin(
-            opinions[valid_clusters, -1]), np.nanmax(opinions[valid_clusters, -1]))
-
-        for i, valid in enumerate(valid_clusters):
-            if valid:
-                # Color by the final opinion value
-                color = cmap(norm(opinions[i, -1]))
-
-                # Plot the mean opinion line for each valid cluster
-                ax.plot(
-                    time, opinions[i], label=f"{labels[i]}", color=color)
-
-                # Fill the area between min and max opinions for each valid cluster
-                ax.fill_between(time, min_opinions[i], max_opinions[i],
-                                color=color, alpha=0.3)
-
-        # Set the x and y axis labels
-        if self.show_x_label:
-            ax.set_xlabel('Time')
-        if self.show_y_label:
-            ax.set_ylabel('Opinion')
-
-        # Set the x and y axis limits if provided
-        ax.set_xlim(0, np.max(time))
-        ax.set_ylim(y_lim)
-
-        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
-
-        if self.show_colorbar:
-            # Add a colorbar to indicate the mapping of the final opinion values to colors
-            sm = plt.cm.ScalarMappable(cmap=cmap, norm=norm)
-            sm.set_array([])
-            ax.figure.colorbar(sm, ax=ax, label='Final Opinion')
-
-        # Optional: Show legend to identify clusters
-        if self.show_legend:
-            ax.legend(loc='upper left', bbox_to_anchor=(1, 1))

@@ -1,16 +1,16 @@
 import warnings
 from typing import Any, Callable, Dict, List, Tuple, Union
 
-from .hari_graph import HariGraph
+from .graph import Graph
 
 
-class LazyHariGraph:
+class LazyGraph:
     """
     The `LazyHariGraph` class is a wrapper that lazily initializes and provides access to a `HariGraph`
     instance, allowing for delayed initialization and dynamic mapping updates.
     """
 
-    def __init__(self, classmethod: Callable[..., HariGraph], *args: Any, **kwargs: Any) -> None:
+    def __init__(self, classmethod: Callable[..., Graph], *args: Any, **kwargs: Any) -> None:
         """
         Initialize a new LazyHariGraph instance.
 
@@ -20,7 +20,7 @@ class LazyHariGraph:
             **kwargs: Keyword arguments to pass to the class method.
         """
         # The actual HariGraph instance (initialized later)
-        self._hari_graph: HariGraph = None
+        self._hari_graph: Graph = None
         # The class method used to create the HariGraph instance
         self._classmethod = classmethod
         self._args = args  # Positional arguments to pass to the class method
@@ -107,7 +107,7 @@ class LazyHariGraph:
 
         return self._mapping == self._hari_graph.get_cluster_mapping()
 
-    def get_graph(self) -> HariGraph:
+    def get_graph(self) -> Graph:
         """
         Get the initialized HariGraph instance.
 
