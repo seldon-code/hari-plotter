@@ -16,7 +16,7 @@ from .node_gatherer import (ActivityDefaultNodeEdgeGatherer,
                             DefaultNodeEdgeGatherer, NodeEdgeGatherer)
 
 
-class HariGraph(nx.DiGraph):
+class Graph(nx.DiGraph):
     """
     HariGraph extends the NetworkX DiGraph class to provide additional functionalities specific to complex network
     analysis and manipulation. It includes methods for graph parameterization, node merging, influence assignment,
@@ -143,7 +143,7 @@ class HariGraph(nx.DiGraph):
             for u, v in incoming_edges:
                 self.edges[u, v]['Influence'] /= total_influence
 
-    def mean_graph(self, images: List['HariGraph']) -> 'HariGraph':
+    def mean_graph(self, images: List['Graph']) -> 'Graph':
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
@@ -157,13 +157,15 @@ class HariGraph(nx.DiGraph):
         return self.gatherer.mean_graph(images)
 
     @classmethod
-    def read_network(cls, network_file: str, opinion_file: str) -> 'HariGraph':
+    def read_network(cls, network_file: str, opinion_file: str, gatherer: NodeEdgeGatherer | None = None, number_of_bots: int = 0) -> 'Graph':
         """
         Reads a graph structure and node attributes from separate files and initializes a HariGraph instance with this data.
 
         Parameters:
             network_file (str): Path to the file containing the network's topology, specifying nodes and their connections.
             opinion_file (str): Path to the file containing node attributes, specifically their opinions and optionally activities.
+            gatherer (NodeEdgeGatherer | None): type of gatherer to be used
+            number_of_bots (int): number of bots. First number_of_bots lines will be interpreted as bots
 
         Returns:
             HariGraph: An instance of HariGraph populated with nodes, edges, and node attributes based on the provided files.
@@ -226,6 +228,7 @@ class HariGraph(nx.DiGraph):
 
                 # Set the 'Opinion' attribute for the node
                 G.nodes[idx_agent]['Opinion'] = opinion
+                G.nodes[idx_agent]['Type'] = 'Bot' if idx_agent[0] < number_of_bots else ''
 
                 # If an additional column is present, it represents the node's 'Activity' level.
                 if len(parts) > 2:
@@ -234,8 +237,10 @@ class HariGraph(nx.DiGraph):
                     # Set the 'Activity' attribute for the node
                     G.nodes[idx_agent]['Activity'] = activity
 
-        # If any node's 'Activity' level was provided, use the ActivityDefaultNodeEdgeGatherer for this graph.
-        if has_activity:
+        if gatherer:
+            G.set_gatherer(gatherer)
+        elif has_activity:
+            # If any node's 'Activity' level was provided, use the ActivityDefaultNodeEdgeGatherer for this graph.
             G.set_gatherer(ActivityDefaultNodeEdgeGatherer)
 
         return G  # Return the constructed HariGraph instance
@@ -293,7 +298,7 @@ class HariGraph(nx.DiGraph):
                 f.write(f"{node_id_output}{delimiter}{opinion}\n")
 
     @classmethod
-    def read_json(cls, filename: str) -> HariGraph:
+    def read_json(cls, filename: str) -> Graph:
         """
         Reads a HariGraph instance from a JSON file that contains both the graph's structure and node attributes.
 
@@ -375,7 +380,7 @@ class HariGraph(nx.DiGraph):
             json.dump(graph_dict, file, ensure_ascii=False, indent=4)
 
     @classmethod
-    def guaranteed_connected(cls, n: int) -> HariGraph:
+    def guaranteed_connected(cls, n: int) -> Graph:
         """
         Creates a guaranteed connected HariGraph instance with n nodes.
 
@@ -411,7 +416,7 @@ class HariGraph(nx.DiGraph):
         return G
 
     @classmethod
-    def by_deletion(cls, n: int, factor: float) -> HariGraph:
+    def by_deletion(cls, n: int, factor: float) -> Graph:
         """
         Creates a HariGraph instance by deleting some of the edges of a fully connected graph.
 
@@ -444,7 +449,7 @@ class HariGraph(nx.DiGraph):
 
     @classmethod
     def strongly_connected_components(
-            cls, cluster_sizes: List[int], inter_cluster_edges: int, mean_opinion: float = 0.5, seed: int = None) -> HariGraph:
+            cls, cluster_sizes: List[int], inter_cluster_edges: int, mean_opinion: float = 0.5, seed: int = None) -> Graph:
         """
         Creates a HariGraph instance with multiple strongly connected components.
 
@@ -536,10 +541,10 @@ class HariGraph(nx.DiGraph):
 
         return G
 
-    def copy(self) -> HariGraph:
+    def copy(self) -> Graph:
         G_copy = super().copy(as_view=False)
-        G_copy = HariGraph(G_copy) if not isinstance(
-            G_copy, HariGraph) else G_copy
+        G_copy = Graph(G_copy) if not isinstance(
+            G_copy, Graph) else G_copy
         G_copy.set_gatherer(type(self.gatherer))
         return G_copy
 
@@ -762,7 +767,7 @@ class HariGraph(nx.DiGraph):
         """
         return nx.spring_layout(self, seed=seed)
 
-    def get_graph(self) -> HariGraph:
+    def get_graph(self) -> Graph:
         '''Self call for union formatting with LazyHariGraph'''
         return self
 

@@ -1,13 +1,13 @@
 import numpy as np
 
-from hari_plotter import HariDynamics, HariGraph
+from hari_plotter import Dynamics, Graph
 
 
 class TestHariDynamics:
 
     @classmethod
     def setup_class(cls):
-        cls.HD = HariDynamics.read_network(
+        cls.HD = Dynamics.read_network(
             'tests/5_ring/network.txt', [f'tests/5_ring/opinions_{i}.txt' for i in range(3)])
 
     def test_initialize(self):
@@ -16,7 +16,7 @@ class TestHariDynamics:
 
     def test_getgraph(self):
         H = self.HD[-1].get_graph()
-        assert isinstance(H, HariGraph)
+        assert isinstance(H, Graph)
 
     def test_getitem(self):
         self.HD[-1].mean_opinion

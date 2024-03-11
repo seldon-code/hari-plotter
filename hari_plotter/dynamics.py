@@ -1,12 +1,12 @@
 from __future__ import annotations
 
-from typing import Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
-from .hari_graph import HariGraph
-from .lazy_hari_graph import LazyHariGraph
+from .graph import Graph
+from .lazy_graph import LazyGraph
 
 
-class HariDynamics:
+class Dynamics:
     """
     HariDynamics manages a list of LazyHariGraph objects that represent HariGraph instances.
 
@@ -33,7 +33,7 @@ class HariDynamics:
     """
 
     def __init__(self):
-        self.lazy_hari_graphs: List[LazyHariGraph] = []
+        self.lazy_hari_graphs: List[LazyGraph] = []
         self.groups: List[List[int]] = []
 
     @property
@@ -61,7 +61,7 @@ class HariDynamics:
             graph.uninitialize()
 
     @classmethod
-    def read_network(cls, network_files: Union[str, List[str]], opinion_files: List[str]) -> HariDynamics:
+    def read_network(cls, network_files: Union[str, List[str]], opinion_files: List[str], load_request: Dict[str, Any] = {}) -> Dynamics:
         """
         Reads a list of network files and a list of opinion files to create LazyHariGraph objects
         and appends them to the lazy_hari_graphs list of a HariDynamics instance.
@@ -96,8 +96,8 @@ class HariDynamics:
             # Append LazyHariGraph objects to the list, with the class method and parameters needed
             # to create the actual HariGraph instances when they are required.
             dynamics_instance.lazy_hari_graphs.append(
-                LazyHariGraph(HariGraph.read_network,
-                              network_file, opinion_file)
+                LazyGraph(Graph.read_network,
+                          network_file, opinion_file, **load_request)
             )
             dynamics_instance.groups.append([idx])
 
@@ -131,7 +131,7 @@ class HariDynamics:
             raise TypeError(
                 "Invalid index type. Must be an integer, slice, or list of integers.")
 
-    def __iter__(self) -> LazyHariGraph:
+    def __iter__(self) -> LazyGraph:
         return iter(self.lazy_hari_graphs)
 
     def __getattr__(self, name: str) -> list:
@@ -214,7 +214,7 @@ class HariDynamics:
             self.groups.append(
                 list(range(start_index, min(end_index, total_length))))
 
-    def get_grouped_graphs(self) -> List[List[LazyHariGraph]]:
+    def get_grouped_graphs(self) -> List[List[LazyGraph]]:
         """
         Retrieves grouped LazyHariGraph objects based on the indices in self.groups.
 
