@@ -1,7 +1,8 @@
 from .cluster import Clustering
-from .group import Group
+from .color_scheme import ColorScheme
 from .dynamics import Dynamics
 from .graph import Graph
+from .group import Group
 from .interface import Interface
 from .model import Model, ModelFactory
 from .plot import Plot
