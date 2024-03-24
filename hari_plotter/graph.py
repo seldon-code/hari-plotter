@@ -247,18 +247,22 @@ class Graph(nx.DiGraph):
 
     def write_network(self, network_file: str, opinion_file: str, delimiter=','):
         """
-        Writes the current graph's network structure and node attributes to specified files.
+        Writes the current graph's network structure and node attributes to specified files, using integers to represent node IDs based on a sorted mapping. The output is saved in the sorted order of these integer IDs.
 
         Parameters:
             network_file (str): Path to the file where the network structure will be saved.
             opinion_file (str): Path to the file where the node attributes, particularly opinions, will be saved.
             delimiter (str): The delimiter used to separate values in the output files.
-
-        This method outputs two files: one detailing the graph's topology and another listing node attributes.
         """
 
         # Gather opinions for all nodes using the current gatherer
         opinions = self.gatherer.gather('Opinion')
+        activities = self.gatherer.gather(
+            'Activity') if 'Activity' in self.gatherer.node_parameters else None
+
+        # Create a mapping from node IDs to integers
+        node_mapping = {node: idx for idx,
+                        node in enumerate(sorted(self.nodes))}
 
         # Write the network structure to the specified network file
         with open(network_file, 'w') as f:
@@ -266,36 +270,44 @@ class Graph(nx.DiGraph):
             f.write(
                 f"# idx_agent{delimiter}n_neighbors_in{delimiter}indices_neighbors_in[...]{delimiter}weights_in[...]\n")
 
-            # Iterate over all nodes to write their connectivity and influence data
-            for node in self.nodes:
+            # Iterate over the node mapping in sorted order of integer IDs
+            for node, node_idx in sorted(node_mapping.items(), key=lambda x: x[1]):
                 # List of nodes influencing the current node
                 neighbors = list(self.predecessors(node))
                 # List of influence weights from each neighbor
                 weights = [self[neighbor][node]['Influence']
                            for neighbor in neighbors]
-
-                # Format the node ID and its neighbors for output
-                # Convert node ID from tuple to string if necessary
-                node_output = '&'.join(map(str, node))
-                # Convert neighbor IDs from tuples to strings
-                neighbors_output = ['&'.join(map(str, neighbor))
-                                    for neighbor in neighbors]
+                # Use the mapping to get integer IDs for the neighbors
+                neighbors_idxs = [node_mapping[neighbor]
+                                  for neighbor in neighbors]
 
                 # Write the node data line with all necessary information
-                f.write(
-                    f"{node_output}{delimiter}{len(neighbors)}{delimiter}{delimiter.join(neighbors_output)}{delimiter}{delimiter.join(map(str, weights))}\n")
+                if len(neighbors_idxs) == 0:
+                    f.write(f"{node_idx}{delimiter}0\n")
+                else:
+                    f.write(
+                        f"{node_idx}{delimiter}{len(neighbors_idxs)}{delimiter}{delimiter.join(map(str, neighbors_idxs))}{delimiter}{delimiter.join(map(str, weights))}\n")
 
         # Write the node opinions to the specified opinion file
         with open(opinion_file, 'w') as f:
             # Write the header line
             f.write(f"# idx_agent{delimiter}opinion[...]\n")
-            for node_id in opinions['Nodes']:
-                # Retrieve the opinion for the current node ID
-                opinion = opinions['Opinion'][opinions['Nodes'].index(node_id)]
-                # Convert node ID from tuple to string if necessary
-                node_id_output = '&'.join(map(str, node_id))
-                # Write the node opinion line
-                f.write(f"{node_id_output}{delimiter}{opinion}\n")
+
+            # Iterate over the node mapping in sorted order of integer IDs for opinions
+            for node, node_idx in sorted(node_mapping.items(), key=lambda x: x[1]):
+                if node in opinions['Nodes']:
+                    # Retrieve the opinion for the current node ID using the mapping
+                    opinion = opinions['Opinion'][opinions['Nodes'].index(
+                        node)]
+                    if activities is not None and node in activities['Nodes']:
+                        activity = activities['Activity'][activities['Nodes'].index(
+                            node)]
+                        # Write the node opinion line with activity if available
+                        f.write(
+                            f"{node_idx}{delimiter}{opinion}{delimiter}{activity}\n")
+                    else:
+                        # Write the node opinion line without activity
+                        f.write(f"{node_idx}{delimiter}{opinion}\n")
 
     @classmethod
     def read_json(cls, filename: str) -> Graph:
