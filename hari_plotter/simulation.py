@@ -135,8 +135,8 @@ class Simulation:
         with open(filename, 'w') as f:
             toml.dump(data, f)
 
-    def group(self, *args, **kwargs):
-        self.dynamics.group(*args, **kwargs)
+    def group(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.dynamics.group(num_intervals, interval_size, offset)
 
     @property
     def dt(self):
