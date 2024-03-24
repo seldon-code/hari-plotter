@@ -174,7 +174,7 @@ class Plotter:
         self._figsize = figsize
         self.num_rows = 1
         self.num_cols = 1
-        self.size_ratios = [[1], [1]]
+        self._size_ratios = [[1], [1]]
 
     def update_interface(self, new_interface):
         self.interface = new_interface
@@ -197,8 +197,8 @@ class Plotter:
             return self._figsize
         else:
             # Calculate size based on the sum of size ratios
-            width = np.sum(self.size_ratios[0])*2
-            height = np.sum(self.size_ratios[1])*2
+            width = np.sum(self._size_ratios[0])*2
+            height = np.sum(self._size_ratios[1])*2
             return [width, height]
 
     @figsize.setter
@@ -239,7 +239,7 @@ class Plotter:
         # Expand rows if needed
         while len(self.plots) <= new_row:
             self.plots.append([[] for _ in range(len(self.plots[0]))])
-            self.size_ratios[1].append(1)  # Adjust height ratios
+            self._size_ratios[1].append(1)  # Adjust height ratios
 
         # Expand columns if needed
         for row in self.plots:
@@ -247,9 +247,9 @@ class Plotter:
                 row.append([])
 
         # Adjust width ratios for columns
-        if self.plots and len(self.plots[0]) > len(self.size_ratios[0]):
-            additional_cols = len(self.plots[0]) - len(self.size_ratios[0])
-            self.size_ratios[0].extend([1] * additional_cols)
+        if self.plots and len(self.plots[0]) > len(self._size_ratios[0]):
+            additional_cols = len(self.plots[0]) - len(self._size_ratios[0])
+            self._size_ratios[0].extend([1] * additional_cols)
 
         # Update the stored number of rows and columns
         self.num_rows = len(self.plots)
@@ -276,7 +276,7 @@ class Plotter:
 
     def create_fig_and_axs(self) -> Tuple[Figure, Axes]:
         fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
-            'width_ratios': self.size_ratios[0], 'height_ratios': self.size_ratios[1]})
+            'width_ratios': self._size_ratios[0], 'height_ratios': self._size_ratios[1]})
         # Ensure axs is a 2D array for consistency
         if self.num_rows == 1 and self.num_cols == 1:
             axs = [[axs]]  # Single plot
