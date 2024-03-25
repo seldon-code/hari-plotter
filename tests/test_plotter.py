@@ -6,31 +6,14 @@ from hari_plotter import Graph, Interface, Plotter, Simulation, ColorScheme
 from hari_plotter.color_scheme import initialize_colormap
 from hari_plotter.lazy_graph import LazyGraph
 
+cl = {
+    "clustering_method": "K-Means Clustering",
+    "clustering_parameters": ["Opinion", "Neighbor mean opinion"],
+    "scale": ["Tanh", "Tanh"],
+    "n_clusters": 2,
+}
 
-class TestPlotter:
-    @classmethod
-    def setup_class(cls):
-        ColorScheme.default_colormap_name, ColorScheme.default_colormap = initialize_colormap(
-            {
-                "Name": "custom1",
-                "Colors": [
-                    # (223 / 255, 294 / 255, 255 / 255),
-                    (255 / 255, 79 / 255, 20 / 255),
-                    (1 / 255, 180 / 255, 155 / 255),
-                    (71 / 255, 71 / 255, 240 / 255),
-                    # (250 / 255, 200 / 255, 180 / 255),
-                ],
-            }
-        )
-        cls.S = Simulation.from_dir("tests/big_test")
-        cl = {
-            "clustering_method": "K-Means Clustering",
-            "clustering_parameters": ["Opinion", "Neighbor mean opinion"],
-            "scale": ["Tanh", "Tanh"],
-            "n_clusters": 2,
-        }
-        cls.cl = cl
-        cls.plot_list = [
+plot_list = [
             ["Scatter",
              {
                  "parameters": ["Opinion", "Neighbor mean opinion"],
@@ -207,70 +190,89 @@ class TestPlotter:
 
                 },
             ],
-            ["Static: Graph line",
-             {
-                 "parameters": ["Time", "Opinion"],
-                 "color": {
-                     "mode": "Graph Parameter",
-                     "settings": {
-                         "parameter": "Opinion",
-                     },
-                 },
-             },],
-            ["Static: Graph Range",
-             {
-                 "parameters": ["Time", "Opinion"],
-                 "color": {
-                     "mode": "Graph Parameter",
-                     "settings": {
-                         "parameter": "Opinion",
-                     },
-                 },
-             },],
-            ["Static: Clustering Line",
-             {
-                 "parameter": "Opinion",
-                 "clustering_settings": cl,
-             },],
-            ["Static: Clustering Line",
-             {
-                 "parameter": "Opinion",
-                 "clustering_settings": cl,
-                 "color": {
-                     "mode": "Cluster Parameter Color",
-                     "settings": {
-                         "clustering_settings": cl,
-                         "parameter": "Opinion",
-                         "group_number": -1,
-                         "None Color": "",
-                     },
-                 },
-             },],
-            ["Static: Clustering Range",
-             {
-                 "parameter": "Opinion",
-                 "range_parameter": "Opinion Standard Deviation",
-                 "clustering_settings": cl,
-                 "color": {
-                     "mode": "Cluster Parameter Color",
-                     "settings": {
-                         "clustering_settings": cl,
-                         "parameter": "Opinion",
-                         "group_number": -1,
-                         "None Color": "",
-                     },
-                 },
-             },],
-            ["Static: Clustering Range",
-             {
-                 "parameter": "Opinion",
-                 "range_parameter": "Opinion Standard Deviation",
-                 "clustering_settings": cl,
-             },],
+    ["Static: Graph line",
+                {
+                    "parameters": ["Time", "Opinion"],
+                    "color": {
+                        "mode": "Graph Parameter",
+                        "settings": {
+                            "parameter": "Opinion",
+                        },
+                    },
+                },],
+    ["Static: Graph Range",
+                {
+                    "parameters": ["Time", "Opinion"],
+                    "color": {
+                        "mode": "Graph Parameter",
+                        "settings": {
+                            "parameter": "Opinion",
+                        },
+                    },
+                },],
+    ["Static: Clustering Line",
+                {
+                    "parameter": "Opinion",
+                    "clustering_settings": cl,
+                },],
+    ["Static: Clustering Line",
+                {
+                    "parameter": "Opinion",
+                    "clustering_settings": cl,
+                    "color": {
+                        "mode": "Cluster Parameter Color",
+                        "settings": {
+                            "clustering_settings": cl,
+                            "parameter": "Opinion",
+                            "group_number": -1,
+                            "None Color": "",
+                        },
+                    },
+                },],
+    ["Static: Clustering Range",
+                {
+                    "parameter": "Opinion",
+                    "range_parameter": "Opinion Standard Deviation",
+                    "clustering_settings": cl,
+                    "color": {
+                        "mode": "Cluster Parameter Color",
+                        "settings": {
+                            "clustering_settings": cl,
+                            "parameter": "Opinion",
+                            "group_number": -1,
+                            "None Color": "",
+                        },
+                    },
+                },],
+    ["Static: Clustering Range",
+                {
+                    "parameter": "Opinion",
+                    "range_parameter": "Opinion Standard Deviation",
+                    "clustering_settings": cl,
+                },],
 
-        ]
+]
 
-    def plot_individual(self, plot, plot_index):
+
+class TestPlotter:
+    @classmethod
+    def setup_class(cls):
+        ColorScheme.default_colormap_name, ColorScheme.default_colormap = initialize_colormap(
+            {
+                "Name": "custom1",
+                "Colors": [
+                    # (223 / 255, 294 / 255, 255 / 255),
+                    (255 / 255, 79 / 255, 20 / 255),
+                    (1 / 255, 180 / 255, 155 / 255),
+                    (71 / 255, 71 / 255, 240 / 255),
+                    # (250 / 255, 200 / 255, 180 / 255),
+                ],
+            }
+        )
+        cls.S = Simulation.from_dir("tests/big_test")
+
+    @pytest.mark.parametrize("plot_index, plot", [(i, plot) for i, plot in enumerate(plot_list)])
+    def test_plot_individual(self, plot_index, plot):
         plotter = Plotter.create_plotter(self.S)
         plotter.interface.regroup(num_intervals=3, interval_size=1)
         plotter.add_plot(
@@ -283,10 +285,6 @@ class TestPlotter:
             save_dir=f"tests/test_pics/{plot_index}",
             animation_path=f"tests/test_pics/{plot_index}/gif.gif",
         )
-
-    def test_plot_list(self):
-        for i, plot in enumerate(self.plot_list):
-            self.plot_individual(plot, plot_index=i)
 
     def test_plotter_info(self):
         plotter = Plotter.create_plotter(self.S)
