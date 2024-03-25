@@ -159,7 +159,7 @@ class Plotter:
             if self.temp_dir:
                 shutil.rmtree(self.temp_dir)
 
-    def __init__(self, interface: Interface = None, figsize=None):
+    def __init__(self, interface: Interface | list[Interface] | None = None, figsize=None):
         """
         Initialize the Plotter object with the given Interface instance.
 
@@ -168,21 +168,38 @@ class Plotter:
         interface : Interface
             Interface instance to be used for plotting.
         """
-        self.interface: Interface = interface
-        self.color_scheme: ColorScheme = ColorScheme(self.interface)
-        self.plots = [[[]]]
+        self._interfaces: list[Interface] = [interface] if isinstance(
+            interface, Interface) else interface  # handles both None and list[Interface]
+        self._color_schemes: list[ColorScheme] = [ColorScheme(
+            interface) for interface in self._interfaces] if self._interfaces is not None else None
+        self.plots_settings = np.empty((1, 1), dtype=object)
+        self.plots = np.empty((1, 1, (len(self._interfaces) if self._interfaces is not None else 0)),
+                              dtype=object)
         self._figsize = figsize
-        self.num_rows = 1
-        self.num_cols = 1
-        self._size_ratios = [[1], [1]]
+        self._size_ratios = np.array([[1], [1]])
 
-    def update_interface(self, new_interface):
-        self.interface = new_interface
-        self.color_scheme = ColorScheme(new_interface)
+    def update_interface(self, interface: Interface | list[Interface]):
+        self._interfaces = [interface] if isinstance(
+            interface, Interface) else interface  # handles both None and list[Interface]
+        self._color_schemes = [ColorScheme(interface)
+                               for interface in self._interfaces]
+
+    def add_interface(self, interface: Interface):
+        if self._interfaces is None:
+            self._interfaces = [interface]
+            self._color_schemes = [ColorScheme(interface)]
+        else:
+            self._interfaces.append(interface)
+            self._color_schemes.append(ColorScheme(interface))
+
+    def total_group_length(self) -> int:
+        if self._interfaces is None:
+            return 0
+        return max(len(interface) for interface in self._interfaces)
 
     @property
     def is_initialized(self) -> bool:
-        return self.interface is not None
+        return self._interfaces is not None
 
     @property
     def figsize(self) -> Tuple[float, float]:
@@ -264,7 +281,7 @@ class Plotter:
         # Check if 'colorscheme' is not in plot_arguments
         if 'color_scheme' not in plot_arguments:
             # Add self.color_scheme to plot_arguments with the key 'colorscheme'
-            plot_arguments['color_scheme'] = self.color_scheme
+            plot_arguments['color_scheme'] = self._color_schemes
 
         plot = self._plot_types[plot_type](**plot_arguments)
 
@@ -291,7 +308,10 @@ class Plotter:
         # Data fetching for static plots
         track_clusters_requests = [item for i in range(self.num_rows) for j in range(
             self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests() if item]
-        self.interface.cluster_tracker.track_clusters(track_clusters_requests)
+
+        for interface in self._interfaces:
+            interface.cluster_tracker.track_clusters(
+                track_clusters_requests)
 
         # Determine the rendering order
         render_order = self._determine_plot_order()
@@ -301,8 +321,10 @@ class Plotter:
         for (i, j) in render_order:
             ax = axs[i][j]
             for plot in self.plots[i][j]:
-                plot.plot(ax=ax, group_number=group_number,
-                          interface=self.interface, axis_limits=axis_limits)
+                for interface in self._interfaces:
+                    if len(interface) < group_number:
+                        plot.plot(ax=ax, group_number=group_number,
+                                  interface=interface, axis_limits=axis_limits)
 
                 # Store axis limits for future reference
                 axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
@@ -325,7 +347,7 @@ class Plotter:
         """
         with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", animation_path=animation_path) as saver:
 
-            for group_number in range(len(self.interface.groups)):
+            for group_number in range(self.total_group_length()):
 
                 fig, axs = self.create_fig_and_axs()
 
@@ -396,7 +418,12 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.interface.node_parameters
+        if self._interfaces is None:
+            return None
+        parameters = [
+            interface.node_parameters for interface in self._interfaces]
+        # TODO figure out what does in return after the [interface]
+        return parameters
 
     @property
     def existing_plot_types(self) -> list:
@@ -416,7 +443,7 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return [method_name for method_name, method in self._plot_types.items() if method.is_available(self.interface)[0]]
+        return [method_name for method_name, method in self._plot_types.items() if all(method.is_available(interface)[0] for interface in self._interfaces)]
 
     def get_plot_class(self, plot_type: str) -> type[Plot]:
         ''' Converts name of the class to the class'''
@@ -440,10 +467,18 @@ class Plotter:
         """
         info_string = ''
         for method_name, method in self._plot_types.items():
-            is_available, comment = method.is_available(self.interface)
+            is_available_final = True
+            comments = []
+            for interface in self._interfaces:
+                is_available, comment = method.is_available(interface)
+                is_available_final &= is_available
+                comments.append(comment)
+
+            final_comment = ', '.join(comments)
+
             info_string += method_name + ': '
             info_string += '+ ' if is_available else '- '
-            info_string += comment
+            info_string += final_comment
             info_string += '\n'
 
         return info_string
