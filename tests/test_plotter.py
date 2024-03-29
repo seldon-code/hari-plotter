@@ -289,30 +289,90 @@ class TestPlotter:
                 f"gif_{plot_index}.gif"),  # Construct the file path
         )
 
-    # def test_plot_2x1(self):
-    #     plotter = Plotter.create_plotter(self.S)
-    #     plotter.interface.regroup(num_intervals=3, interval_size=1)
-    #     plot = ["Scatter",
-    #             {
-    #                 "parameters": ["Opinion", "Neighbor mean opinion"],
-    #                 "scale": ["Tanh", "Tanh"],
-    #             },]
-    #     plotter.add_plot(
-    #         *plot,
-    #         row=0,
-    #         col=0,
-    #     )
-    #     plotter.add_plot(
-    #         *plot,
-    #         row=0,
-    #         col=1,
-    #     )
+    def test_plot_2x1(self):
+        plotter = Plotter.create_plotter(self.S)
+        plotter.interface.regroup(num_intervals=3, interval_size=1)
+        plot = ["Scatter",
+                {
+                    "parameters": ["Opinion", "Neighbor mean opinion"],
+                    "scale": ["Tanh", "Tanh"],
+                },]
+        plotter.add_plot(
+            *plot,
+            row=0,
+            col=0,
+        )
+        plotter.add_plot(
+            *plot,
+            row=0,
+            col=1,
+        )
 
-    #     plotter.plot_dynamics(
-    #         mode=[],
-    #         save_dir=f"tests/test_pics/2x1",
-    #         animation_path=f"tests/test_pics/2x1/gif.gif",
-    #     )
+        plotter.plot_dynamics(
+            mode=[],
+            save_dir=f"tests/test_pics/2x1",
+            animation_path=f"tests/test_pics/2x1/gif.gif",
+        )
+
+    def test_plot_1x2(self):
+        plotter = Plotter.create_plotter(self.S)
+        plotter.interface.regroup(num_intervals=3, interval_size=1)
+        plot = ["Scatter",
+                {
+                    "parameters": ["Opinion", "Neighbor mean opinion"],
+                    "scale": ["Tanh", "Tanh"],
+                },]
+        plotter.add_plot(
+            *plot,
+            row=0,
+            col=0,
+        )
+        plotter.add_plot(
+            *plot,
+            row=1,
+            col=0,
+        )
+
+        plotter.plot_dynamics(
+            mode=[],
+            save_dir=f"tests/test_pics/2x1",
+            animation_path=f"tests/test_pics/2x1/gif.gif",
+        )
+
+    def test_plot_2x2(self):
+        plotter = Plotter.create_plotter(self.S)
+        plotter.interface.regroup(num_intervals=3, interval_size=1)
+        plot = ["Scatter",
+                {
+                    "parameters": ["Opinion", "Neighbor mean opinion"],
+                    "scale": ["Tanh", "Tanh"],
+                },]
+        plotter.add_plot(
+            *plot,
+            row=0,
+            col=0,
+        )
+        plotter.add_plot(
+            *plot,
+            row=1,
+            col=0,
+        )
+        plotter.add_plot(
+            *plot,
+            row=1,
+            col=1,
+        )
+        plotter.add_plot(
+            *plot,
+            row=1,
+            col=1,
+        )
+
+        plotter.plot_dynamics(
+            mode=[],
+            save_dir=f"tests/test_pics/2x1",
+            animation_path=f"tests/test_pics/2x1/gif.gif",
+        )
 
     def test_plotter_info(self):
         plotter = Plotter.create_plotter(self.S)
