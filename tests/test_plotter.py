@@ -272,7 +272,7 @@ class TestPlotter:
         cls.S = Simulation.from_dir("tests/big_test")
 
     @pytest.mark.parametrize("plot_index, plot", [(i, plot) for i, plot in enumerate(plot_list)])
-    def test_plot_individual(self, plot_index, plot):
+    def test_plot_individual(self, plot_index, plot, tmpdir):
         plotter = Plotter.create_plotter(self.S)
         plotter.interface.regroup(num_intervals=3, interval_size=1)
         plotter.add_plot(
@@ -280,11 +280,39 @@ class TestPlotter:
             row=0,
             col=0,
         )
+        # Create a unique directory for each plot
+        temp_dir = tmpdir.mkdir(f"plot_{plot_index}")
         plotter.plot_dynamics(
             mode=[],
-            save_dir=f"tests/test_pics/{plot_index}",
-            animation_path=f"tests/test_pics/{plot_index}/gif.gif",
+            save_dir=str(temp_dir),  # Use the pathlib.Path compatible temp_dir
+            animation_path=temp_dir.join(
+                f"gif_{plot_index}.gif"),  # Construct the file path
         )
+
+    # def test_plot_2x1(self):
+    #     plotter = Plotter.create_plotter(self.S)
+    #     plotter.interface.regroup(num_intervals=3, interval_size=1)
+    #     plot = ["Scatter",
+    #             {
+    #                 "parameters": ["Opinion", "Neighbor mean opinion"],
+    #                 "scale": ["Tanh", "Tanh"],
+    #             },]
+    #     plotter.add_plot(
+    #         *plot,
+    #         row=0,
+    #         col=0,
+    #     )
+    #     plotter.add_plot(
+    #         *plot,
+    #         row=0,
+    #         col=1,
+    #     )
+
+    #     plotter.plot_dynamics(
+    #         mode=[],
+    #         save_dir=f"tests/test_pics/2x1",
+    #         animation_path=f"tests/test_pics/2x1/gif.gif",
+    #     )
 
     def test_plotter_info(self):
         plotter = Plotter.create_plotter(self.S)

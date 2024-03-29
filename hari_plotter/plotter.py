@@ -67,7 +67,8 @@ class Plotter:
                 warnings.warn(f"Path {save_path} does not exist. Creating it.")
                 # Create the directory, including any necessary parent directories
                 os.makedirs(save_path, exist_ok=True)
-            self.save_path = save_path if save_path[-1] == '/' else save_path+'/'
+            self.save_path = os.Path(
+                save_path) if save_path[-1] == '/' else save_path+'/'
             self.save_format = save_format
             self.animation_path = animation_path
             self.saved_images = []
@@ -159,7 +160,203 @@ class Plotter:
             if self.temp_dir:
                 shutil.rmtree(self.temp_dir)
 
-    def __init__(self, interface: Interface = None, figsize=None):
+    class PlotLattice:
+        def __init__(self, size_ratios: tuple[list[float], list[float]] = ([1.], [1.]), figsize=None) -> None:
+            """
+            Initialize the PlotLattice class.
+
+            Parameters:
+            size_ratios (tuple[list[float], list[float]], optional): The size ratios for the rows and columns of the lattice. Defaults to ([1.], [1.]).
+            figsize (tuple[float, float], optional): The size of the figure. Defaults to None.
+            """
+            self._fig = None
+            self._axs = None
+            self._figsize = figsize
+            self._size_ratios: tuple[list[float], list[float]] = size_ratios
+
+        @property
+        def size_ratios(self) -> tuple[list[float], list[float]]:
+            """
+            Get the size ratios for the rows and columns of the lattice.
+
+            Returns:
+            tuple[list[float], list[float]]: The size ratios.
+            """
+            return self._size_ratios
+
+        @size_ratios.setter
+        def size_ratios(self, value: tuple[list[float], list[float]]):
+            """
+            Set the size ratios for the rows and columns of the lattice.
+
+            Parameters:
+            value (tuple[list[float], list[float]]): The size ratios.
+            """
+            if not len(value) == 2:
+                raise ValueError('Size ratios must be a tuple of two lists')
+            if not all(isinstance(ratio, (tuple, list)) for ratio in value):
+                raise ValueError(
+                    'Size ratios must be a tuple of two tuples/lists')
+            if not len(value[0]) == len(self._size_ratios[0]) or not len(value[1]) == len(self._size_ratios[1]):
+                raise ValueError(
+                    'Size ratios must have the same length as the current size ratios')
+            self._size_ratios = value
+
+        def get_figsize(self) -> Tuple[float, float]:
+            """
+            Get the figure size. If a size was set during initialization, it returns that size.
+            Otherwise, it calculates the size based on the sum of size_ratios.
+
+            Returns:
+            Tuple[float, float]: The size of the figure as (height, width).
+            """
+            if self._figsize is not None:
+                return self._figsize
+            else:
+                # Calculate size based on the sum of size ratios
+                width = np.sum(self._size_ratios[1])
+                height = np.sum(self._size_ratios[0])
+
+            # Adjust the width and height to ensure the smallest dimension is higher than 3
+            if width < height:
+                width = max(width, 4*len(self._size_ratios[1]))
+                height = width * \
+                    (np.sum(self._size_ratios[0])/np.sum(self._size_ratios[1]))
+            else:
+                height = max(height, 4*len(self._size_ratios[0]))
+                width = height * \
+                    (np.sum(self._size_ratios[1])/np.sum(self._size_ratios[0]))
+
+            self._figsize = (width, height)
+
+            return self._figsize
+
+        def set_figsize(self, value):
+            """
+            Set the figure size.
+
+            Parameters:
+            value (Tuple[float, float]): The size of the figure as (height, width).
+            """
+            if not isinstance(value, (list, tuple)) or len(value) != 2:
+                raise ValueError(
+                    "fig_size must be a list or tuple of two elements: [height, width]")
+            self._figsize = value
+
+        @property
+        def num_rows(self) -> int:
+            """
+            Get the number of rows in the lattice.
+
+            Returns:
+            int: The number of rows.
+            """
+            return len(self._size_ratios[0])
+
+        @property
+        def num_cols(self) -> int:
+            """
+            Get the number of columns in the lattice.
+
+            Returns:
+            int: The number of columns.
+            """
+            return len(self._size_ratios[1])
+
+        def fig(self) -> Figure:
+            """
+            Get the figure object.
+
+            Returns:
+            Figure: The figure object.
+            """
+            if self._fig is None:
+                self.create_fig_and_axs()
+            return self._fig
+
+        def axs(self) -> list[list[Axes]]:
+            """
+            Get the axes objects.
+
+            Returns:
+            list[list[Axes]]: The axes objects.
+            """
+            if self._fig is None:
+                self.create_fig_and_axs()
+            return self._axs
+
+        def fig_axs(self) -> Tuple[Figure, list[list[Axes]]]:
+            """
+            Get the figure and axes objects.
+
+            Returns:
+            Tuple[Figure, list[list[Axes]]]: The figure and axes objects.
+            """
+            if self._fig is None:
+                self.create_fig_and_axs()
+            return self._fig, self._axs
+
+        def update_size_ratios(self, row: int, column: int):
+            """
+            Update the size ratios based on the given row and column indices.
+
+            Parameters:
+            row (int): The row index.
+            column (int): The column index.
+            """
+            if row >= self.num_rows:
+                self._size_ratios[0].extend([1.]*(row-self.num_rows+1))
+            if column >= self.num_cols:
+                self._size_ratios[1].extend([1.]*(column-self.num_cols+1))
+
+        def convert_parameters_to_index(self, column: int, row: int) -> tuple[int, int]:
+            """
+            Convert the column and row indices to the corresponding index in the axes list.
+
+            Parameters:
+            column (int): The column index.
+            row (int): The row index.
+
+            Returns:
+            tuple[int, int]: The corresponding index in the axes list.
+            """
+            self.update_size_ratios(row, column)  # Fixed the argument order
+            return (row, column)
+
+        def get_ax_by_index(self, index: tuple[int, int]) -> Axes:
+            """
+            Get the axes object based on the given index.
+
+            Parameters:
+            index (tuple[int, int]): The index in the axes list.
+
+            Returns:
+            Axes: The axes object.
+            """
+            self.update_size_ratios(index[0], index[1])
+            return self.axs()[index[0]][index[1]]
+
+        def create_fig_and_axs(self) -> Tuple[Figure, Axes]:
+            """
+            Create the figure and axes objects.
+
+            Returns:
+            Tuple[Figure, Axes]: The figure and axes objects.
+            """
+            size_ratios = self.size_ratios
+            figsize = self.get_figsize()
+            self._fig, self._axs = plt.subplots(self.num_rows, self.num_cols, figsize=figsize, gridspec_kw={
+                'width_ratios': size_ratios[1], 'height_ratios': size_ratios[0]})
+            # Ensure axs is a 2D array for consistency
+            if self.num_rows == 1 and self.num_cols == 1:
+                self._axs = [[self._axs]]  # Single plot
+            elif self.num_rows == 1:
+                self._axs = [self._axs]  # Single row, multiple columns
+            elif self.num_cols == 1:
+                # Multiple rows, single column
+                self._axs = [[ax] for ax in self._axs]
+
+    def __init__(self, interface: Interface = None):
         """
         Initialize the Plotter object with the given Interface instance.
 
@@ -170,11 +367,8 @@ class Plotter:
         """
         self.interface: Interface = interface
         self.color_scheme: ColorScheme = ColorScheme(self.interface)
-        self.plots = [[[]]]
-        self._figsize = figsize
-        self.num_rows = 1
-        self.num_cols = 1
-        self._size_ratios = [[1], [1]]
+        self.plots: dict[tuple[int, int], list[Plot]] = {}
+        self.plot_grid = self.PlotLattice()
 
     def update_interface(self, new_interface):
         self.interface = new_interface
@@ -183,36 +377,6 @@ class Plotter:
     @property
     def is_initialized(self) -> bool:
         return self.interface is not None
-
-    @property
-    def figsize(self) -> Tuple[float, float]:
-        """
-        Property to get the figure size. If a size was set during initialization, it returns that size.
-        Otherwise, it calculates the size based on the sum of size_ratios.
-
-        Returns:
-            List[int]: The size of the figure as [width, height].
-        """
-        if self._figsize is not None:
-            return self._figsize
-        else:
-            # Calculate size based on the sum of size ratios
-            width = np.sum(self._size_ratios[0])*2
-            height = np.sum(self._size_ratios[1])*2
-            return [width, height]
-
-    @figsize.setter
-    def figsize(self, value):
-        """
-        Property setter to set the figure size.
-
-        Parameters:
-            value (List[int]): The size of the figure as [width, height].
-        """
-        if not isinstance(value, (list, tuple)) or len(value) != 2:
-            raise ValueError(
-                "fig_size must be a list or tuple of two elements: [width, height]")
-        self._figsize = value
 
     @classmethod
     def plot_type(cls, plot_name):
@@ -230,33 +394,7 @@ class Plotter:
             return plot_func
         return decorator
 
-    def expand_plot_grid(self, new_row, new_col):
-        """
-        Expand the plot grid and adjust size ratios to at least the specified number of rows and columns.
-        Existing plots are preserved, and new spaces are filled with individual empty lists.
-        """
-
-        # Expand rows if needed
-        while len(self.plots) <= new_row:
-            self.plots.append([[] for _ in range(len(self.plots[0]))])
-            self._size_ratios[1].append(1)  # Adjust height ratios
-
-        # Expand columns if needed
-        for row in self.plots:
-            while len(row) <= new_col:
-                row.append([])
-
-        # Adjust width ratios for columns
-        if self.plots and len(self.plots[0]) > len(self._size_ratios[0]):
-            additional_cols = len(self.plots[0]) - len(self._size_ratios[0])
-            self._size_ratios[0].extend([1] * additional_cols)
-
-        # Update the stored number of rows and columns
-        self.num_rows = len(self.plots)
-        self.num_cols = len(self.plots[0]) if self.plots else 0
-
     def add_plot(self, plot_type, plot_arguments, row: int = 0, col: int = 0):
-        self.expand_plot_grid(row, col)
         if plot_type not in self.available_plot_types:
             raise ValueError(f"Plot type '{plot_type}' not recognized. "
                              f"Available methods: {self.available_plot_types}")
@@ -269,28 +407,19 @@ class Plotter:
         plot = self._plot_types[plot_type](**plot_arguments)
 
         # Initialize the cell with an empty list if it's None
-        self.plots[row][col] = self.plots[row][col] or []
+        if self.plots.get((row, col)) is None:
+            self.plots[(row, col)] = []
 
         # Append the new plot to the cell's list
-        self.plots[row][col].append(plot)
+        self.plots[(row, col)].append(plot)
 
-    def create_fig_and_axs(self) -> Tuple[Figure, Axes]:
-        fig, axs = plt.subplots(self.num_rows, self.num_cols, figsize=self.figsize, gridspec_kw={
-            'width_ratios': self._size_ratios[0], 'height_ratios': self._size_ratios[1]})
-        # Ensure axs is a 2D array for consistency
-        if self.num_rows == 1 and self.num_cols == 1:
-            axs = [[axs]]  # Single plot
-        elif self.num_rows == 1:
-            axs = [axs]  # Single row, multiple columns
-        elif self.num_cols == 1:
-            axs = [[ax] for ax in axs]  # Multiple rows, single column
+        self.plot_grid.update_size_ratios(row, col)
 
-        return fig, axs
+    def _plot(self, fig, group_number: int) -> Figure:
 
-    def _plot(self, fig, axs: List[list], group_number: int):
         # Data fetching for static plots
-        track_clusters_requests = [item for i in range(self.num_rows) for j in range(
-            self.num_cols) for plot in self.plots[i][j] for item in plot.get_track_clusterings_requests() if item]
+        track_clusters_requests = [request for cell in self.plots.values(
+        ) for plot in cell if cell for request in plot.get_track_clusterings_requests() if request]
         self.interface.cluster_tracker.track_clusters(track_clusters_requests)
 
         # Determine the rendering order
@@ -298,25 +427,26 @@ class Plotter:
 
         axis_limits = dict()
 
-        for (i, j) in render_order:
-            ax = axs[i][j]
-            for plot in self.plots[i][j]:
+        for index in render_order:
+            ax = self.plot_grid.get_ax_by_index(index)
+            for plot in self.plots[index]:
                 plot.plot(ax=ax, group_number=group_number,
                           interface=self.interface, axis_limits=axis_limits)
 
                 # Store axis limits for future reference
-                axis_limits[(i, j)] = (ax.get_xlim(), ax.get_ylim())
-            if not self.plots[i][j]:
+                axis_limits[index] = (ax.get_xlim(), ax.get_ylim())
+            if not self.plots[index]:
                 ax.grid(False)
                 ax.axis('off')
                 ax.set_visible(False)
 
+        return fig
+
     def plot(self, group_number: int) -> Tuple[Figure, Axes]:
-        fig, axs = self.create_fig_and_axs()
+        fig = self.plot_grid.fig()
+        self._plot(fig, group_number)
 
-        self._plot(fig, axs, group_number)
-
-        return fig, axs
+        return fig
 
     def plot_dynamics(self, mode: str | List[str] = 'show', save_dir: Optional[str] = None, animation_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
@@ -327,10 +457,7 @@ class Plotter:
 
             for group_number in range(len(self.interface.groups)):
 
-                fig, axs = self.create_fig_and_axs()
-
-                self._plot(fig, axs, group_number)
-
+                fig = self.plot(group_number)
                 saver.save(fig)
 
                 if preview:
@@ -346,19 +473,14 @@ class Plotter:
         """
         dependency_graph = nx.DiGraph()
 
-        for i in range(self.num_rows):
-            for j in range(self.num_cols):
-                cell_plots = self.plots[i][j]
-                plot_node = (i, j)
-                dependency_graph.add_node(plot_node)
-                if cell_plots is not None:
-                    for plot in cell_plots:
-                        # Use (i, j) as the node
+        for index, plots in self.plots.items():
+            dependency_graph.add_node(index)
+            if plots is not None:
+                for plot in plots:
+                    dependencies = plot.plot_dependencies()
 
-                        dependencies = plot.plot_dependencies()
-
-                        for dependency in dependencies['after']:
-                            dependency_graph.add_edge(dependency, plot_node)
+                    for dependency in dependencies['after']:
+                        dependency_graph.add_edge(dependency, index)
 
         sorted_order = self._topological_sort(dependency_graph)
 
@@ -368,8 +490,9 @@ class Plotter:
         '''
         Clears axis on a given position in a grid  
         '''
-        if row < len(self.plots) and col < len(self.plots[row]):
-            self.plots[row][col] = []
+        cell = self.plots.get((row, col))
+        if cell:
+            cell.clear()
 
     def _topological_sort(self, dependency_graph: nx.DiGraph):
         """
@@ -471,32 +594,32 @@ class Plotter:
         String with the information about the plotter setup
         '''
         info_str = ''
-        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
+        if len(self.plots) == 0:
             return 'Plot is empty'
-        for i, row in enumerate(self.plots):
-            for j, cell in enumerate(row):
-                info_str += f'\n{i, j}\n'
-                if len(cell) > 0:
-                    for plot in cell:
-                        info_str += str(plot) + '\n'
-                else:
-                    info_str += 'Empty cell'
+        for index, cell in self.plots.items():
+            i, j = index
+            info_str += f'\n{i, j}\n'
+            if len(cell) > 0:
+                for plot in cell:
+                    info_str += str(plot) + '\n'
+            else:
+                info_str += 'Empty cell'
         return info_str
 
     def to_code(self) -> str:
         '''
         Generates a string that can be used to create the current plotter setup. Can be used in GUI as well.
         '''
-        if len(self.plots) == 1 and len(self.plots[0]) == 1 and len(self.plots[0][0]) == 0:
+        if len(self.plots) == 0:
             return ''
 
         final_code = ''
-        for i, row in enumerate(self.plots):
-            for j, cell in enumerate(row):
-                if len(cell) > 0:
-                    for plot in cell:
-                        final_code += 'plotter.add_plot('
-                        final_code += f'\'{self.get_plot_name(type(plot))}\''
-                        final_code += ',{' + plot.settings_to_code() + '},'
-                        final_code += f'row={i},col={j},)\n'
+        for index, cell in self.plots.items():
+            i, j = index
+            if len(cell) > 0:
+                for plot in cell:
+                    final_code += 'plotter.add_plot('
+                    final_code += f'\'{self.get_plot_name(type(plot))}\''
+                    final_code += ',{' + plot.settings_to_code() + '},'
+                    final_code += f'row={i},col={j},)\n'
         return final_code
