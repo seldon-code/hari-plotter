@@ -2,7 +2,7 @@ import networkx as nx
 import numpy as np
 import pytest
 
-from hari_plotter import Graph, Interface, Plotter, Simulation, ColorScheme
+from hari_plotter import ColorScheme, Graph, Interface, Plotter, Simulation
 from hari_plotter.color_scheme import initialize_colormap
 from hari_plotter.lazy_graph import LazyGraph
 
@@ -314,7 +314,6 @@ class TestPlotter:
             save_dir=f"{tmpdir}",
             animation_path=f"{tmpdir}/gif.gif",
         )
-
 
     def test_plot_1x2(self, tmpdir):
         plotter = Plotter.create_plotter(self.S)
