@@ -151,7 +151,7 @@ class MainWindow(QMainWindow):
     def plot_current_group(self):
         if self.plotter.is_initialized:
             print('Group: ' + str(self.group_index) +
-                  '/'+str(len(self.plotter.interface)-1))
+                  '/'+str(len(self.plotter._interfaces)-1))
             self.plotter.plot(self.group_index)
             self.canvas.draw_idle()  # Refresh the canvas to display the new plot
 
@@ -159,27 +159,28 @@ class MainWindow(QMainWindow):
         if self.plotter.is_initialized:
             # Pass self to set MainWindow as parent
             self.info_window = InfoWindow()
-            self.info_window.set_info_text(str(self.plotter.interface))
+            self.info_window.set_info_text(str(self.plotter._interfaces))
             self.info_window.show()
 
     def increment_group_index(self):
         if self.plotter.is_initialized:
             group_index = self.group_index + 1
-            self.group_index = group_index % len(self.plotter.interface.groups)
+            self.group_index = group_index % len(
+                self.plotter._interfaces.groups)
             self.plot_current_group()
 
     def decrement_group_index(self):
         if self.plotter.is_initialized:
             group_index = self.group_index - 1
             if group_index == -1:
-                group_index = len(self.plotter.interface.groups)-1
+                group_index = len(self.plotter._interfaces.groups)-1
             self.group_index = group_index
             self.plot_current_group()
 
     def update_group_index_label(self):
         if self.plotter.is_initialized:
             self.group_index_label.setText(
-                str(self.group_index)+'/'+str(len(self.plotter.interface)-1))
+                str(self.group_index)+'/'+str(len(self.plotter._interfaces)-1))
         else:
             self.group_index_label.setText('0/0')
 
