@@ -297,6 +297,7 @@ class TestPlotter:
                     "parameters": ["Opinion", "Neighbor mean opinion"],
                     "scale": ["Tanh", "Tanh"],
                 },]
+
         plotter.add_plot(
             *plot,
             row=0,
@@ -313,6 +314,7 @@ class TestPlotter:
             save_dir=f"{tmpdir}",
             animation_path=f"{tmpdir}/gif.gif",
         )
+
 
     def test_plot_1x2(self, tmpdir):
         plotter = Plotter.create_plotter(self.S)

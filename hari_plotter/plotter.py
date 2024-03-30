@@ -416,6 +416,7 @@ class Plotter:
         self.plot_grid.update_size_ratios(row, col)
 
         if 'color_scheme' not in plot_arguments:
+
             if interface not in self.color_schemes:
                 self.color_schemes[interface] = self.default_color_scheme.new_interface(
                     interface)
