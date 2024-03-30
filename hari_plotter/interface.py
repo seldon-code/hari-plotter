@@ -151,7 +151,8 @@ class Interface(ABC):
         def __len__(self) -> int:
             return len(self._interface._group_cache)
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def time_range(self) -> List[float]:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
@@ -210,7 +211,8 @@ class Interface(ABC):
             [f"{key.__name__} -> {value.__name__}" for key, value in cls.available_classes.items()])
         return f"Available Classes: {mappings}"
 
-    @abstractproperty
+    @property
+    @abstractmethod
     def available_parameters(self) -> list:
         raise NotImplementedError(
             "This method must be implemented in subclasses")

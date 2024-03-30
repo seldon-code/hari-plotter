@@ -689,7 +689,13 @@ class ColorScheme:
             return plt.get_cmap(self.default_colormap_name)
 
     def copy(self):
+        # TODO: Implement copy
         return ColorScheme(self.interface)
+
+    def new_interface(self, interface: Interface) -> ColorScheme:
+        colorscheme = self.copy()
+        colorscheme.interface = interface
+        return colorscheme
 
     def apply_changes(self, changes):
         pass
