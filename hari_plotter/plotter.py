@@ -356,7 +356,7 @@ class Plotter:
                 # Multiple rows, single column
                 self._axs = [[ax] for ax in self._axs]
 
-    def __init__(self, interface: Interface = None):
+    def __init__(self, interfaces:  Interface | list[Interface] | None = None):
         """
         Initialize the Plotter object with the given Interface instance.
 
@@ -365,18 +365,26 @@ class Plotter:
         interface : Interface
             Interface instance to be used for plotting.
         """
-        self.interface: Interface = interface
-        self.color_scheme: ColorScheme = ColorScheme(self.interface)
-        self.plots: dict[tuple[int, int], list[Plot]] = {}
-        self.plot_grid = self.PlotLattice()
+        self._interfaces:  list[Interface] | None = [interfaces] if isinstance(
+            interfaces, Interface) else interfaces
+        self.default_color_scheme: ColorScheme = ColorScheme()
+        self.color_schemes: dict[Interface, ColorScheme] = {}
+        self.plots: dict[tuple[int, int, Interface], list[Plot]] = {}
+        self.plot_grid: Plotter.PlotLattice = self.PlotLattice()
+
+    @property
+    def number_of_interfaces(self) -> int:
+        if self._interfaces is None:
+            return 0
+        return len(self._interfaces)
 
     def update_interface(self, new_interface):
-        self.interface = new_interface
+        self._interfaces = new_interface
         self.color_scheme = ColorScheme(new_interface)
 
     @property
     def is_initialized(self) -> bool:
-        return self.interface is not None
+        return self._interfaces is not None
 
     @classmethod
     def plot_type(cls, plot_name):
@@ -394,33 +402,77 @@ class Plotter:
             return plot_func
         return decorator
 
-    def add_plot(self, plot_type, plot_arguments, row: int = 0, col: int = 0):
+    def add_plot_for_interface(self, interface: Interface, plot_type: str, plot_arguments: dict[str, str | list[str] | dict[str, Any]], row: int = 0, col: int = 0):
         if plot_type not in self.available_plot_types:
             raise ValueError(f"Plot type '{plot_type}' not recognized. "
                              f"Available methods: {self.available_plot_types}")
 
-        # Check if 'colorscheme' is not in plot_arguments
-        if 'color_scheme' not in plot_arguments:
-            # Add self.color_scheme to plot_arguments with the key 'colorscheme'
-            plot_arguments['color_scheme'] = self.color_scheme
-
-        plot = self._plot_types[plot_type](**plot_arguments)
-
-        # Initialize the cell with an empty list if it's None
-        if self.plots.get((row, col)) is None:
-            self.plots[(row, col)] = []
-
-        # Append the new plot to the cell's list
-        self.plots[(row, col)].append(plot)
+        is_available, comment = self._plot_types[plot_type].is_available(
+            interface)
+        if not is_available:
+            raise ValueError(f"Plot type '{plot_type}' is not available for the given interface {interface}."
+                             f"Reason: {comment}")
 
         self.plot_grid.update_size_ratios(row, col)
 
+        if 'color_scheme' not in plot_arguments:
+            if interface not in self.color_schemes:
+                self.color_schemes[interface] = self.default_color_scheme.new_interface(
+                    interface)
+            # Add self.color_scheme to plot_arguments with the key 'color_scheme'
+            plot_arguments['color_scheme'] = self.color_schemes[interface]
+
+        plot_arguments['interface'] = interface
+
+        plot = self._plot_types[plot_type](**plot_arguments)
+
+        if (row, col, interface) in self.plots:
+            self.plots[(row, col, interface)].append(plot)
+        else:
+            self.plots[(row, col, interface)] = [plot]
+
+    def number_of_groups(self) -> int:
+        return max(len(interface.groups) for interface in self._interfaces)
+
+    def regroup(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        for interface in self._interfaces:
+            interface.regroup(num_intervals, interval_size)
+
+    def add_plot(self, plot_type: str, plot_arguments: dict[str, str | list[str] | dict[str, Any]], row: int = 0, col: int = 0):
+        """
+        Example:
+            plotter.add_plot(
+                "Scatter",
+                {
+                    "parameters": ["Opinion", "Activity"],
+                    "scale": ["Linear", "Linear"],
+                    "color": {
+                        "mode": "Parameter Colormap",
+                        "settings": {
+                            "parameter": "Opinion density",
+                            "scale": ("Linear", )
+                        },
+                    },
+                },
+                row=2,
+                col=0,
+            )
+        """
+
+        for interface in self._interfaces:
+            self.add_plot_for_interface(
+                interface, plot_type, plot_arguments, row, col)
+
     def _plot(self, fig, group_number: int) -> Figure:
+        if self._interfaces is None:
+            warnings.warn("Interface not initialized. Cannot plot.")
+            return fig
 
         # Data fetching for static plots
         track_clusters_requests = [request for cell in self.plots.values(
         ) for plot in cell if cell for request in plot.get_track_clusterings_requests() if request]
-        self.interface.cluster_tracker.track_clusters(track_clusters_requests)
+        for interface in self._interfaces:
+            interface.cluster_tracker.track_clusters(track_clusters_requests)
 
         # Determine the rendering order
         render_order = self._determine_plot_order()
@@ -431,7 +483,7 @@ class Plotter:
             ax = self.plot_grid.get_ax_by_index(index)
             for plot in self.plots[index]:
                 plot.plot(ax=ax, group_number=group_number,
-                          interface=self.interface, axis_limits=axis_limits)
+                          axis_limits=axis_limits)
 
                 # Store axis limits for future reference
                 axis_limits[index] = (ax.get_xlim(), ax.get_ylim())
@@ -453,9 +505,11 @@ class Plotter:
         Create and display the plots based on the stored configurations.
         mode : ["show", "save", "gif", "mp4"]
         """
+        if self._interfaces is None:
+            raise ValueError("Interface not initialized. Cannot plot.")
         with Plotter.PlotSaver(mode=mode, save_path=save_dir, save_format=f"{name}_" + "{}.png", animation_path=animation_path) as saver:
 
-            for group_number in range(len(self.interface.groups)):
+            for group_number in range(self.number_of_groups()):
 
                 fig = self.plot(group_number)
                 saver.save(fig)
@@ -519,7 +573,12 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return self.interface.node_parameters
+        if self._interfaces is None:
+            return None
+        parameters = [
+            interface.node_parameters for interface in self._interfaces]
+        # TODO figure out what does in return after the [interface]
+        return parameters
 
     @property
     def existing_plot_types(self) -> list:
@@ -539,7 +598,7 @@ class Plotter:
         Returns:
             list: A list of available parameters or methods.
         """
-        return [method_name for method_name, method in self._plot_types.items() if method.is_available(self.interface)[0]]
+        return [method_name for method_name, method in self._plot_types.items() if all(method.is_available(interface)[0] for interface in self._interfaces)]
 
     def get_plot_class(self, plot_type: str) -> type[Plot]:
         ''' Converts name of the class to the class'''
@@ -563,10 +622,18 @@ class Plotter:
         """
         info_string = ''
         for method_name, method in self._plot_types.items():
-            is_available, comment = method.is_available(self.interface)
+            is_available_final = True
+            comments = []
+            for interface in self._interfaces:
+                is_available, comment = method.is_available(interface)
+                is_available_final &= is_available
+                comments.append(comment)
+
+            final_comment = ', '.join(comments)
+
             info_string += method_name + ': '
             info_string += '+ ' if is_available else '- '
-            info_string += comment
+            info_string += final_comment
             info_string += '\n'
 
         return info_string
@@ -596,9 +663,8 @@ class Plotter:
         info_str = ''
         if len(self.plots) == 0:
             return 'Plot is empty'
-        for index, cell in self.plots.items():
-            i, j = index
-            info_str += f'\n{i, j}\n'
+        for (i, j, interface), cell in self.plots.items():
+            info_str += f'\n{i, j} {interface}\n'
             if len(cell) > 0:
                 for plot in cell:
                     info_str += str(plot) + '\n'
@@ -613,13 +679,17 @@ class Plotter:
         if len(self.plots) == 0:
             return ''
 
+        # TODO: Add the case when plots are different for different interfaces
+
+        base_interface = self._interfaces[0]
+
         final_code = ''
-        for index, cell in self.plots.items():
-            i, j = index
-            if len(cell) > 0:
-                for plot in cell:
-                    final_code += 'plotter.add_plot('
-                    final_code += f'\'{self.get_plot_name(type(plot))}\''
-                    final_code += ',{' + plot.settings_to_code() + '},'
-                    final_code += f'row={i},col={j},)\n'
+        for (i, j, interface), cell in self.plots.items():
+            if interface == base_interface:
+                if len(cell) > 0:
+                    for plot in cell:
+                        final_code += 'plotter.add_plot('
+                        final_code += f'\'{self.get_plot_name(type(plot))}\''
+                        final_code += ',{' + plot.settings_to_code() + '},'
+                        final_code += f'row={i},col={j},)\n'
         return final_code
