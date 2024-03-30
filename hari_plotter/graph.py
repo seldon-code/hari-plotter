@@ -10,6 +10,7 @@ from typing import Dict, List, Optional, Set, Tuple, Type, Union
 
 import networkx as nx
 import numpy as np
+from networkx.readwrite import json_graph
 
 from .distributions import generate_mixture_of_gaussians
 from .node_gatherer import (ActivityDefaultNodeEdgeGatherer,
@@ -321,30 +322,21 @@ class Graph(nx.DiGraph):
             HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph's nodes, edges, and associated attributes like opinions and influences.
         """
 
+        with open(filename, 'r') as f:
+            data = json.load(f)
+
+        # Convert the JSON data back into a NetworkX graph
+        G = json_graph.node_link_graph(data)
+
         if not os.path.exists(filename):
             raise FileNotFoundError(f"{filename} does not exist.")
 
         with open(filename, 'r') as file:
             graph_dict = json.load(file)
 
-        G = cls()
-        for node in graph_dict['Nodes']:
-            # Convert ID to tuple if necessary
-            node_id = tuple(node["id"]) if isinstance(
-                node["id"], list) else (node["id"],)
-            G.add_node(node_id)
-            G.nodes[node_id]['Opinion'] = node['Opinion']
+        G = json_graph.node_link_graph(data)
 
-        for edge in graph_dict['Edges']:
-            # Convert source and target to tuples if necessary
-            source_id = tuple(edge["source"]) if isinstance(
-                edge["source"], list) else (edge["source"],)
-            target_id = tuple(edge["target"]) if isinstance(
-                edge["target"], list) else (edge["target"],)
-            G.add_edge(source_id, target_id)
-            G.edges[source_id, target_id]['Influence'] = edge['Influence']
-
-        return G
+        return cls(G)
 
     def write_json(self, filename: str):
         """
@@ -355,41 +347,10 @@ class Graph(nx.DiGraph):
 
         This method creates a JSON representation of the graph, which includes detailed information about nodes and edges along with their attributes, making it suitable for storage, sharing, or further analysis.
         """
-
-        params_to_save = ['Opinion']
-
-        # Check conditions for 'cluster_size' and 'inner_opinions'
-        if any(size > 1 for size in self.gatherer.gather('Cluster size')['Cluster size']):
-            params_to_save.extend(['Cluster size', 'Inner opinions'])
-
-        # Check condition for 'Activity'
-        if not np.all(np.isnan(self.gatherer.gather('Activity')['Activity'])):
-            params_to_save.append('Activity')
-
-        # Gathering all parameters that met the conditions
-        gathered_data = self.gatherer.gather(params_to_save)
-
-        # Convert tuples in 'inner_opinions' to strings if 'inner_opinions' is in the gathered data
-        if 'Inner opinions' in gathered_data:
-            gathered_data['Inner opinions'] = [
-                {key[0]: value for key, value in d.items()} for d in gathered_data['Inner opinions']]
-
-        # Construct node data
-        graph_dict = {
-            'Nodes': [
-                {"id": list(node_id) if isinstance(node_id, tuple) else node_id,
-                 **{prop: gathered_data[prop][i] for prop in params_to_save}}
-                for i, node_id in enumerate(gathered_data['Nodes'])
-            ],
-            'Edges': [
-                {"source": list(u) if isinstance(u, tuple) else u, "target": list(
-                    v) if isinstance(v, tuple) else v, 'Influence': self[u][v]['Influence']}
-                for u, v in self.edges()
-            ]
-        }
-
-        with open(filename, 'w') as file:
-            json.dump(graph_dict, file, ensure_ascii=False, indent=4)
+        data = json_graph.node_link_data(self)
+        # Write the JSON data to a file
+        with open(filename, 'w') as f:
+            json.dump(data, f, indent=4)
 
     @classmethod
     def guaranteed_connected(cls, n: int) -> Graph:

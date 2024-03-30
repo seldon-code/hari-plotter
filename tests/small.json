@@ -1,5 +1,8 @@
 {
-    "Nodes": [
+    "directed": true,
+    "multigraph": false,
+    "graph": {},
+    "nodes": [
         {
             "id": [
                 0
@@ -31,7 +34,7 @@
             }
         }
     ],
-    "Edges": [
+    "links": [
         {
             "source": [
                 0
