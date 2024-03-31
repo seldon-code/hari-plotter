@@ -3,7 +3,10 @@ import __future__
 import os
 import pathlib
 import re
+import subprocess
 from typing import Any, Dict, Optional, Union
+
+import pathlib
 
 import toml
 
@@ -20,10 +23,8 @@ class Simulation:
 
     def __init__(self,
                  model: Model,
-                 network: Dict[str, Any],
-                 max_iterations: Optional[int] = None,
-                 dynamics: Optional[Dynamics] = None,
-                 rng_seed: Optional[int] = None):
+                 parameters: Dict[str, Any],
+                 dynamics: Optional[Dynamics | None] = None,):
         """
         Initialize a Simulation instance.
 
@@ -34,11 +35,26 @@ class Simulation:
             dynamics: HariDynamics instance used for the simulation. Default is None.
             rng_seed: Seed for random number generation. Default is None.
         """
-        self.dynamics: Dynamics = dynamics
         self.model: Model = model
-        self.rng_seed: int = rng_seed
-        self.max_iterations: int = max_iterations
-        self.network: dict = network
+        self.parameters: Dict[str, Any] = parameters
+        self.dynamics: Dynamics | None = dynamics
+
+    def run(self, path_to_seldon, directory) -> bool:
+        """
+        Run the simulation.
+        """
+        path_to_executable = pathlib.Path(path_to_seldon)/'build/seldon'
+        directory = pathlib.Path(directory)
+        directory.mkdir(parents=True, exist_ok=True)
+        self.to_toml(str(directory/"conf.toml"))
+        result = subprocess.run([str(path_to_executable),
+                                 str(directory/"conf.toml"), '-o', str(directory)
+                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+        # print(f'{result.stdout.decode() = }')
+        # print(f'{result.stderr.decode() = }')
+        if len(result.stderr.decode()) != 0:
+            return False
+        return True
 
     @classmethod
     def from_toml(cls, filename: str) -> 'Simulation':
@@ -53,19 +69,21 @@ class Simulation:
         """
         data = toml.load(filename)
         model_type = data.get("simulation", {}).get("model")
+        if not model_type:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
         model_params = data.get(model_type, {})
         model = ModelFactory.create_model(model_type, model_params)
-        rng_seed = data.get("simulation", {}).get("rng_seed", None)
-        max_iterations = data.get("model", {}).get("max_iterations", None)
-        network = data.get("network", {})
 
         # Checking if the required keys are present in the data
         if not model:
             raise ValueError(
                 "Invalid TOML format for Simulation initialization.")
 
-        return cls(model=model, rng_seed=rng_seed,
-                   max_iterations=max_iterations, network=network, dynamics=None)
+        data.pop(model_type)
+        data["simulation"].pop("model")
+
+        return cls(model=model, parameters=data, dynamics=None)
 
     @classmethod
     def from_dir(cls, datadir: Union[str, pathlib.Path]) -> 'Simulation':
@@ -82,11 +100,19 @@ class Simulation:
         data = toml.load(str(datadir / 'conf.toml'))
 
         model_type = data.get("simulation", {}).get("model")
+        if not model_type:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
         model_params = data.get(model_type, {})
         model = ModelFactory.create_model(model_type, model_params)
-        rng_seed = data.get("simulation", {}).get("rng_seed", None)
-        max_iterations = data.get("model", {}).get("max_iterations", None)
-        network = data.get("network", {})
+
+        # Checking if the required keys are present in the data
+        if not model:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
+
+        data.pop(model_type)
+        data["simulation"].pop("model")
 
         load_request = model.load_request
 
@@ -111,8 +137,7 @@ class Simulation:
                        for i in range(n_max + 1)]
         HD = Dynamics.read_network(network, opinion, load_request=load_request)
 
-        return cls(model=model, rng_seed=rng_seed,
-                   max_iterations=max_iterations, network=network, dynamics=HD)
+        return cls(model=model, parameters=data, dynamics=HD)
 
     def to_toml(self, filename: str) -> None:
         """
@@ -121,17 +146,11 @@ class Simulation:
         Parameters:
             filename: Path to the TOML file where the simulation configuration will be saved.
         """
-        data = {
-            "simulation": {
-                "model": self.model.model_type,
-                "rng_seed": self.rng_seed
-            },
-            "model": {
-                "max_iterations": self.max_iterations
-            },
-            self.model.model_type: self.model.params,
-            "network": self.network
-        }
+        data = self.parameters.copy()
+        model_type = self.model.model_type
+        data["simulation"]['model'] = model_type
+        data[model_type] = self.model.params
+
         with open(filename, 'w') as f:
             toml.dump(data, f)
 
@@ -155,4 +174,4 @@ class Simulation:
         Returns:
             String representation of the Simulation.
         """
-        return f"Simulation(model={self.model}, rng_seed={self.rng_seed}, max_iterations={self.max_iterations}, network={self.network})"
+        return f"Simulation(model={self.model}, parameters={self.parameters}, dynamics={self.dynamics})"
