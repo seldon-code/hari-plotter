@@ -14,6 +14,8 @@ from .dynamics import Dynamics
 from .lazy_graph import LazyGraph
 from .model import Model, ModelFactory
 
+import copy
+
 
 class Simulation:
     """
@@ -43,18 +45,35 @@ class Simulation:
         """
         Run the simulation.
         """
-        path_to_executable = pathlib.Path(path_to_seldon)/'build/seldon'
-        directory = pathlib.Path(directory)
-        directory.mkdir(parents=True, exist_ok=True)
-        self.to_toml(str(directory/"conf.toml"))
-        result = subprocess.run([str(path_to_executable),
-                                 str(directory/"conf.toml"), '-o', str(directory)
-                                 ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
-        # print(f'{result.stdout.decode() = }')
-        # print(f'{result.stderr.decode() = }')
-        if len(result.stderr.decode()) != 0:
+        try:
+            path_to_executable = pathlib.Path(path_to_seldon) / 'build/seldon'
+            directory = pathlib.Path(directory)
+            directory.mkdir(parents=True, exist_ok=True)
+            self.to_toml(str(directory / "conf.toml"))
+
+            result = subprocess.run([str(path_to_executable),
+                                    str(directory /
+                                        "conf.toml"), '-o', str(directory)
+                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+            # Output handling
+            stdout_output = result.stdout.decode()
+            stderr_output = result.stderr.decode()
+
+            if stdout_output:
+                print(f'Standard Output:\n{stdout_output}')
+            if stderr_output:
+                print(f'Standard Error:\n{stderr_output}')
+                return False  # Assuming any stderr output indicates a failure
+
+            return True  # Success if no stderr output
+
+        except subprocess.CalledProcessError as e:
+            # If subprocess.run fails, print the error and return False
+            print(f'An error occurred while running the simulation: {e}')
+            print(f'Standard Output:\n{e.stdout.decode()}')
+            print(f'Standard Error:\n{e.stderr.decode()}')
             return False
-        return True
 
     @classmethod
     def from_toml(cls, filename: str) -> 'Simulation':
@@ -139,6 +158,23 @@ class Simulation:
 
         return cls(model=model, parameters=data, dynamics=HD)
 
+    def parameters_with_model(self):
+        """
+        Return a dictionary containing the model parameters and simulation parameters.
+        """
+        # Make a deep copy of self.parameters
+        data = copy.deepcopy(self.parameters)
+        model_type = self.model.model_type
+
+        # Ensure the 'simulation' key exists in the dictionary
+        if 'simulation' not in data:
+            data['simulation'] = {}
+
+        data["simulation"]['model'] = model_type
+        data[model_type] = self.model.params
+
+        return data
+
     def to_toml(self, filename: str) -> None:
         """
         Serialize the Simulation instance to a TOML file.
@@ -146,10 +182,7 @@ class Simulation:
         Parameters:
             filename: Path to the TOML file where the simulation configuration will be saved.
         """
-        data = self.parameters.copy()
-        model_type = self.model.model_type
-        data["simulation"]['model'] = model_type
-        data[model_type] = self.model.params
+        data = self.parameters_with_model()
 
         with open(filename, 'w') as f:
             toml.dump(data, f)
@@ -175,3 +208,23 @@ class Simulation:
             String representation of the Simulation.
         """
         return f"Simulation(model={self.model}, parameters={self.parameters}, dynamics={self.dynamics})"
+
+    def __str__(self) -> str:
+        """
+        Return a fancy string representation of the Simulation instance.
+
+        Returns:
+            Fancy string representation of the Simulation.
+        """
+
+        data = self.parameters_with_model()
+
+        model_str = f"Model:\n    Type: {self.model.model_type} ({type(self.model).__name__})\n    Parameters: {self.model.params}"
+        # Create a new dictionary that merges self.parameters and {'model': self.model.model_type}
+
+        parameters_str = "Parameters:\n" + \
+            "\n".join([f"    {k}: {v}" for k,
+                       v in data.items()])
+        dynamics_str = f"Dynamics: {self.dynamics if self.dynamics is not None else 'Not specified'}"
+
+        return f"Simulation Instance\n-------------------\n{model_str}\n\n{parameters_str}\n\n{dynamics_str}"

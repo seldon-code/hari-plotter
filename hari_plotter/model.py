@@ -259,3 +259,14 @@ class DeGrootModel(Model):
             influences[node] = total_influence
 
         return influences
+
+
+@ModelFactory.register("Deffuant")
+class DeffuantModel(Model):
+    def get_tension(self, G: Graph, norm_type: str = 'squared') -> float:
+        # TODO: Implement Deffuant model tension calculation
+        return 0.0
+
+    def get_influence(self, G: Graph) -> np.ndarray:
+        # TODO: Implement Deffuant model influence calculation
+        return np.zeros(len(G))
