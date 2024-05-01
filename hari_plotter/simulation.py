@@ -1,20 +1,18 @@
 import __future__
 
+import copy
 import os
 import pathlib
 import re
 import subprocess
 from typing import Any, Dict, Optional, Union
 
-import pathlib
-
 import toml
 
 from .dynamics import Dynamics
+from .graph import Graph
 from .lazy_graph import LazyGraph
 from .model import Model, ModelFactory
-
-import copy
 
 
 class Simulation:
@@ -41,19 +39,34 @@ class Simulation:
         self.parameters: Dict[str, Any] = parameters
         self.dynamics: Dynamics | None = dynamics
 
-    def run(self, path_to_seldon, directory, n_output_network: int | None = None,  start_numbering_from: int | None = None) -> bool:
+    def run(self, path_to_seldon, directory,
+            n_output_network: int | None = None,
+            n_output_agents: int | None = None,
+            start_numbering_from: int | None = None,
+            start_from: int | None = None,
+            print_progress: bool | None = None) -> bool:
         """
         Run the simulation.
+
+        if start_from is integer, it takes the start_from image from the dynamics as the initial_guess for the simulation.
         """
         updates = {}
         if n_output_network is not None:
             if 'io' not in updates:
                 updates['io'] = {}
             updates['io']['n_output_network'] = n_output_network
+        if n_output_agents is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['n_output_agents'] = n_output_agents
         if start_numbering_from is not None:
             if 'io' not in updates:
                 updates['io'] = {}
             updates['io']['start_numbering_from'] = start_numbering_from
+        if print_progress is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['print_progress'] = print_progress
 
         try:
             path_to_executable = pathlib.Path(path_to_seldon) / 'build/seldon'
@@ -62,9 +75,18 @@ class Simulation:
             self.to_toml(str(directory / "conf.toml"),
                          updates=updates)
 
+            initial_setup = ()
+            if start_from is not None:
+                final_state: Graph = self.dynamics[start_from].get_graph()
+                network_file_name = str(directory/'network.txt')
+                opinion_file_name = str(directory/'opinion.txt')
+                final_state.write_network(network_file_name, opinion_file_name)
+                initial_setup = ('-n', network_file_name,
+                                 '-a', opinion_file_name)
+
             result = subprocess.run([str(path_to_executable),
                                     str(directory /
-                                        "conf.toml"), '-o', str(directory)
+                                        "conf.toml"), '-o', str(directory), *initial_setup,
                                      ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
 
             # Output handling
