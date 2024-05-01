@@ -41,15 +41,26 @@ class Simulation:
         self.parameters: Dict[str, Any] = parameters
         self.dynamics: Dynamics | None = dynamics
 
-    def run(self, path_to_seldon, directory) -> bool:
+    def run(self, path_to_seldon, directory, n_output_network: int | None = None,  start_numbering_from: int | None = None) -> bool:
         """
         Run the simulation.
         """
+        updates = {}
+        if n_output_network is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['n_output_network'] = n_output_network
+        if start_numbering_from is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['start_numbering_from'] = start_numbering_from
+
         try:
             path_to_executable = pathlib.Path(path_to_seldon) / 'build/seldon'
             directory = pathlib.Path(directory)
             directory.mkdir(parents=True, exist_ok=True)
-            self.to_toml(str(directory / "conf.toml"))
+            self.to_toml(str(directory / "conf.toml"),
+                         updates=updates)
 
             result = subprocess.run([str(path_to_executable),
                                     str(directory /
@@ -158,7 +169,7 @@ class Simulation:
 
         return cls(model=model, parameters=data, dynamics=HD)
 
-    def parameters_with_model(self):
+    def parameters_with_model(self, updates: dict | None = None):
         """
         Return a dictionary containing the model parameters and simulation parameters.
         """
@@ -173,16 +184,18 @@ class Simulation:
         data["simulation"]['model'] = model_type
         data[model_type] = self.model.params
 
+        data = Simulation.update_nested_dict(data, updates)
+
         return data
 
-    def to_toml(self, filename: str) -> None:
+    def to_toml(self, filename: str, updates: dict | None = None) -> None:
         """
         Serialize the Simulation instance to a TOML file.
 
         Parameters:
             filename: Path to the TOML file where the simulation configuration will be saved.
         """
-        data = self.parameters_with_model()
+        data = self.parameters_with_model(updates=updates)
 
         with open(filename, 'w') as f:
             toml.dump(data, f)
@@ -228,3 +241,19 @@ class Simulation:
         dynamics_str = f"Dynamics: {self.dynamics if self.dynamics is not None else 'Not specified'}"
 
         return f"Simulation Instance\n-------------------\n{model_str}\n\n{parameters_str}\n\n{dynamics_str}"
+
+    @staticmethod
+    def update_nested_dict(original: dict, updates: dict | None):
+        """
+        Recursively update the dictionary 'original' with values from 'updates'.
+        If a key in 'updates' refers to a dictionary, dive deeper.
+        Otherwise, simply update the value.
+        """
+        if updates:
+            for key, value in updates.items():
+                if isinstance(value, dict) and key in original:
+                    original[key] = Simulation.update_nested_dict(
+                        original.get(key, {}), value)
+                else:
+                    original[key] = value
+        return original
