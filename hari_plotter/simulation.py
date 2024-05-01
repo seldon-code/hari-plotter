@@ -208,7 +208,9 @@ class Simulation:
         return self.model.dt
 
     def __len__(self) -> int:
-        return len(self.dynamics)
+        if self.dynamics:
+            return len(self.dynamics)
+        return 0
 
     def __getitem__(self, index) -> LazyGraph:
         return self.dynamics[index]
