@@ -1,13 +1,16 @@
 import __future__
 
+import copy
 import os
 import pathlib
 import re
+import subprocess
 from typing import Any, Dict, Optional, Union
 
 import toml
 
 from .dynamics import Dynamics
+from .graph import Graph
 from .lazy_graph import LazyGraph
 from .model import Model, ModelFactory
 
@@ -20,10 +23,8 @@ class Simulation:
 
     def __init__(self,
                  model: Model,
-                 network: Dict[str, Any],
-                 max_iterations: Optional[int] = None,
-                 dynamics: Optional[Dynamics] = None,
-                 rng_seed: Optional[int] = None):
+                 parameters: Dict[str, Any],
+                 dynamics: Optional[Dynamics | None] = None,):
         """
         Initialize a Simulation instance.
 
@@ -34,11 +35,78 @@ class Simulation:
             dynamics: HariDynamics instance used for the simulation. Default is None.
             rng_seed: Seed for random number generation. Default is None.
         """
-        self.dynamics: Dynamics = dynamics
         self.model: Model = model
-        self.rng_seed: int = rng_seed
-        self.max_iterations: int = max_iterations
-        self.network: dict = network
+        self.parameters: Dict[str, Any] = parameters
+        self.dynamics: Dynamics | None = dynamics
+
+    def run(self, path_to_seldon, directory,
+            n_output_network: int | None = None,
+            n_output_agents: int | None = None,
+            start_numbering_from: int | None = None,
+            start_from: int | None = None,
+            print_progress: bool | None = None) -> bool:
+        """
+        Run the simulation.
+
+        if start_from is integer, it takes the start_from image from the dynamics as the initial_guess for the simulation.
+        """
+        updates = {}
+        if n_output_network is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['n_output_network'] = n_output_network
+        if n_output_agents is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['n_output_agents'] = n_output_agents
+        if start_numbering_from is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['start_numbering_from'] = start_numbering_from
+        if print_progress is not None:
+            if 'io' not in updates:
+                updates['io'] = {}
+            updates['io']['print_progress'] = print_progress
+
+        try:
+            path_to_executable = pathlib.Path(path_to_seldon) / 'build/seldon'
+            directory = pathlib.Path(directory)
+            directory.mkdir(parents=True, exist_ok=True)
+            self.to_toml(str(directory / "conf.toml"),
+                         updates=updates)
+
+            initial_setup = ()
+            if start_from is not None:
+                final_state: Graph = self.dynamics[start_from].get_graph()
+                network_file_name = str(directory/'network.txt')
+                opinion_file_name = str(directory/'opinion.txt')
+                final_state.write_network(network_file_name, opinion_file_name)
+                initial_setup = ('-n', network_file_name,
+                                 '-a', opinion_file_name)
+
+            result = subprocess.run([str(path_to_executable),
+                                    str(directory /
+                                        "conf.toml"), '-o', str(directory), *initial_setup,
+                                     ], stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+
+            # Output handling
+            stdout_output = result.stdout.decode()
+            stderr_output = result.stderr.decode()
+
+            if stdout_output:
+                print(f'Standard Output:\n{stdout_output}')
+            if stderr_output:
+                print(f'Standard Error:\n{stderr_output}')
+                return False  # Assuming any stderr output indicates a failure
+
+            return True  # Success if no stderr output
+
+        except subprocess.CalledProcessError as e:
+            # If subprocess.run fails, print the error and return False
+            print(f'An error occurred while running the simulation: {e}')
+            print(f'Standard Output:\n{e.stdout.decode()}')
+            print(f'Standard Error:\n{e.stderr.decode()}')
+            return False
 
     @classmethod
     def from_toml(cls, filename: str) -> 'Simulation':
@@ -53,19 +121,21 @@ class Simulation:
         """
         data = toml.load(filename)
         model_type = data.get("simulation", {}).get("model")
+        if not model_type:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
         model_params = data.get(model_type, {})
         model = ModelFactory.create_model(model_type, model_params)
-        rng_seed = data.get("simulation", {}).get("rng_seed", None)
-        max_iterations = data.get("model", {}).get("max_iterations", None)
-        network = data.get("network", {})
 
         # Checking if the required keys are present in the data
         if not model:
             raise ValueError(
                 "Invalid TOML format for Simulation initialization.")
 
-        return cls(model=model, rng_seed=rng_seed,
-                   max_iterations=max_iterations, network=network, dynamics=None)
+        data.pop(model_type)
+        data["simulation"].pop("model")
+
+        return cls(model=model, parameters=data, dynamics=None)
 
     @classmethod
     def from_dir(cls, datadir: Union[str, pathlib.Path]) -> 'Simulation':
@@ -82,11 +152,19 @@ class Simulation:
         data = toml.load(str(datadir / 'conf.toml'))
 
         model_type = data.get("simulation", {}).get("model")
+        if not model_type:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
         model_params = data.get(model_type, {})
         model = ModelFactory.create_model(model_type, model_params)
-        rng_seed = data.get("simulation", {}).get("rng_seed", None)
-        max_iterations = data.get("model", {}).get("max_iterations", None)
-        network = data.get("network", {})
+
+        # Checking if the required keys are present in the data
+        if not model:
+            raise ValueError(
+                "Invalid TOML format for Simulation initialization.")
+
+        data.pop(model_type)
+        data["simulation"].pop("model")
 
         load_request = model.load_request
 
@@ -111,27 +189,36 @@ class Simulation:
                        for i in range(n_max + 1)]
         HD = Dynamics.read_network(network, opinion, load_request=load_request)
 
-        return cls(model=model, rng_seed=rng_seed,
-                   max_iterations=max_iterations, network=network, dynamics=HD)
+        return cls(model=model, parameters=data, dynamics=HD)
 
-    def to_toml(self, filename: str) -> None:
+    def parameters_with_model(self, updates: dict | None = None):
+        """
+        Return a dictionary containing the model parameters and simulation parameters.
+        """
+        # Make a deep copy of self.parameters
+        data = copy.deepcopy(self.parameters)
+        model_type = self.model.model_type
+
+        # Ensure the 'simulation' key exists in the dictionary
+        if 'simulation' not in data:
+            data['simulation'] = {}
+
+        data["simulation"]['model'] = model_type
+        data[model_type] = self.model.params
+
+        data = Simulation.update_nested_dict(data, updates)
+
+        return data
+
+    def to_toml(self, filename: str, updates: dict | None = None) -> None:
         """
         Serialize the Simulation instance to a TOML file.
 
         Parameters:
             filename: Path to the TOML file where the simulation configuration will be saved.
         """
-        data = {
-            "simulation": {
-                "model": self.model.model_type,
-                "rng_seed": self.rng_seed
-            },
-            "model": {
-                "max_iterations": self.max_iterations
-            },
-            self.model.model_type: self.model.params,
-            "network": self.network
-        }
+        data = self.parameters_with_model(updates=updates)
+
         with open(filename, 'w') as f:
             toml.dump(data, f)
 
@@ -143,7 +230,9 @@ class Simulation:
         return self.model.dt
 
     def __len__(self) -> int:
-        return len(self.dynamics)
+        if self.dynamics:
+            return len(self.dynamics)
+        return 0
 
     def __getitem__(self, index) -> LazyGraph:
         return self.dynamics[index]
@@ -155,4 +244,40 @@ class Simulation:
         Returns:
             String representation of the Simulation.
         """
-        return f"Simulation(model={self.model}, rng_seed={self.rng_seed}, max_iterations={self.max_iterations}, network={self.network})"
+        return f"Simulation(model={self.model}, parameters={self.parameters}, dynamics={self.dynamics})"
+
+    def __str__(self) -> str:
+        """
+        Return a fancy string representation of the Simulation instance.
+
+        Returns:
+            Fancy string representation of the Simulation.
+        """
+
+        data = self.parameters_with_model()
+
+        model_str = f"Model:\n    Type: {self.model.model_type} ({type(self.model).__name__})\n    Parameters: {self.model.params}"
+        # Create a new dictionary that merges self.parameters and {'model': self.model.model_type}
+
+        parameters_str = "Parameters:\n" + \
+            "\n".join([f"    {k}: {v}" for k,
+                       v in data.items()])
+        dynamics_str = f"Dynamics: {self.dynamics if self.dynamics is not None else 'Not specified'}"
+
+        return f"Simulation Instance\n-------------------\n{model_str}\n\n{parameters_str}\n\n{dynamics_str}"
+
+    @staticmethod
+    def update_nested_dict(original: dict, updates: dict | None):
+        """
+        Recursively update the dictionary 'original' with values from 'updates'.
+        If a key in 'updates' refers to a dictionary, dive deeper.
+        Otherwise, simply update the value.
+        """
+        if updates:
+            for key, value in updates.items():
+                if isinstance(value, dict) and key in original:
+                    original[key] = Simulation.update_nested_dict(
+                        original.get(key, {}), value)
+                else:
+                    original[key] = value
+        return original

@@ -17,3 +17,8 @@ class TestSimulation:
         assert isinstance(self.activity, Simulation)
         assert isinstance(self.degroot.model, Model)
         assert isinstance(self.activity.model, Model)
+
+    def test_to_toml(self, tmp_path):
+        filename = tmp_path / "test.toml"
+        self.degroot.to_toml(filename)
+        assert filename.exists(), 'File not created'

@@ -1,3 +1,4 @@
+import warnings
 from abc import ABC, abstractmethod
 from typing import Any, Callable, Dict, Type, Union
 
@@ -45,6 +46,20 @@ class ModelFactory:
         return model_class(params)
 
     @classmethod
+    def get_model_class(cls, model_type: str) -> type['Model']:
+        ''' Converts name of the class to the class'''
+        return cls._registry[model_type]
+
+    @classmethod
+    def get_model_name(cls, model_class: type['Model']) -> str:
+        ''' Converts the class to its name'''
+        for key, value in cls._registry.items():
+            if value == model_class:
+                return key
+        warnings.warn(f'{model_class} was not found in model types')
+        return ''
+
+    @classmethod
     def from_toml(cls, filename: str) -> 'Model':
         """
         Create a model instance from a TOML configuration file.
@@ -74,6 +89,10 @@ class Model(ABC):
             params: Parameters for initializing the model.
         """
         self.params = params
+
+    @property
+    def model_type(self) -> str:
+        return ModelFactory.get_model_name(self.__class__)
 
     @property
     def dt(self):
@@ -240,3 +259,14 @@ class DeGrootModel(Model):
             influences[node] = total_influence
 
         return influences
+
+
+@ModelFactory.register("Deffuant")
+class DeffuantModel(Model):
+    def get_tension(self, G: Graph, norm_type: str = 'squared') -> float:
+        # TODO: Implement Deffuant model tension calculation
+        return 0.0
+
+    def get_influence(self, G: Graph) -> np.ndarray:
+        # TODO: Implement Deffuant model influence calculation
+        return np.zeros(len(G))

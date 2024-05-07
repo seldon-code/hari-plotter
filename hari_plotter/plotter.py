@@ -601,13 +601,15 @@ class Plotter:
         """
         return [method_name for method_name, method in self._plot_types.items() if all(method.is_available(interface)[0] for interface in self._interfaces)]
 
-    def get_plot_class(self, plot_type: str) -> type[Plot]:
+    @classmethod
+    def get_plot_class(cls, plot_type: str) -> type[Plot]:
         ''' Converts name of the class to the class'''
-        return self._plot_types[plot_type]
+        return cls._plot_types[plot_type]
 
-    def get_plot_name(self, plot_class: type[Plot]) -> str:
+    @classmethod
+    def get_plot_name(cls, plot_class: type[Plot]) -> str:
         ''' Converts the class to its name'''
-        for key, value in self._plot_types.items():
+        for key, value in cls._plot_types.items():
             if value == plot_class:
                 return key
         warnings.warn(f'{plot_class} was not found in plot types')
@@ -690,7 +692,7 @@ class Plotter:
                 if len(cell) > 0:
                     for plot in cell:
                         final_code += 'plotter.add_plot('
-                        final_code += f'\'{self.get_plot_name(type(plot))}\''
+                        final_code += f'\'{Plotter.get_plot_name(type(plot))}\''
                         final_code += ',{' + plot.settings_to_code() + '},'
                         final_code += f'row={i},col={j},)\n'
         return final_code
