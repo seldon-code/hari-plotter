@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.interface module &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">hari_plotter.interface module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/hari_plotter.interface.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hari_plotter.interface">
+<span id="hari-plotter-interface-module"></span><h1>hari_plotter.interface module<a class="headerlink" href="#module-hari_plotter.interface" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariDynamicsInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.interface.</span></span><span class="sig-name descname"><span class="pre">HariDynamicsInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#HariDynamicsInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.HariDynamicsInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><code class="xref py py-class docutils literal notranslate"><span class="pre">Interface</span></code></a></p>
+<p>Interface specifically designed for the HariDynamics class.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariDynamicsInterface.REQUIRED_TYPE">
+<span class="sig-name descname"><span class="pre">REQUIRED_TYPE</span></span><a class="headerlink" href="#hari_plotter.interface.HariDynamicsInterface.REQUIRED_TYPE" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><code class="xref py py-class docutils literal notranslate"><span class="pre">Dynamics</span></code></a></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariDynamicsInterface.available_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">available_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#hari_plotter.interface.HariDynamicsInterface.available_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the list of available parameters/methods from the data gatherer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of available parameters or methods.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariDynamicsInterface.time_range">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.interface.HariDynamicsInterface.time_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariGraphInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.interface.</span></span><span class="sig-name descname"><span class="pre">HariGraphInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#HariGraphInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.HariGraphInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><code class="xref py py-class docutils literal notranslate"><span class="pre">Interface</span></code></a></p>
+<p>Interface specifically designed for the HariGraph class.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariGraphInterface.REQUIRED_TYPE">
+<span class="sig-name descname"><span class="pre">REQUIRED_TYPE</span></span><a class="headerlink" href="#hari_plotter.interface.HariGraphInterface.REQUIRED_TYPE" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><code class="xref py py-class docutils literal notranslate"><span class="pre">Graph</span></code></a></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariGraphInterface.available_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">available_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#hari_plotter.interface.HariGraphInterface.available_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the list of available parameters/methods from the data gatherer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of available parameters or methods.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.HariGraphInterface.time_range">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.interface.HariGraphInterface.time_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.interface.</span></span><span class="sig-name descname"><span class="pre">Interface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">group_length</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract base class to define interface behaviors.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.REQUIRED_TYPE">
+<span class="sig-name descname"><span class="pre">REQUIRED_TYPE</span></span><a class="headerlink" href="#hari_plotter.interface.Interface.REQUIRED_TYPE" title="Link to this definition"></a></dt>
+<dd><p>Expected type for the data attribute.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Type[Any] | None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.available_classes">
+<span class="sig-name descname"><span class="pre">available_classes</span></span><a class="headerlink" href="#hari_plotter.interface.Interface.available_classes" title="Link to this definition"></a></dt>
+<dd><p>Dictionary mapping REQUIRED_TYPEs to their corresponding classes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[Type[Any], Type[<a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface">hari_plotter.interface.Interface</a>]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ClusterTracker</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interface</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.clean">
+<span class="sig-name descname"><span class="pre">clean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.clean" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.cluster_graph">
+<span class="sig-name descname"><span class="pre">cluster_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clusters_dynamics</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.cluster.html#hari_plotter.cluster.Clustering" title="hari_plotter.cluster.Clustering"><span class="pre">Clustering</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">DiGraph</span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.cluster_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.cluster_graph" title="Link to this definition"></a></dt>
+<dd><p>Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cluster_settings</strong> – Settings for clusterization.</p></li>
+<li><p><strong>clusters_dynamics</strong> – A list of lists where each sub-list represents the clusters in a frame.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.generate_node_id">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">generate_node_id</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">frame_index</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cluster_identifier</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.generate_node_id"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.generate_node_id" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.get_cluster_presence">
+<span class="sig-name descname"><span class="pre">get_cluster_presence</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusterization_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.get_cluster_presence"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.get_cluster_presence" title="Link to this definition"></a></dt>
+<dd><p>Retrieves a list of dictionaries, each mapping unique clusters to the frames in which they appear, based on the given clusterization settings.
+Each dictionary corresponds to one clustering type if multiple types are provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clusterization_settings</strong> – The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.get_final_value">
+<span class="sig-name descname"><span class="pre">get_final_value</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusterization_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">parameter</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.get_final_value"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.get_final_value" title="Link to this definition"></a></dt>
+<dd><p>Returns the value of the parameter in the last group cluster appeared</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.get_unique_clusters">
+<span class="sig-name descname"><span class="pre">get_unique_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusterization_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.get_unique_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.get_unique_clusters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.
+Each inner list corresponds to one clustering type if multiple types are provided.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clusterization_settings</strong> – The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists, each containing unique cluster names for one type of clustering.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.is_tracked">
+<span class="sig-name descname"><span class="pre">is_tracked</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusterization_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">bool</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.is_tracked"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.is_tracked" title="Link to this definition"></a></dt>
+<dd><p>Tracks the clusters across frames based on the provided clusterization settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clusterization_settings</strong> – The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.ClusterTracker.track_clusters">
+<span class="sig-name descname"><span class="pre">track_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusterization_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.ClusterTracker.track_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.ClusterTracker.track_clusters" title="Link to this definition"></a></dt>
+<dd><p>Tracks the clusters across frames based on the provided clusterization settings.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>clusterization_settings</strong> – The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.DynamicDataCache">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">DynamicDataCache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interface_instance</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.DynamicDataCache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.DynamicDataCache" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.DynamicDataCache.clean">
+<span class="sig-name descname"><span class="pre">clean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.DynamicDataCache.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.DynamicDataCache.clean" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.GroupIterable">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">GroupIterable</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interface_instance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><span class="pre">Interface</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.GroupIterable"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.GroupIterable" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">REQUIRED_TYPE</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">None</span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.StaticDataCache">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">StaticDataCache</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">interface_instance</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.StaticDataCache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.StaticDataCache" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.StaticDataCache.clean">
+<span class="sig-name descname"><span class="pre">clean</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.StaticDataCache.clean"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.StaticDataCache.clean" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">available_classes</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><span class="pre">Interface</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></em><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{&lt;class</span> <span class="pre">'hari_plotter.dynamics.Dynamics'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'hari_plotter.interface.HariDynamicsInterface'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'hari_plotter.graph.Graph'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'hari_plotter.interface.HariGraphInterface'&gt;,</span> <span class="pre">&lt;class</span> <span class="pre">'hari_plotter.simulation.Simulation'&gt;:</span> <span class="pre">&lt;class</span> <span class="pre">'hari_plotter.interface.SimulationInterface'&gt;}</span></em><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.available_parameters">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">available_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#hari_plotter.interface.Interface.available_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.clean_cache">
+<span class="sig-name descname"><span class="pre">clean_cache</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.clean_cache"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.clean_cache" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.create_interface">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">create_interface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><span class="pre">Interface</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.create_interface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.create_interface" title="Link to this definition"></a></dt>
+<dd><p>Create an interface for the given data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>data</strong> – The underlying data object to which the interface applies.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Instance of a subclass of Interface based on data’s type.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>ValueError</strong> – If no matching interface is found for the data type.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.group_time_range">
+<span class="sig-name descname"><span class="pre">group_time_range</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.group_time_range"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.group_time_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.info">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">info</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">str</span></span></span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.info"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.info" title="Link to this definition"></a></dt>
+<dd><p>Return a string representation of the available classes and their mapping.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A string detailing the available classes and their mappings.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.node_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">node_parameters</span></span><a class="headerlink" href="#hari_plotter.interface.Interface.node_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.nodes">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">nodes</span></span><a class="headerlink" href="#hari_plotter.interface.Interface.nodes" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.regroup">
+<span class="sig-name descname"><span class="pre">regroup</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_intervals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.regroup"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.regroup" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.request_to_tuple">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">request_to_tuple</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">request</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#Interface.request_to_tuple"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.Interface.request_to_tuple" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.Interface.time_range">
+<em class="property"><span class="pre">abstract</span><span class="w"> </span><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.interface.Interface.time_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.interface.SimulationInterface">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.interface.</span></span><span class="sig-name descname"><span class="pre">SimulationInterface</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">data</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/interface.html#SimulationInterface"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.interface.SimulationInterface" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.interface.Interface" title="hari_plotter.interface.Interface"><code class="xref py py-class docutils literal notranslate"><span class="pre">Interface</span></code></a></p>
+<p>Interface specifically designed for the Simulation class.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.interface.SimulationInterface.REQUIRED_TYPE">
+<span class="sig-name descname"><span class="pre">REQUIRED_TYPE</span></span><a class="headerlink" href="#hari_plotter.interface.SimulationInterface.REQUIRED_TYPE" title="Link to this definition"></a></dt>
+<dd><p>alias of <a class="reference internal" href="hari_plotter.simulation.html#hari_plotter.simulation.Simulation" title="hari_plotter.simulation.Simulation"><code class="xref py py-class docutils literal notranslate"><span class="pre">Simulation</span></code></a></p>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.SimulationInterface.available_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">available_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span></em><a class="headerlink" href="#hari_plotter.interface.SimulationInterface.available_parameters" title="Link to this definition"></a></dt>
+<dd><p>Retrieves the list of available parameters/methods from the data gatherer.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A list of available parameters or methods.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.interface.SimulationInterface.time_range">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">time_range</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.interface.SimulationInterface.time_range" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

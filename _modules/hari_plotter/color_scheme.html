@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.color_scheme &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hari_plotter.color_scheme</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hari_plotter.color_scheme</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">copy</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.cm</span> <span class="k">as</span> <span class="nn">cm</span>
+<span class="kn">import</span> <span class="nn">matplotlib.colors</span> <span class="k">as</span> <span class="nn">colors</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Colormap</span><span class="p">,</span> <span class="n">to_rgba</span>
+<span class="kn">from</span> <span class="nn">matplotlib.lines</span> <span class="kn">import</span> <span class="n">Line2D</span>
+<span class="kn">from</span> <span class="nn">matplotlib.colors</span> <span class="kn">import</span> <span class="n">Colormap</span><span class="p">,</span> <span class="n">LinearSegmentedColormap</span>
+
+<span class="kn">from</span> <span class="nn">.cluster</span> <span class="kn">import</span> <span class="n">Clustering</span>
+<span class="kn">from</span> <span class="nn">.interface</span> <span class="kn">import</span> <span class="n">Interface</span>
+
+
+<div class="viewcode-block" id="anything_to_rgba">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.anything_to_rgba">[docs]</a>
+<span class="k">def</span> <span class="nf">anything_to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">color</span> <span class="o">==</span> <span class="s1">&#39;&#39;</span><span class="p">:</span>
+            <span class="n">rgba</span> <span class="o">=</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Convert string colors (names or hex) to RGBA using matplotlib</span>
+            <span class="n">rgba</span> <span class="o">=</span> <span class="n">to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="o">==</span> <span class="mi">3</span><span class="p">:</span>
+            <span class="c1"># Assuming RGB, append alpha value 1.0 to make it RGBA</span>
+            <span class="n">rgba</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="o">+</span> <span class="p">(</span><span class="mf">1.0</span><span class="p">,)</span>
+        <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="o">==</span> <span class="mi">4</span><span class="p">:</span>
+            <span class="n">rgba</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">color</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Array color must be length 3 (RGB) or 4 (RGBA)&quot;</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">float</span><span class="p">)</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="c1"># Assuming grayscale value, replicate it across R, G, B; set alpha to 1.0</span>
+        <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">color</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">rgba</span> <span class="o">=</span> <span class="p">(</span><span class="n">color</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="n">color</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Float color must be in the range [0, 1]&quot;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;Color must be a string, an array, or a float&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Ensure all values are in the [0, 1] range</span>
+    <span class="n">rgba_normalized</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">max</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">))</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">rgba</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">rgba_normalized</span></div>
+
+
+
+<div class="viewcode-block" id="initialize_colormap">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.initialize_colormap">[docs]</a>
+<span class="k">def</span> <span class="nf">initialize_colormap</span><span class="p">(</span><span class="n">colormap</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Colormap</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Returns colormap name and colormap</span>
+<span class="sd">        Example: initialize_colormap(</span>
+<span class="sd">        {</span>
+<span class="sd">        &quot;Name&quot;: &quot;custom1&quot;,</span>
+<span class="sd">        &quot;Colors&quot;: [</span>
+<span class="sd">            (255 / 255, 79 / 255, 20 / 255),</span>
+<span class="sd">            (1 / 255, 180 / 255, 155 / 255),</span>
+<span class="sd">            (71 / 255, 71 / 255, 240 / 255),</span>
+<span class="sd">        ],</span>
+<span class="sd">        }</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">colormap</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">colormap</span><span class="p">,</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+
+    <span class="n">colormap_name</span> <span class="o">=</span> <span class="n">colormap</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span>
+    <span class="c1"># Check if the colormap already exists</span>
+    <span class="k">if</span> <span class="n">colormap</span><span class="p">[</span><span class="s1">&#39;Name&#39;</span><span class="p">]</span> <span class="ow">in</span> <span class="n">plt</span><span class="o">.</span><span class="n">colormaps</span><span class="p">():</span>
+        <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;Colormap &#39;</span><span class="si">{</span><span class="n">colormap_name</span><span class="si">}</span><span class="s2">&#39; already exists. Using the existing colormap.&quot;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">colormap_name</span><span class="p">,</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap_name</span><span class="p">)</span>
+
+    <span class="c1"># Colormap doesn&#39;t exist, create a new one</span>
+    <span class="n">colors</span> <span class="o">=</span> <span class="p">[</span><span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">color</span><span class="p">)</span> <span class="k">for</span> <span class="n">color</span> <span class="ow">in</span> <span class="n">colormap</span><span class="p">[</span><span class="s1">&#39;Colors&#39;</span><span class="p">]]</span>
+    <span class="n">new_colormap</span> <span class="o">=</span> <span class="n">LinearSegmentedColormap</span><span class="o">.</span><span class="n">from_list</span><span class="p">(</span><span class="n">colormap_name</span><span class="p">,</span> <span class="n">colors</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">register_cmap</span><span class="p">(</span><span class="n">name</span><span class="o">=</span><span class="n">colormap_name</span><span class="p">,</span> <span class="n">cmap</span><span class="o">=</span><span class="n">new_colormap</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Colormap &#39;</span><span class="si">{</span><span class="n">colormap_name</span><span class="si">}</span><span class="s2">&#39; created and registered.&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">colormap_name</span><span class="p">,</span> <span class="n">new_colormap</span></div>
+
+
+
+<div class="viewcode-block" id="ColorScheme">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme">[docs]</a>
+<span class="k">class</span> <span class="nc">ColorScheme</span><span class="p">:</span>
+
+    <span class="n">default_colormap_name</span><span class="p">,</span> <span class="n">default_colormap</span> <span class="o">=</span> <span class="n">initialize_colormap</span><span class="p">(</span><span class="s1">&#39;coolwarm&#39;</span><span class="p">)</span>
+    <span class="n">default_scatter_color</span> <span class="o">=</span> <span class="n">default_colormap</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">default_distribution_color</span> <span class="o">=</span> <span class="n">default_colormap</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+    <span class="n">default_none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">,</span> <span class="mi">0</span><span class="p">))</span>
+
+    <span class="n">available_colormaps</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">colormaps</span><span class="p">()</span>
+    <span class="n">available_markers</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">Line2D</span><span class="o">.</span><span class="n">markers</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+    <span class="n">default_markers</span> <span class="o">=</span> <span class="p">(</span><span class="s1">&#39;o&#39;</span><span class="p">,</span> <span class="s1">&#39;X&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;^&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;4&#39;</span><span class="p">,</span> <span class="s1">&#39;5&#39;</span><span class="p">,</span> <span class="s1">&#39;6&#39;</span><span class="p">,</span> <span class="s1">&#39;7&#39;</span><span class="p">,</span> <span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;+&#39;</span><span class="p">,</span>
+                            <span class="s1">&#39;D&#39;</span><span class="p">,</span> <span class="s1">&#39;H&#39;</span><span class="p">,</span> <span class="s1">&#39;P&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span>  <span class="s1">&#39;p&#39;</span><span class="p">,</span> <span class="s1">&#39;s&#39;</span><span class="p">,</span> <span class="s1">&#39;_&#39;</span><span class="p">,</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="s1">&#39;,&#39;</span><span class="p">,</span> <span class="s1">&#39;.&#39;</span><span class="p">,)</span>
+    <span class="n">default_scatter_marker</span> <span class="o">=</span> <span class="n">default_markers</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">default_none_marker</span> <span class="o">=</span> <span class="s1">&#39;x&#39;</span>
+    <span class="n">default_centroid_marker</span> <span class="o">=</span> <span class="s1">&#39;*&#39;</span>
+    <span class="n">default_centroid_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="s1">&#39;red&#39;</span><span class="p">)</span>
+
+    <span class="n">default_timeline_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="s1">&#39;grey&#39;</span><span class="p">)</span>
+    <span class="n">default_timeline_linestyle</span> <span class="o">=</span> <span class="s1">&#39;--&#39;</span>
+
+    <span class="n">default_line_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="s1">&#39;black&#39;</span><span class="p">)</span>
+    <span class="n">default_line_linestyle</span> <span class="o">=</span> <span class="s1">&#39;-&#39;</span>
+
+<div class="viewcode-block" id="ColorScheme.MethodLogger">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.MethodLogger">[docs]</a>
+    <span class="k">class</span> <span class="nc">MethodLogger</span><span class="p">:</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">methods</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">modes</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Makes the MethodLogger instance callable. It can be used as a decorator to register methods.</span>
+
+<span class="sd">            Methods:</span>
+<span class="sd">            -----------</span>
+<span class="sd">            property_name : str</span>
+<span class="sd">                The name of the property that the method provides.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="k">def</span> <span class="nf">decorator</span><span class="p">(</span><span class="n">class_method</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">method_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Property </span><span class="si">{</span><span class="n">method_name</span><span class="si">}</span><span class="s2"> is already defined.&quot;</span><span class="p">)</span>
+
+                <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">[</span><span class="n">method_name</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="n">class_method</span><span class="p">,</span> <span class="s1">&#39;modes&#39;</span><span class="p">:</span> <span class="n">modes</span><span class="p">}</span>
+                <span class="k">return</span> <span class="n">class_method</span>
+            <span class="k">return</span> <span class="n">decorator</span>
+
+<div class="viewcode-block" id="ColorScheme.MethodLogger.copy">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.MethodLogger.copy">[docs]</a>
+        <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">MethodLogger</span><span class="p">:</span>
+            <span class="c1"># Create a new instance of MethodLogger</span>
+            <span class="n">new_instance</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">MethodLogger</span><span class="p">()</span>
+            <span class="n">new_instance</span><span class="o">.</span><span class="n">methods</span> <span class="o">=</span> <span class="n">copy</span><span class="o">.</span><span class="n">deepcopy</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">)</span>  <span class="c1"># Deep copy the dictionary</span>
+            <span class="k">return</span> <span class="n">new_instance</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.MethodLogger.keys">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.MethodLogger.keys">[docs]</a>
+        <span class="k">def</span> <span class="nf">keys</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+            <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span></div>
+
+
+        <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="c1"># Returns None if key is not found</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">key</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__setitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span>
+
+        <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">key</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">methods</span>
+
+        <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">methods</span><span class="p">)</span></div>
+
+
+    <span class="n">method_logger</span> <span class="o">=</span> <span class="n">MethodLogger</span><span class="p">()</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="n">Interface</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">interface</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+
+<div class="viewcode-block" id="ColorScheme.clear">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.clear">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_marker_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_marker_cache</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_graph_color_cache</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.get_image">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_image">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_image</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="s1">&#39;Current&#39;</span> <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+            <span class="s1">&#39;group_number&#39;</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="o">==</span> <span class="s1">&#39;Current&#39;</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">group_number</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">image</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">image</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">image</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.request_to_tuple">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.request_to_tuple">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">:</span>
+        <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">convert</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">convert</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">item</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">item</span>
+
+        <span class="k">return</span> <span class="n">convert</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">methods</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of property names that have been registered.&quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">method_logger</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+
+<div class="viewcode-block" id="ColorScheme.requires_tracking">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.requires_tracking">[docs]</a>
+    <span class="k">def</span> <span class="nf">requires_tracking</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">bool</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;mode&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="ow">in</span> <span class="p">(</span><span class="s1">&#39;Cluster Marker&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;settings&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span> <span class="ow">or</span> <span class="s1">&#39;clustering_settings&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;settings&#39;</span><span class="p">]:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;</span><span class="si">{</span><span class="n">mode</span><span class="si">}</span><span class="s1"> requires tracking, but no clustering settings is provided in settings </span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;settings&#39;</span><span class="p">][</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">]</span>
+        <span class="k">return</span> <span class="kc">False</span></div>
+
+
+<span class="c1">#############################</span>
+<span class="c1"># Markers</span>
+<span class="c1">#############################</span>
+
+<div class="viewcode-block" id="ColorScheme.get_cluster_marker">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_cluster_marker">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cluster_marker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">none_marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;none_marker&#39;</span><span class="p">:</span> <span class="n">none_marker</span><span class="p">}</span>
+        <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_marker_cache</span><span class="p">:</span>
+            <span class="n">cluster_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">get_unique_clusters</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_markers</span><span class="p">)</span>
+            <span class="n">cluster_markers</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">cluster_name</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_markers</span><span class="p">[</span><span class="n">i</span> <span class="o">%</span> <span class="n">l</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">cluster_name</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">cluster_names</span><span class="p">)}</span>
+            <span class="n">cluster_markers</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">none_marker</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_marker_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_markers</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_marker_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.get_cluster_node_marker">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_cluster_node_marker">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cluster_node_marker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">none_marker</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;none_marker&#39;</span><span class="p">:</span> <span class="n">none_marker</span><span class="p">}</span>
+        <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_marker_cache</span><span class="p">:</span>
+            <span class="n">clustering</span><span class="p">:</span> <span class="n">Clustering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">request</span><span class="p">[</span><span class="s1">&#39;image&#39;</span><span class="p">]]</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                <span class="o">**</span><span class="p">(</span><span class="n">clustering_settings</span><span class="p">))</span>
+            <span class="n">cluster_mapping</span> <span class="o">=</span> <span class="n">clustering</span><span class="o">.</span><span class="n">nodes_labels_dict</span><span class="p">()</span>
+            <span class="n">cluster_to_marker_mapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_marker</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">clustering_settings</span><span class="p">,</span> <span class="n">none_marker</span><span class="o">=</span><span class="n">none_marker</span><span class="p">)</span>
+            <span class="n">marker_mapping</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">node</span><span class="p">:</span> <span class="n">cluster_to_marker_mapping</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">cluster_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_node_marker_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">request</span><span class="p">[</span><span class="s1">&#39;none_marker&#39;</span><span class="p">],</span> <span class="n">marker_mapping</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_marker_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.scatter_markers_nodes">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.scatter_markers_nodes">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Scatter Marker&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Marker&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Marker&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">scatter_markers_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                              <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Marker&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Marker&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Marker&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Marker&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_scatter_marker</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Marker&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># marker for nodes that are not in the cluster</span>
+            <span class="n">none_marker</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Marker&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_marker</span><span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_node_marker</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">none_marker</span><span class="o">=</span><span class="n">none_marker</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.centroid_markers">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.centroid_markers">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Centroid Marker&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Marker&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Marker&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">centroid_markers</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>  <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Marker&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Marker&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Marker&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Marker&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_centroid_marker</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Marker&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># marker for nodes that are not in the cluster</span>
+            <span class="n">none_marker</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Marker&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_marker</span><span class="p">)</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_marker</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">none_marker</span><span class="o">=</span><span class="n">none_marker</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.timeline_linestyle">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.timeline_linestyle">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Timeline Style&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Style&#39;</span><span class="p">,))</span>
+    <span class="k">def</span> <span class="nf">timeline_linestyle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Style&#39;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Style&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;linestyle&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_timeline_linestyle</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.line_linestyle">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.line_linestyle">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Line Style&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Style&#39;</span><span class="p">,))</span>
+    <span class="k">def</span> <span class="nf">line_linestyle</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Style&#39;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Style&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;linestyle&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;linestyle&#39;</span><span class="p">]</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_line_linestyle</span></div>
+
+
+<span class="c1">#############################</span>
+<span class="c1"># Colors</span>
+<span class="c1">#############################</span>
+
+<div class="viewcode-block" id="ColorScheme.get_cluster_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_cluster_color">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cluster_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">colormap</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">none_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">cluster_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+        <span class="n">cluster_request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span>
+            <span class="n">cluster_request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cluster_request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">:</span>
+            <span class="n">cluster_names</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">get_unique_clusters</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">cm</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+            <span class="n">color_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_names</span><span class="p">))</span>
+
+            <span class="c1"># Map each number to a color in the colormap</span>
+            <span class="n">cluster_colors</span> <span class="o">=</span> <span class="p">{</span><span class="n">cluster_name</span><span class="p">:</span> <span class="n">cm</span><span class="p">(</span>
+                <span class="n">color_index</span><span class="p">)</span> <span class="k">for</span> <span class="n">cluster_name</span><span class="p">,</span> <span class="n">color_index</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">cluster_names</span><span class="p">,</span> <span class="n">color_indices</span><span class="p">)}</span>
+            <span class="n">cluster_colors</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">none_color</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">[</span><span class="n">cluster_request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_colors</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">[</span><span class="n">cluster_request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.get_cluster_node_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_cluster_node_color">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cluster_node_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">colormap</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">none_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span>
+                                   <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+        <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">:</span>
+            <span class="n">clustering</span><span class="p">:</span> <span class="n">Clustering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">image</span><span class="p">]</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">clustering_settings</span><span class="p">)</span>
+            <span class="n">cluster_mapping</span> <span class="o">=</span> <span class="n">clustering</span><span class="o">.</span><span class="n">nodes_labels_dict</span><span class="p">()</span>
+            <span class="n">cluster_to_colormapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_color</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">clustering_settings</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="n">colormapping</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">node</span><span class="p">:</span> <span class="n">cluster_to_colormapping</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">cluster_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">none_color</span><span class="p">,</span> <span class="n">colormapping</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.get_parameter_based_cluster_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_parameter_based_cluster_color">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_parameter_based_cluster_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">colormap</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">none_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">cluster_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="p">(</span>
+            <span class="n">parameter</span><span class="p">,),</span> <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+        <span class="n">cluster_request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span>
+            <span class="n">cluster_request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">cluster_request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">:</span>
+            <span class="n">cluster_values</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">get_final_value</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="p">,</span> <span class="n">parameter</span><span class="p">)</span>
+
+            <span class="n">floats</span> <span class="o">=</span> <span class="n">cluster_values</span><span class="o">.</span><span class="n">values</span><span class="p">()</span>
+            <span class="n">norm</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">floats</span><span class="p">),</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">floats</span><span class="p">))</span>
+            <span class="n">cm</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+            <span class="n">cluster_colors</span> <span class="o">=</span> <span class="p">{</span><span class="n">cluster_name</span><span class="p">:</span> <span class="n">cm</span><span class="p">(</span>
+                <span class="n">norm</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">for</span> <span class="n">cluster_name</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">cluster_values</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">cluster_colors</span><span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="n">none_color</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">[</span><span class="n">cluster_request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">cluster_colors</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cluster_color_cache</span><span class="p">[</span><span class="n">cluster_request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.get_parameter_based_cluster_node_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.get_parameter_based_cluster_node_color">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_parameter_based_cluster_node_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">image</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">colormap</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">none_color</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="n">request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span>
+                                   <span class="s1">&#39;clustering_settings&#39;</span><span class="p">:</span> <span class="n">clustering_settings</span><span class="p">,</span> <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+        <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">:</span>
+            <span class="n">clustering</span><span class="p">:</span> <span class="n">Clustering</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">image</span><span class="p">]</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">clustering_settings</span><span class="p">)</span>
+            <span class="n">cluster_mapping</span> <span class="o">=</span> <span class="n">clustering</span><span class="o">.</span><span class="n">nodes_labels_dict</span><span class="p">()</span>
+            <span class="n">cluster_to_colormapping</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_color</span><span class="p">(</span>
+                <span class="n">parameter</span><span class="o">=</span><span class="n">parameter</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">clustering_settings</span><span class="p">,</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="n">colormapping</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">node</span><span class="p">:</span> <span class="n">cluster_to_colormapping</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">cluster_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span>
+                <span class="k">lambda</span><span class="p">:</span> <span class="n">none_color</span><span class="p">,</span> <span class="n">colormapping</span><span class="p">)</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.scatter_colors_nodes">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.scatter_colors_nodes">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Scatter Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Parameter Colormap&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">scatter_colors_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                             <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_scatter_color</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Parameter Colormap&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">request_settings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],)}</span>
+            <span class="n">request_settings</span><span class="p">[</span><span class="s1">&#39;scale&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="s1">&#39;Linear&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">request_settings</span><span class="p">,</span>
+                       <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+            <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">dynamic_data_cache</span><span class="p">[</span><span class="n">image</span><span class="p">][{</span>
+                    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;calculate_node_values&#39;</span><span class="p">,</span> <span class="s1">&#39;settings&#39;</span><span class="p">:</span> <span class="n">request_settings</span><span class="p">}]</span>
+                <span class="n">floats</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">]]</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">floats</span><span class="p">),</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">floats</span><span class="p">))</span>
+                <span class="n">cm</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">none_color</span><span class="p">,</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">cm</span><span class="p">(</span>
+                    <span class="n">norm</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">],</span> <span class="n">floats</span><span class="p">)})</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_node_color</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># request_settings[&#39;scale&#39;] = settings.get(&#39;scale&#39;, &#39;Linear&#39;)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_node_color</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">parameter</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.centroid_colors">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.centroid_colors">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Centroid Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">centroid_colors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                        <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_centroid_color</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_color</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># request_settings[&#39;scale&#39;] = settings.get(&#39;scale&#39;, &#39;Linear&#39;)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_color</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],</span>
+                                                          <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.fill_colors">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.fill_colors">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Fill Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">fill_colors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                    <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Cluster Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_color</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># request_settings[&#39;scale&#39;] = settings.get(&#39;scale&#39;, &#39;Linear&#39;)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_color</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],</span>
+                                                          <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.distribution_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.distribution_color">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Distribution Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,))</span>
+    <span class="k">def</span> <span class="nf">distribution_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                           <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_distribution_color</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.timeline_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.timeline_color">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Timeline Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,))</span>
+    <span class="k">def</span> <span class="nf">timeline_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                       <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_timeline_color</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.line_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.line_color">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Line Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Parameter Colormap&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">line_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                   <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_line_color</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Parameter Colormap&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">request_settings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],)}</span>
+            <span class="n">request_settings</span><span class="p">[</span><span class="s1">&#39;scale&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;scale&#39;</span><span class="p">,</span> <span class="s1">&#39;Linear&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">request_settings</span><span class="p">,</span>
+                       <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">}</span>
+            <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">dynamic_data_cache</span><span class="p">[</span><span class="n">image</span><span class="p">][{</span>
+                    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;calculate_node_values&#39;</span><span class="p">,</span> <span class="s1">&#39;settings&#39;</span><span class="p">:</span> <span class="n">request_settings</span><span class="p">}]</span>
+                <span class="n">floats</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">]]</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span><span class="n">vmin</span><span class="o">=</span><span class="nb">min</span><span class="p">(</span><span class="n">floats</span><span class="p">),</span> <span class="n">vmax</span><span class="o">=</span><span class="nb">max</span><span class="p">(</span><span class="n">floats</span><span class="p">))</span>
+                <span class="n">cm</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">none_color</span><span class="p">,</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">cm</span><span class="p">(</span>
+                    <span class="n">norm</span><span class="p">(</span><span class="n">value</span><span class="p">))</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">],</span> <span class="n">floats</span><span class="p">)})</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_node_color</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># request_settings[&#39;scale&#39;] = settings.get(&#39;scale&#39;, &#39;Linear&#39;)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_node_color</span><span class="p">(</span>
+                <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span> <span class="n">parameter</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">node</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.graph_line_color">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.graph_line_color">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Graph Line Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Graph Parameter&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">graph_line_color</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                         <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        Graph parameters functions list can be accessed in Group.common_functions.keys()</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_line_color</span>
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Graph Parameter&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+            <span class="n">value_limits</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;value_limits&#39;</span><span class="p">,</span> <span class="p">(</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">1.</span><span class="p">))</span>
+            <span class="n">request_settings</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;parameters&#39;</span><span class="p">:</span> <span class="p">(</span>
+                <span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],),</span> <span class="p">}</span>
+            <span class="n">request_settings</span><span class="p">[</span><span class="s1">&#39;function&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;function&#39;</span><span class="p">,</span> <span class="s1">&#39;Mean&#39;</span><span class="p">)</span>
+            <span class="n">request</span> <span class="o">=</span> <span class="p">{</span><span class="o">**</span><span class="n">request_settings</span><span class="p">,</span>
+                       <span class="s1">&#39;colormap&#39;</span><span class="p">:</span> <span class="n">colormap</span><span class="p">,</span> <span class="s1">&#39;image&#39;</span><span class="p">:</span> <span class="n">image</span><span class="p">,</span> <span class="s1">&#39;none_color&#39;</span><span class="p">:</span> <span class="n">none_color</span><span class="p">,</span> <span class="s1">&#39;value_limits&#39;</span><span class="p">:</span> <span class="n">value_limits</span><span class="p">}</span>
+            <span class="n">request_tuple</span> <span class="o">=</span> <span class="n">ColorScheme</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">request_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_color_cache</span><span class="p">:</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">dynamic_data_cache</span><span class="p">[</span><span class="n">image</span><span class="p">][{</span>
+                    <span class="s1">&#39;method&#39;</span><span class="p">:</span> <span class="s1">&#39;calculate_function_of_node_values&#39;</span><span class="p">,</span> <span class="s1">&#39;settings&#39;</span><span class="p">:</span> <span class="n">request_settings</span><span class="p">}]</span>
+                <span class="n">value</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">]]</span>
+                <span class="n">norm</span> <span class="o">=</span> <span class="n">colors</span><span class="o">.</span><span class="n">Normalize</span><span class="p">(</span>
+                    <span class="n">vmin</span><span class="o">=</span><span class="n">value_limits</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">vmax</span><span class="o">=</span><span class="n">value_limits</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">cm</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">colormap</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_graph_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">cm</span><span class="p">(</span><span class="n">norm</span><span class="p">(</span><span class="n">value</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_graph_color_cache</span><span class="p">[</span><span class="n">request_tuple</span><span class="p">]</span>
+            <span class="k">return</span> <span class="n">data</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.cluster_line_colors">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.cluster_line_colors">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Cluster Line Color&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Constant Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">cluster_line_colors</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                            <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">list</span><span class="p">]]:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Constant Color&#39;</span>
+        <span class="n">image</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_image</span><span class="p">(</span><span class="n">settings</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Constant Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">anything_to_rgba</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_line_color</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_color</span><span class="p">(</span>
+                <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span>
+
+        <span class="k">elif</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Cluster Parameter Color&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s2">&quot;clustering_settings&quot;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;clustering_settings&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="s1">&#39;parameter&#39;</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                    <span class="sa">f</span><span class="s1">&#39;Settings (</span><span class="si">{</span><span class="n">settings</span><span class="si">}</span><span class="s1">) are not formatted correctly. &quot;parameter&quot; key is expected&#39;</span><span class="p">)</span>
+            <span class="c1"># request_settings[&#39;scale&#39;] = settings.get(&#39;scale&#39;, &#39;Linear&#39;)</span>
+            <span class="n">colormap</span> <span class="o">=</span> <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;colormap&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span>
+            <span class="c1"># color for nodes that are not in the cluster</span>
+            <span class="n">none_color</span> <span class="o">=</span> <span class="n">anything_to_rgba</span><span class="p">(</span>
+                <span class="n">settings</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;None Color&#39;</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">default_none_color</span><span class="p">))</span>
+
+            <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_parameter_based_cluster_color</span><span class="p">(</span><span class="n">parameter</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;parameter&#39;</span><span class="p">],</span>
+                                                          <span class="n">clustering_settings</span><span class="o">=</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;clustering_settings&#39;</span><span class="p">],</span> <span class="n">colormap</span><span class="o">=</span><span class="n">colormap</span><span class="p">,</span> <span class="n">none_color</span><span class="o">=</span><span class="n">none_color</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="n">data</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.colorbar">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.colorbar">[docs]</a>
+    <span class="nd">@method_logger</span><span class="p">(</span><span class="s1">&#39;Color Map&#39;</span><span class="p">,</span> <span class="n">modes</span><span class="o">=</span><span class="p">(</span><span class="s1">&#39;Independent Colormap&#39;</span><span class="p">,))</span>
+    <span class="k">def</span> <span class="nf">colorbar</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
+                 <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Colormap</span><span class="p">:</span>
+        <span class="n">mode</span> <span class="o">=</span> <span class="n">mode</span> <span class="ow">or</span> <span class="s1">&#39;Independent Colormap&#39;</span>
+        <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s1">&#39;Independent Colormap&#39;</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">settings</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="s1">&#39;Color Pallet&#39;</span> <span class="ow">in</span> <span class="n">settings</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="n">settings</span><span class="p">[</span><span class="s1">&#39;Color Pallet&#39;</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">plt</span><span class="o">.</span><span class="n">get_cmap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">default_colormap_name</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.copy">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="c1"># TODO: Implement copy</span>
+        <span class="k">return</span> <span class="n">ColorScheme</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">interface</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.new_interface">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.new_interface">[docs]</a>
+    <span class="k">def</span> <span class="nf">new_interface</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">:</span> <span class="n">Interface</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">ColorScheme</span><span class="p">:</span>
+        <span class="n">colorscheme</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">colorscheme</span><span class="o">.</span><span class="n">interface</span> <span class="o">=</span> <span class="n">interface</span>
+        <span class="k">return</span> <span class="n">colorscheme</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.apply_changes">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.apply_changes">[docs]</a>
+    <span class="k">def</span> <span class="nf">apply_changes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">changes</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+
+<div class="viewcode-block" id="ColorScheme.variation">
+<a class="viewcode-back" href="../../source/hari_plotter.color_scheme.html#hari_plotter.color_scheme.ColorScheme.variation">[docs]</a>
+    <span class="k">def</span> <span class="nf">variation</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">changes</span><span class="p">):</span>
+        <span class="n">copy</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+        <span class="n">copy</span><span class="o">.</span><span class="n">apply_changes</span><span class="p">(</span><span class="n">changes</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">copy</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">key</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">method_logger</span><span class="p">[</span><span class="n">key</span><span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

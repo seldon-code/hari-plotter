@@ -1,0 +1,777 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.interface &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hari_plotter.interface</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hari_plotter.interface</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+
+<span class="kn">from</span> <span class="nn">.cluster</span> <span class="kn">import</span> <span class="n">Clustering</span>
+<span class="kn">from</span> <span class="nn">.group</span> <span class="kn">import</span> <span class="n">Group</span>
+<span class="kn">from</span> <span class="nn">.dynamics</span> <span class="kn">import</span> <span class="n">Dynamics</span>
+<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">Graph</span>
+<span class="kn">from</span> <span class="nn">.simulation</span> <span class="kn">import</span> <span class="n">Simulation</span>
+
+
+<div class="viewcode-block" id="Interface">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface">[docs]</a>
+<span class="k">class</span> <span class="nc">Interface</span><span class="p">(</span><span class="n">ABC</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Abstract base class to define interface behaviors.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        REQUIRED_TYPE: Expected type for the data attribute.</span>
+<span class="sd">        available_classes: Dictionary mapping REQUIRED_TYPEs to their corresponding classes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">REQUIRED_TYPE</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Any</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="n">available_classes</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Type</span><span class="p">[</span><span class="n">Any</span><span class="p">],</span> <span class="n">Type</span><span class="p">[</span><span class="s1">&#39;Interface&#39;</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">,</span> <span class="n">group_length</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initialize the Interface instance.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: The underlying data object to which the interface applies.</span>
+<span class="sd">            group_length[int]: length of groups</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the data is not an instance of REQUIRED_TYPE.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;data must be an instance of </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group_cache</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">group_length</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">GroupIterable</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">static_data_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">StaticDataCache</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_data_cache</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">DynamicDataCache</span><span class="p">(</span>
+            <span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">))]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_tracker</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ClusterTracker</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_node_parameters</span> <span class="o">=</span> <span class="kc">None</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">node_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_parameters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_node_parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">node_parameters</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_node_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span><span class="o">.</span><span class="n">union</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">nodes</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_nodes</span>
+
+<div class="viewcode-block" id="Interface.StaticDataCache">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.StaticDataCache">[docs]</a>
+    <span class="k">class</span> <span class="nc">StaticDataCache</span><span class="p">:</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_instance</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span> <span class="o">=</span> <span class="n">interface_instance</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+            <span class="n">method_name</span> <span class="o">=</span> <span class="n">request</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span>
+            <span class="n">settings</span> <span class="o">=</span> <span class="n">request</span><span class="p">[</span><span class="s1">&#39;settings&#39;</span><span class="p">]</span>
+            <span class="n">data_key</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+                <span class="n">data_for_all_groups</span> <span class="o">=</span> <span class="p">[]</span>
+                <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span>
+                    <span class="n">data</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">group</span><span class="p">,</span> <span class="n">method_name</span><span class="p">)(</span><span class="o">**</span><span class="n">settings</span><span class="p">)</span>
+                    <span class="n">data_for_all_groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">data_key</span><span class="p">]</span> <span class="o">=</span> <span class="n">data_for_all_groups</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">data_key</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Interface.StaticDataCache.clean">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.StaticDataCache.clean">[docs]</a>
+        <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Interface.DynamicDataCache">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.DynamicDataCache">[docs]</a>
+    <span class="k">class</span> <span class="nc">DynamicDataCache</span><span class="p">:</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_instance</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span> <span class="o">=</span> <span class="n">interface_instance</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">i</span> <span class="o">=</span> <span class="n">i</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">request</span><span class="p">):</span>
+            <span class="n">method_name</span> <span class="o">=</span> <span class="n">request</span><span class="p">[</span><span class="s1">&#39;method&#39;</span><span class="p">]</span>
+            <span class="n">settings</span> <span class="o">=</span> <span class="n">request</span><span class="p">[</span><span class="s1">&#39;settings&#39;</span><span class="p">]</span>
+            <span class="n">data_key</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">data_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">data_key</span><span class="p">]</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">i</span><span class="p">],</span> <span class="n">method_name</span><span class="p">)(</span><span class="o">**</span><span class="n">settings</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">cache</span><span class="p">[</span><span class="n">data_key</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Interface.DynamicDataCache.clean">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.DynamicDataCache.clean">[docs]</a>
+        <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">cache</span> <span class="o">=</span> <span class="p">{}</span></div>
+</div>
+
+
+<div class="viewcode-block" id="Interface.clean_cache">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.clean_cache">[docs]</a>
+    <span class="k">def</span> <span class="nf">clean_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">static_data_cache</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">dynamic_data_cache</span><span class="p">:</span>
+            <span class="n">c</span><span class="o">.</span><span class="n">clean</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Interface.GroupIterable">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.GroupIterable">[docs]</a>
+    <span class="k">class</span> <span class="nc">GroupIterable</span><span class="p">:</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface_instance</span><span class="p">:</span> <span class="n">Interface</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="p">:</span> <span class="n">Interface</span> <span class="o">=</span> <span class="n">interface_instance</span>
+
+        <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+            <span class="c1"># Handle slices</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+                <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_group</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">index</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">)))]</span>
+
+            <span class="c1"># Handle lists of integers</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="c1"># Ensure all elements in the list are integers</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">):</span>
+                    <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;All indices must be integers&quot;</span><span class="p">)</span>
+                <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">_get_group</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span>
+
+            <span class="c1"># Handle single integer</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_group</span><span class="p">(</span><span class="n">index</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                    <span class="s2">&quot;Invalid index type. Must be an integer, slice, or list of integers.&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="nf">_get_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Group</span><span class="p">:</span>
+            <span class="c1"># Adjust index for negative values</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_initialize_group</span><span class="p">(</span>
+                        <span class="n">i</span><span class="p">)</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span><span class="s2">&quot;Group index out of range&quot;</span><span class="p">)</span>
+
+        <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">)):</span>
+                <span class="k">yield</span> <span class="bp">self</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+        <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+            <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">_group_cache</span><span class="p">)</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This method must be implemented in subclasses&quot;</span><span class="p">)</span>
+
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">__init_subclass__</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Auto-register subclasses in available_classes based on their REQUIRED_TYPE.&quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">__init_subclass__</span><span class="p">(</span><span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">if</span> <span class="bp">cls</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="p">:</span>
+            <span class="n">Interface</span><span class="o">.</span><span class="n">available_classes</span><span class="p">[</span><span class="bp">cls</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span>
+
+<div class="viewcode-block" id="Interface.create_interface">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.create_interface">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">create_interface</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">Any</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Interface</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Create an interface for the given data.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data: The underlying data object to which the interface applies.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Instance of a subclass of Interface based on data&#39;s type.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If no matching interface is found for the data type.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">interface_class</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">available_classes</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">data</span><span class="p">))</span>
+        <span class="k">if</span> <span class="n">interface_class</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">interface_class</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Invalid data type, no matching interface found.&quot;</span><span class="p">)</span></div>
+
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_initialize_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Group</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Abstract method to define the behavior for data grouping.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This method must be implemented in subclasses&quot;</span><span class="p">)</span>
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">_regroup_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Abstract method to regroup dynamics.&quot;&quot;&quot;</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This method must be implemented in subclasses&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Interface.regroup">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.regroup">[docs]</a>
+    <span class="k">def</span> <span class="nf">regroup</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clean_cache</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group_cache</span> <span class="o">=</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span><span class="o">*</span><span class="n">num_intervals</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_regroup_dynamics</span><span class="p">(</span><span class="n">num_intervals</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Interface.info">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.info">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">info</span><span class="p">(</span><span class="bp">cls</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Return a string representation of the available classes and their mapping.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            A string detailing the available classes and their mappings.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">mappings</span> <span class="o">=</span> <span class="s1">&#39;, &#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span>
+            <span class="p">[</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">key</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2"> -&gt; </span><span class="si">{</span><span class="n">value</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">&quot;</span> <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="bp">cls</span><span class="o">.</span><span class="n">available_classes</span><span class="o">.</span><span class="n">items</span><span class="p">()])</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Available Classes: </span><span class="si">{</span><span class="n">mappings</span><span class="si">}</span><span class="s2">&quot;</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="nf">available_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span>
+            <span class="s2">&quot;This method must be implemented in subclasses&quot;</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Interface.ClusterTracker">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker">[docs]</a>
+    <span class="k">class</span> <span class="nc">ClusterTracker</span><span class="p">:</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">interface</span><span class="p">):</span>
+            <span class="c1"># Initialize with an instance of the enclosing class if needed to access its attributes and methods</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="p">:</span> <span class="n">Interface</span> <span class="o">=</span> <span class="n">interface</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span> <span class="o">=</span> <span class="p">{}</span>
+
+<div class="viewcode-block" id="Interface.ClusterTracker.clean">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.clean">[docs]</a>
+        <span class="k">def</span> <span class="nf">clean</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span> <span class="o">=</span> <span class="p">{}</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.is_tracked">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.is_tracked">[docs]</a>
+        <span class="k">def</span> <span class="nf">is_tracked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Tracks the clusters across frames based on the provided clusterization settings.</span>
+
+<span class="sd">            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.</span>
+<span class="sd">            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">clusterization_settings_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">clusterization_settings</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">clusterization_settings</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">clusterization_settings</span>
+            <span class="n">is_tracked_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">clust_settings</span> <span class="ow">in</span> <span class="n">clusterization_settings_list</span><span class="p">:</span>
+                <span class="c1"># Extract the dynamics of clusters across frames</span>
+                <span class="n">cluster_tuple</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">clust_settings</span><span class="p">)</span>
+                <span class="n">is_tracked_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="n">cluster_tuple</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">is_tracked_list</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.generate_node_id">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.generate_node_id">[docs]</a>
+        <span class="nd">@staticmethod</span>
+        <span class="k">def</span> <span class="nf">generate_node_id</span><span class="p">(</span><span class="n">frame_index</span><span class="p">,</span> <span class="n">cluster_identifier</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">frame_index</span><span class="p">,</span> <span class="n">cluster_identifier</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.cluster_graph">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.cluster_graph">[docs]</a>
+        <span class="k">def</span> <span class="nf">cluster_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cluster_settings</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">],</span> <span class="n">clusters_dynamics</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Clustering</span><span class="p">]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.</span>
+
+<span class="sd">            :param cluster_settings: Settings for clusterization.</span>
+<span class="sd">            :param clusters_dynamics: A list of lists where each sub-list represents the clusters in a frame.</span>
+
+<span class="sd">            :return: A directed graph where nodes represent clusters and edges represent the temporal evolution of clusters.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">clusters_dynamics</span> <span class="o">=</span> <span class="n">clusters_dynamics</span> <span class="ow">or</span> <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                <span class="o">**</span><span class="n">cluster_settings</span><span class="p">)</span><span class="o">.</span><span class="n">labels_nodes_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">]</span>
+
+            <span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
+
+            <span class="c1"># Build the graph with connections based on the highest overlap</span>
+            <span class="k">for</span> <span class="n">frame_index</span><span class="p">,</span> <span class="n">frame</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">clusters_dynamics</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">cluster_name</span> <span class="ow">in</span> <span class="n">frame</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">node_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_node_id</span><span class="p">(</span><span class="n">frame_index</span><span class="p">,</span> <span class="n">cluster_name</span><span class="p">)</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">,</span> <span class="n">frame</span><span class="o">=</span><span class="n">frame_index</span><span class="p">,</span>
+                               <span class="n">cluster</span><span class="o">=</span><span class="n">cluster_name</span><span class="p">,</span> <span class="n">Label</span><span class="o">=</span><span class="n">cluster_name</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="n">frame_index</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># There are previous frame clusters to connect to</span>
+                    <span class="n">current_frame_clusters</span> <span class="o">=</span> <span class="n">frame</span>
+                    <span class="n">prev_frame_clusters</span> <span class="o">=</span> <span class="n">clusters_dynamics</span><span class="p">[</span><span class="n">frame_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">]</span>
+                    <span class="n">is_more_clusters_in_current_frame</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+                        <span class="n">current_frame_clusters</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="n">prev_frame_clusters</span><span class="p">)</span>
+
+                    <span class="c1"># Determine comparison direction based on the number of clusters</span>
+                    <span class="k">if</span> <span class="n">is_more_clusters_in_current_frame</span><span class="p">:</span>
+                        <span class="c1"># More clusters in the current frame, or the number is equal, match each current cluster to one from the previous frame</span>
+                        <span class="k">for</span> <span class="n">current_cluster_name</span><span class="p">,</span> <span class="n">current_cluster</span> <span class="ow">in</span> <span class="n">current_frame_clusters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="n">current_node_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_node_id</span><span class="p">(</span>
+                                <span class="n">frame_index</span><span class="p">,</span> <span class="n">current_cluster_name</span><span class="p">)</span>
+                            <span class="n">current_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span>
+                                <span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">current_cluster</span><span class="p">))</span>
+                            <span class="n">best_match</span> <span class="o">=</span> <span class="kc">None</span>
+                            <span class="n">max_overlap</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="k">for</span> <span class="n">prev_cluster_name</span><span class="p">,</span> <span class="n">prev_cluster</span> <span class="ow">in</span> <span class="n">prev_frame_clusters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                                <span class="n">prev_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">prev_cluster</span><span class="p">))</span>
+                                <span class="n">prev_node_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_node_id</span><span class="p">(</span>
+                                    <span class="n">frame_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">prev_cluster_name</span><span class="p">)</span>
+
+                                <span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+                                    <span class="n">current_set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">prev_set</span><span class="p">))</span>
+
+                                <span class="k">if</span> <span class="n">overlap</span> <span class="o">&gt;</span> <span class="n">max_overlap</span><span class="p">:</span>
+                                    <span class="n">best_match</span> <span class="o">=</span> <span class="n">prev_node_id</span>
+                                    <span class="n">max_overlap</span> <span class="o">=</span> <span class="n">overlap</span>
+
+                            <span class="k">if</span> <span class="n">best_match</span><span class="p">:</span>
+                                <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">best_match</span><span class="p">,</span> <span class="n">current_node_id</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># More clusters in the previous frame, match each previous cluster to one from the current frame</span>
+                        <span class="k">for</span> <span class="n">prev_cluster_name</span><span class="p">,</span> <span class="n">prev_cluster</span> <span class="ow">in</span> <span class="n">prev_frame_clusters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="n">prev_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">prev_cluster</span><span class="p">))</span>
+                            <span class="n">prev_node_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_node_id</span><span class="p">(</span>
+                                <span class="n">frame_index</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="n">prev_cluster_name</span><span class="p">)</span>
+
+                            <span class="n">best_match</span> <span class="o">=</span> <span class="kc">None</span>
+                            <span class="n">max_overlap</span> <span class="o">=</span> <span class="mi">0</span>
+                            <span class="k">for</span> <span class="n">current_cluster_name</span><span class="p">,</span> <span class="n">current_cluster</span> <span class="ow">in</span> <span class="n">current_frame_clusters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                                <span class="n">current_node_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">generate_node_id</span><span class="p">(</span>
+                                    <span class="n">frame_index</span><span class="p">,</span> <span class="n">current_cluster_name</span><span class="p">)</span>
+                                <span class="n">current_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">tuple</span><span class="p">,</span> <span class="n">current_cluster</span><span class="p">))</span>
+                                <span class="n">overlap</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span>
+                                    <span class="n">prev_set</span><span class="o">.</span><span class="n">intersection</span><span class="p">(</span><span class="n">current_set</span><span class="p">))</span>
+
+                                <span class="k">if</span> <span class="n">overlap</span> <span class="o">&gt;</span> <span class="n">max_overlap</span><span class="p">:</span>
+                                    <span class="n">best_match</span> <span class="o">=</span> <span class="n">current_node_id</span>
+                                    <span class="n">max_overlap</span> <span class="o">=</span> <span class="n">overlap</span>
+
+                            <span class="k">if</span> <span class="n">best_match</span><span class="p">:</span>
+                                <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">prev_node_id</span><span class="p">,</span> <span class="n">best_match</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">propagate_labels_with_splits</span><span class="p">(</span><span class="n">G</span><span class="p">:</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">):</span>
+                <span class="c1"># Find all nodes with no predecessors (root nodes)</span>
+                <span class="n">root_nodes</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">()</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span>
+                    <span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">successors</span><span class="p">(</span><span class="n">node</span><span class="p">)))</span> <span class="o">==</span> <span class="mi">0</span><span class="p">]</span>
+
+                <span class="c1"># Check for root nodes with duplicate names and issue a warning if found</span>
+                <span class="n">root_names</span> <span class="o">=</span> <span class="p">[</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;cluster&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">root_nodes</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">root_names</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">root_names</span><span class="p">)):</span>
+                    <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Warning: Multiple root nodes have the same name: </span><span class="si">{</span><span class="n">root_names</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+                <span class="k">def</span> <span class="nf">propagate_label</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">current_label</span><span class="p">):</span>
+<span class="w">                    </span><span class="sd">&quot;&quot;&quot;Recursively propagate labels through the graph.&quot;&quot;&quot;</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Updated label&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">current_label</span>
+
+                    <span class="n">predecessors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">predecessors</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># Single successor inherits the label</span>
+                        <span class="n">propagate_label</span><span class="p">(</span><span class="n">predecessors</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">current_label</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">predecessors</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="c1"># Multiple predecessors indicate a split; assign new labels</span>
+                        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">succ</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">predecessors</span><span class="p">):</span>
+                            <span class="n">new_label</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">current_label</span><span class="si">}</span><span class="s2">.</span><span class="si">{</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="si">}</span><span class="s2">&quot;</span>
+                            <span class="n">propagate_label</span><span class="p">(</span><span class="n">succ</span><span class="p">,</span> <span class="n">new_label</span><span class="p">)</span>
+
+                <span class="c1"># Start label propagation from each root node</span>
+                <span class="k">for</span> <span class="n">root_node</span> <span class="ow">in</span> <span class="n">root_nodes</span><span class="p">:</span>
+                    <span class="n">initial_label</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">root_node</span><span class="p">][</span><span class="s1">&#39;Label&#39;</span><span class="p">]</span>
+                    <span class="n">propagate_label</span><span class="p">(</span><span class="n">root_node</span><span class="p">,</span> <span class="n">initial_label</span><span class="p">)</span>
+
+            <span class="c1"># Call the function to propagate labels with the handling of splits</span>
+            <span class="n">propagate_labels_with_splits</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.track_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.track_clusters">[docs]</a>
+        <span class="k">def</span> <span class="nf">track_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]]]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Tracks the clusters across frames based on the provided clusterization settings.</span>
+
+<span class="sd">            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.</span>
+<span class="sd">            :return: A list of dictionaries where each dictionary maps frame indices to lists of cluster labels.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">clusterization_settings_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">clusterization_settings</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">clusterization_settings</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">clusterization_settings</span>
+
+            <span class="n">updated_labels_list</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">clust_settings</span> <span class="ow">in</span> <span class="n">clusterization_settings_list</span><span class="p">:</span>
+                <span class="c1"># Extract the dynamics of clusters across frames</span>
+                <span class="n">cluster_tuple</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">request_to_tuple</span><span class="p">(</span><span class="n">clust_settings</span><span class="p">)</span>
+                <span class="k">if</span> <span class="n">cluster_tuple</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span><span class="p">:</span>
+                    <span class="n">clusters_dynamics</span> <span class="o">=</span> <span class="p">[</span><span class="n">group</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                        <span class="o">**</span><span class="n">clust_settings</span><span class="p">)</span><span class="o">.</span><span class="n">labels_nodes_dict</span><span class="p">()</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">]</span>
+
+                    <span class="n">G</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_graph</span><span class="p">(</span>
+                        <span class="n">clust_settings</span><span class="p">,</span> <span class="n">clusters_dynamics</span><span class="o">=</span><span class="n">clusters_dynamics</span><span class="p">)</span>
+                    <span class="c1"># Extract updated labels</span>
+                    <span class="n">updated_labels</span> <span class="o">=</span> <span class="p">{}</span>
+                    <span class="k">for</span> <span class="n">frame_index</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">clusters_dynamics</span><span class="p">)):</span>
+                        <span class="c1"># Initialize the dictionary for this frame&#39;s label mappings</span>
+                        <span class="n">frame_labels</span> <span class="o">=</span> <span class="p">{}</span>
+
+                        <span class="c1"># Find all nodes belonging to the current frame</span>
+                        <span class="n">nodes_in_frame</span> <span class="o">=</span> <span class="p">[</span><span class="n">node</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">attrs</span> <span class="ow">in</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span>
+                            <span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">if</span> <span class="n">attrs</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;frame&#39;</span><span class="p">)</span> <span class="o">==</span> <span class="n">frame_index</span><span class="p">]</span>
+
+                        <span class="c1"># Update the frame&#39;s label mappings based on the nodes&#39; current and updated labels</span>
+                        <span class="k">for</span> <span class="n">node_id</span> <span class="ow">in</span> <span class="n">nodes_in_frame</span><span class="p">:</span>
+                            <span class="n">original_label</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_id</span><span class="p">][</span><span class="s1">&#39;Label&#39;</span><span class="p">]</span>
+                            <span class="c1"># Fallback to original if no update</span>
+                            <span class="n">updated_label</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
+                                <span class="s1">&#39;Updated label&#39;</span><span class="p">,</span> <span class="n">original_label</span><span class="p">)</span>
+                            <span class="n">frame_labels</span><span class="p">[</span><span class="n">original_label</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated_label</span>
+
+                        <span class="c1"># Store the updated label mappings for the current frame</span>
+                        <span class="n">updated_labels</span><span class="p">[</span><span class="n">frame_index</span><span class="p">]</span> <span class="o">=</span> <span class="n">frame_labels</span>
+
+                    <span class="c1"># Apply updated labels</span>
+                    <span class="k">for</span> <span class="n">frame_index</span><span class="p">,</span> <span class="n">labels</span> <span class="ow">in</span> <span class="n">updated_labels</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="n">group</span><span class="p">:</span> <span class="n">Group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">frame_index</span><span class="p">]</span>
+                        <span class="n">group</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                            <span class="o">**</span><span class="n">clust_settings</span><span class="p">)</span><span class="o">.</span><span class="n">cluster_labels</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">labels</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+
+                        <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">is_clustering_graph_initialized</span><span class="p">(</span><span class="o">**</span><span class="n">clust_settings</span><span class="p">):</span>
+                            <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                                <span class="s1">&#39;Clustering tracked after clustering graph was initialized. This is unexpected behavior, trying to handle.&#39;</span><span class="p">)</span>
+                            <span class="n">group</span><span class="o">.</span><span class="n">clustering_graph</span><span class="p">(</span>
+                                <span class="n">reinitialize</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="o">**</span><span class="n">clust_settings</span><span class="p">)</span>
+
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span><span class="p">[</span><span class="n">cluster_tuple</span><span class="p">]</span> <span class="o">=</span> <span class="n">updated_labels</span>
+
+                <span class="n">updated_labels_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span><span class="p">[</span><span class="n">cluster_tuple</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">updated_labels_list</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.get_unique_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.get_unique_clusters">[docs]</a>
+        <span class="k">def</span> <span class="nf">get_unique_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.</span>
+<span class="sd">            Each inner list corresponds to one clustering type if multiple types are provided.</span>
+
+<span class="sd">            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.</span>
+<span class="sd">            :return: A list of lists, each containing unique cluster names for one type of clustering.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">tracked_clusters_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_clusters</span><span class="p">(</span>
+                <span class="n">clusterization_settings</span><span class="p">)</span>
+            <span class="n">unique_clusters_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">tracked_clusters</span> <span class="ow">in</span> <span class="n">tracked_clusters_list</span><span class="p">:</span>
+                <span class="n">unique_clusters</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">clusters</span> <span class="ow">in</span> <span class="n">tracked_clusters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                    <span class="n">unique_clusters</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">clusters</span><span class="o">.</span><span class="n">values</span><span class="p">())</span>
+                <span class="n">unique_clusters_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">unique_clusters</span><span class="p">))</span>
+
+            <span class="k">return</span> <span class="n">unique_clusters_list</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.get_cluster_presence">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.get_cluster_presence">[docs]</a>
+        <span class="k">def</span> <span class="nf">get_cluster_presence</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Retrieves a list of dictionaries, each mapping unique clusters to the frames in which they appear, based on the given clusterization settings.</span>
+<span class="sd">            Each dictionary corresponds to one clustering type if multiple types are provided.</span>
+
+<span class="sd">            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.</span>
+<span class="sd">            :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">tracked_clusters_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_clusters</span><span class="p">(</span>
+                <span class="n">clusterization_settings</span><span class="p">)</span>
+            <span class="n">cluster_presence_list</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">tracked_clusters</span> <span class="ow">in</span> <span class="n">tracked_clusters_list</span><span class="p">:</span>
+                <span class="n">cluster_presence</span> <span class="o">=</span> <span class="p">{}</span>
+                <span class="k">for</span> <span class="n">frame_index</span><span class="p">,</span> <span class="n">clusters</span> <span class="ow">in</span> <span class="n">tracked_clusters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">cluster</span> <span class="ow">in</span> <span class="n">clusters</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">cluster</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">cluster_presence</span><span class="p">:</span>
+                            <span class="n">cluster_presence</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+                        <span class="n">cluster_presence</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">frame_index</span><span class="p">)</span>
+                <span class="n">cluster_presence_list</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster_presence</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="n">cluster_presence_list</span></div>
+
+
+<div class="viewcode-block" id="Interface.ClusterTracker.get_final_value">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.get_final_value">[docs]</a>
+        <span class="k">def</span> <span class="nf">get_final_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]],</span> <span class="n">parameter</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">            </span><span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            Returns the value of the parameter in the last group cluster appeared  </span>
+<span class="sd">            &#39;&#39;&#39;</span>
+            <span class="n">presence</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_cluster_presence</span><span class="p">(</span><span class="n">clusterization_settings</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="n">final_image</span> <span class="o">=</span> <span class="p">{</span><span class="n">cluster</span><span class="p">:</span> <span class="n">images</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+                           <span class="k">for</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">images</span> <span class="ow">in</span> <span class="n">presence</span><span class="o">.</span><span class="n">items</span><span class="p">()}</span>
+            <span class="n">final_values</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">cluster</span><span class="p">,</span> <span class="n">group_number</span> <span class="ow">in</span> <span class="n">final_image</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="n">data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">group_number</span><span class="p">]</span><span class="o">.</span><span class="n">clustering_graph_values</span><span class="p">(</span>
+                    <span class="n">parameters</span><span class="o">=</span><span class="p">(</span><span class="n">parameter</span><span class="p">,</span> <span class="s1">&#39;Label&#39;</span><span class="p">),</span> <span class="n">clustering_settings</span><span class="o">=</span><span class="n">clusterization_settings</span><span class="p">)</span>
+                <span class="n">final_values</span><span class="p">[</span><span class="n">cluster</span><span class="p">]</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">parameter</span><span class="p">][</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;Label&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                    <span class="n">cluster</span><span class="p">)]</span>
+            <span class="k">return</span> <span class="n">final_values</span></div>
+</div>
+
+
+    <span class="nd">@abstractmethod</span>
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">pass</span>
+
+<div class="viewcode-block" id="Interface.request_to_tuple">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.request_to_tuple">[docs]</a>
+    <span class="nd">@staticmethod</span>
+    <span class="k">def</span> <span class="nf">request_to_tuple</span><span class="p">(</span><span class="n">request</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">((</span><span class="n">k</span><span class="p">,</span> <span class="n">convert</span><span class="p">(</span><span class="n">v</span><span class="p">))</span> <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">item</span><span class="o">.</span><span class="n">items</span><span class="p">()))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">convert</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">item</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">return</span> <span class="n">item</span>
+
+        <span class="k">return</span> <span class="n">convert</span><span class="p">(</span><span class="n">request</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Interface.group_time_range">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.group_time_range">[docs]</a>
+    <span class="k">def</span> <span class="nf">group_time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean_time</span><span class="p">(),</span>  <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean_time</span><span class="p">()]</span></div>
+</div>
+
+
+
+<div class="viewcode-block" id="HariGraphInterface">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.HariGraphInterface">[docs]</a>
+<span class="k">class</span> <span class="nc">HariGraphInterface</span><span class="p">(</span><span class="n">Interface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface specifically designed for the HariGraph class.&quot;&quot;&quot;</span>
+
+    <span class="n">REQUIRED_TYPE</span> <span class="o">=</span> <span class="n">Graph</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">group_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">Graph</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group_size</span> <span class="o">=</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="mi">1</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Group</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="mi">0</span> <span class="ow">or</span> <span class="bp">self</span><span class="o">.</span><span class="n">_group_size</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="ne">Warning</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s1">&#39;An attempt to create the dynamics from a singe image&#39;</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">Group</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">_group_size</span><span class="p">,</span> <span class="n">time</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="mi">0</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">_regroup_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">num_intervals</span> <span class="o">!=</span> <span class="mi">1</span> <span class="ow">and</span> <span class="n">interval_size</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="ne">Warning</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
+                <span class="s1">&#39;An attempt to create the dynamics from a singe image&#39;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_group_size</span> <span class="o">=</span> <span class="n">interval_size</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">available_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves the list of available parameters/methods from the data gatherer.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of available parameters or methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">node_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="mf">0.</span><span class="p">]</span></div>
+
+
+
+<div class="viewcode-block" id="HariDynamicsInterface">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.HariDynamicsInterface">[docs]</a>
+<span class="k">class</span> <span class="nc">HariDynamicsInterface</span><span class="p">(</span><span class="n">Interface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface specifically designed for the HariDynamics class.&quot;&quot;&quot;</span>
+
+    <span class="n">REQUIRED_TYPE</span> <span class="o">=</span> <span class="n">Dynamics</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">group_length</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">groups</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">Dynamics</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Group</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">Group</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">group</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">group</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="nf">_regroup_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">num_intervals</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">available_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves the list of available parameters/methods from the data gatherer.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of available parameters or methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">node_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)]</span></div>
+
+
+
+<div class="viewcode-block" id="SimulationInterface">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.SimulationInterface">[docs]</a>
+<span class="k">class</span> <span class="nc">SimulationInterface</span><span class="p">(</span><span class="n">Interface</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Interface specifically designed for the Simulation class.&quot;&quot;&quot;</span>
+
+    <span class="n">REQUIRED_TYPE</span> <span class="o">=</span> <span class="n">Simulation</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">group_length</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">groups</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">:</span> <span class="n">Simulation</span>
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_initialize_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Group</span><span class="p">:</span>
+        <span class="n">group</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">Group</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="p">[</span><span class="n">j</span><span class="p">]</span> <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="n">group</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">group</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_regroup_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">num_intervals</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">available_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves the list of available parameters/methods from the data gatherer.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of available parameters or methods.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dynamics</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">node_parameters</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+        <span class="k">return</span> <span class="p">[</span><span class="mf">0.</span><span class="p">,</span> <span class="nb">float</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">dt</span><span class="p">]</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

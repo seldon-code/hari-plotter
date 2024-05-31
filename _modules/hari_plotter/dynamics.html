@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.dynamics &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hari_plotter.dynamics</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hari_plotter.dynamics</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">Graph</span>
+<span class="kn">from</span> <span class="nn">.lazy_graph</span> <span class="kn">import</span> <span class="n">LazyGraph</span>
+
+
+<div class="viewcode-block" id="Dynamics">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics">[docs]</a>
+<span class="k">class</span> <span class="nc">Dynamics</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    HariDynamics manages a list of LazyHariGraph objects that represent HariGraph instances.</span>
+
+<span class="sd">    This class facilitates the batch processing of multiple LazyHariGraph instances. It allows for reading multiple</span>
+<span class="sd">    networks and opinions, and provides a unified interface to access and manipulate each LazyHariGraph.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        lazy_hari_graphs (List[LazyHariGraph]): A list of LazyHariGraph objects.</span>
+<span class="sd">        groups (List[List[int]]): A list where each element is a list of indices representing a group.</span>
+
+<span class="sd">    Methods:</span>
+<span class="sd">        initialized: Returns indices of initialized LazyHariGraph instances.</span>
+<span class="sd">        uncluster: Resets clustering for all LazyHariGraph instances.</span>
+<span class="sd">        read_network: Reads network and opinion files to create and add LazyHariGraph objects.</span>
+<span class="sd">        __getitem__: Allows indexing to access individual LazyHariGraph instances.</span>
+<span class="sd">        __iter__: Allows iteration over LazyHariGraph instances.</span>
+<span class="sd">        __getattr__: Allows dynamic attribute access, attempting to get the attribute from LazyHariGraph instances.</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        Any attribute that isn&#39;t directly found on a HariDynamics object will attempt to be retrieved from its</span>
+<span class="sd">        LazyHariGraph objects. If the attribute is callable, a function will be returned that when called, will </span>
+<span class="sd">        apply the method on all LazyHariGraph instances. If the attribute is not callable, a list of its values </span>
+<span class="sd">        from all LazyHariGraph instances will be returned.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        List of indices of initialized LazyHariGraph instances.</span>
+
+<span class="sd">        Iterates over each LazyHariGraph in the list `lazy_hari_graphs` and checks if it&#39;s initialized.</span>
+<span class="sd">        Returns a list containing the indices of all the LazyHariGraphs that are initialized.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[int]: Indices of all initialized LazyHariGraph instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">graph</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span> <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">]</span>
+
+<div class="viewcode-block" id="Dynamics.uncluster">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.uncluster">[docs]</a>
+    <span class="k">def</span> <span class="nf">uncluster</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Resets the clustering and uninitializes all LazyHariGraph instances.</span>
+
+<span class="sd">        For each LazyHariGraph in `lazy_hari_graphs`, resets its clustering by setting its mapping to None</span>
+<span class="sd">        and then uninitializes the graph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">mapping</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">graph</span><span class="o">.</span><span class="n">uninitialize</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.read_network">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.read_network">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read_network</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">network_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">opinion_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">load_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dynamics</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads a list of network files and a list of opinion files to create LazyHariGraph objects</span>
+<span class="sd">        and appends them to the lazy_hari_graphs list of a HariDynamics instance.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.</span>
+<span class="sd">            opinion_files (List[str]): A list of paths to the opinion files.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the length of network_files is not equal to the length of opinion_files or other invalid cases.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># If network_files is a string, convert it to a list</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">network_files</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">network_files</span> <span class="o">=</span> <span class="p">[</span><span class="n">network_files</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">network_files</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">network_files</span> <span class="o">=</span> <span class="n">network_files</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">opinion_files</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">network_files</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">opinion_files</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The number of network files must be equal to the number of opinion files.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Create an instance of HariDynamics</span>
+        <span class="n">dynamics_instance</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="n">dynamics_instance</span><span class="o">.</span><span class="n">groups</span> <span class="o">=</span> <span class="p">[]</span>  <span class="c1"># Initialize groups list</span>
+
+        <span class="k">for</span> <span class="n">idx</span><span class="p">,</span> <span class="p">(</span><span class="n">network_file</span><span class="p">,</span> <span class="n">opinion_file</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span>
+                <span class="nb">zip</span><span class="p">(</span><span class="n">network_files</span><span class="p">,</span> <span class="n">opinion_files</span><span class="p">)):</span>
+            <span class="c1"># Append LazyHariGraph objects to the list, with the class method and parameters needed</span>
+            <span class="c1"># to create the actual HariGraph instances when they are required.</span>
+            <span class="n">dynamics_instance</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="n">LazyGraph</span><span class="p">(</span><span class="n">Graph</span><span class="o">.</span><span class="n">read_network</span><span class="p">,</span>
+                          <span class="n">network_file</span><span class="p">,</span> <span class="n">opinion_file</span><span class="p">,</span> <span class="o">**</span><span class="n">load_request</span><span class="p">)</span>
+            <span class="p">)</span>
+            <span class="n">dynamics_instance</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">idx</span><span class="p">])</span>
+
+        <span class="k">return</span> <span class="n">dynamics_instance</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.__getitem__">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.__getitem__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
+        <span class="c1"># Handle slices</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">*</span><span class="n">index</span><span class="o">.</span><span class="n">indices</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)))]</span>
+
+        <span class="c1"># Handle lists of integers</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="c1"># Ensure all elements in the list are integers</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s2">&quot;All indices must be integers&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">index</span><span class="p">]</span>
+
+        <span class="c1"># Handle single integer</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># Adjust the index for negative values</span>
+                <span class="n">index</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                    <span class="s2">&quot;Index out of range of available LazyHariGraph objects.&quot;</span><span class="p">)</span>
+
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="s2">&quot;Invalid index type. Must be an integer, slice, or list of integers.&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.__iter__">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.__iter__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__iter__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">LazyGraph</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.__getattr__">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.__getattr__">[docs]</a>
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieve an attribute from the LazyHariGraph instances in the list.</span>
+
+<span class="sd">        If the desired attribute exists on the first LazyHariGraph in `lazy_hari_graphs`,</span>
+<span class="sd">        it&#39;s assumed to exist on all instances in the list.</span>
+
+<span class="sd">        If the attribute is callable, this method returns a function that invokes</span>
+<span class="sd">        the callable attribute on all LazyHariGraph instances and returns the results as a list.</span>
+
+<span class="sd">        If the attribute is not callable, this method returns a list of the attribute&#39;s</span>
+<span class="sd">        values from all LazyHariGraph instances.</span>
+
+<span class="sd">        If the attribute does not exist on any LazyHariGraph instance, an AttributeError is raised.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            name (str): Name of the desired attribute.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            list: A list of attribute values or function results for all LazyHariGraph instances,</span>
+<span class="sd">                depending on the nature of the attribute.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            AttributeError: If the specified attribute doesn&#39;t exist on the LazyHariGraph instances.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">attr</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">name</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+                <span class="k">pass</span>  <span class="c1"># Handle below</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">callable</span><span class="p">(</span><span class="n">attr</span><span class="p">):</span>
+                    <span class="c1"># If the attribute is callable, return a function that</span>
+                    <span class="c1"># calls it on all HariGraph instances.</span>
+                    <span class="k">def</span> <span class="nf">forwarded</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                        <span class="k">return</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">lazy_graph</span><span class="p">,</span> <span class="n">name</span><span class="p">)(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                                <span class="k">for</span> <span class="n">lazy_graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">]</span>
+                    <span class="k">return</span> <span class="n">forwarded</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># If the attribute is not callable, return a list of its</span>
+                    <span class="c1"># values from all HariGraph instances.</span>
+                    <span class="k">return</span> <span class="p">[</span><span class="nb">getattr</span><span class="p">(</span><span class="n">lazy_graph</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">lazy_graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">]</span>
+
+        <span class="c1"># If the attribute does not exist on HariGraph instances, raise an</span>
+        <span class="c1"># AttributeError.</span>
+        <span class="k">raise</span> <span class="ne">AttributeError</span><span class="p">(</span>
+            <span class="sa">f</span><span class="s2">&quot;&#39;HariDynamics&#39; object and its &#39;HariGraph&#39; instances have no attribute &#39;</span><span class="si">{</span><span class="n">name</span><span class="si">}</span><span class="s2">&#39;&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.group">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.group">[docs]</a>
+    <span class="k">def</span> <span class="nf">group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">num_intervals</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">interval_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">1</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Groups indices of LazyHariGraphs objects based on provided intervals, interval size, and an offset.</span>
+<span class="sd">        Indices might show up multiple times or might never show up, depending on the parameters.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            num_intervals (int): The number of intervals.</span>
+<span class="sd">            interval_size (int): The size of each interval.</span>
+<span class="sd">            offset (int): Starting offset for the grouping.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>  <span class="c1"># Clear the previous grouping</span>
+
+        <span class="n">total_length</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span>
+
+        <span class="c1"># Calculate the stride between each interval&#39;s starting index so they</span>
+        <span class="c1"># are evenly spread</span>
+        <span class="k">if</span> <span class="n">num_intervals</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="n">stride</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">stride</span> <span class="o">=</span> <span class="p">(</span><span class="n">total_length</span> <span class="o">-</span> <span class="n">offset</span> <span class="o">-</span>
+                      <span class="n">interval_size</span><span class="p">)</span> <span class="o">//</span> <span class="p">(</span><span class="n">num_intervals</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">num_intervals</span><span class="p">):</span>
+            <span class="n">start_index</span> <span class="o">=</span> <span class="n">offset</span> <span class="o">+</span> <span class="n">i</span> <span class="o">*</span> <span class="n">stride</span>
+            <span class="n">end_index</span> <span class="o">=</span> <span class="n">start_index</span> <span class="o">+</span> <span class="n">interval_size</span>
+
+            <span class="c1"># Append the range of indices as a sublist, but ensure they stay</span>
+            <span class="c1"># within the valid range</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
+                <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="n">start_index</span><span class="p">,</span> <span class="nb">min</span><span class="p">(</span><span class="n">end_index</span><span class="p">,</span> <span class="n">total_length</span><span class="p">))))</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.get_grouped_graphs">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.get_grouped_graphs">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_grouped_graphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Retrieves grouped LazyHariGraph objects based on the indices in self.groups.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[List[LazyHariGraph]]: List of lists where each sublist contains LazyHariGraph objects.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">group_indices</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">group_indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.merge_nodes_by_mapping">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping">[docs]</a>
+    <span class="k">def</span> <span class="nf">merge_nodes_by_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merge nodes in each LazyHariGraph based on the provided mapping.</span>
+<span class="sd">        If a graph was already initialized, uninitialize it first.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            mapping (Tuple[int]): A dictionary representing how nodes should be merged.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">for</span> <span class="n">lazy_graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span>
+            <span class="n">lazy_graph</span><span class="o">.</span><span class="n">mapping</span> <span class="o">=</span> <span class="n">mapping</span></div>
+
+
+<div class="viewcode-block" id="Dynamics.merge_nodes_by_index">
+<a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.merge_nodes_by_index">[docs]</a>
+    <span class="k">def</span> <span class="nf">merge_nodes_by_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merges nodes in each LazyHariGraph based on the cluster mapping of the graph at the provided index.</span>
+<span class="sd">        The graph at the provided index is skipped during merging.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            index (int): The index of the LazyHariGraph whose cluster mapping should be used for merging nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Adjust the index for negative values</span>
+            <span class="n">index</span> <span class="o">+=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">index</span> <span class="o">&lt;</span> <span class="mi">0</span> <span class="ow">or</span> <span class="n">index</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">IndexError</span><span class="p">(</span>
+                <span class="s2">&quot;Index out of range of available LazyHariGraph objects.&quot;</span><span class="p">)</span>
+
+        <span class="n">target_lazy_graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">index</span><span class="p">]</span>
+
+        <span class="c1"># Initialize the target graph if not already initialized to access its</span>
+        <span class="c1"># get_cluster_mapping method</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">target_lazy_graph</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">:</span>
+            <span class="n">target_lazy_graph</span><span class="o">.</span><span class="n">_initialize</span><span class="p">()</span>  <span class="c1"># Initialize the target graph</span>
+
+        <span class="n">mapping</span> <span class="o">=</span> <span class="n">target_lazy_graph</span><span class="o">.</span><span class="n">get_cluster_mapping</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">merge_nodes_by_mapping</span><span class="p">(</span><span class="n">mapping</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="fm">__len__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">initialized_count</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+            <span class="mi">1</span> <span class="k">for</span> <span class="n">lazy_graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span> <span class="k">if</span> <span class="n">lazy_graph</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">)</span>
+        <span class="n">total_count</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;HariDynamics object with </span><span class="si">{</span><span class="n">total_count</span><span class="si">}</span><span class="s2"> LazyHariGraphs (</span><span class="si">{</span><span class="n">initialized_count</span><span class="si">}</span><span class="s2"> initialized)&gt;&quot;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.graph module &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">hari_plotter.graph module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/hari_plotter.graph.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hari_plotter.graph">
+<span id="hari-plotter-graph-module"></span><h1>hari_plotter.graph module<a class="headerlink" href="#module-hari_plotter.graph" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.graph.</span></span><span class="sig-name descname"><span class="pre">Graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">incoming_graph_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">attr</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">DiGraph</span></code></p>
+<p>HariGraph extends the NetworkX DiGraph class to provide additional functionalities specific to complex network
+analysis and manipulation. It includes methods for graph parameterization, node merging, influence assignment,
+and serialization/deserialization to/from JSON format.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.gatherer">
+<span class="sig-name descname"><span class="pre">gatherer</span></span><a class="headerlink" href="#hari_plotter.graph.Graph.gatherer" title="Link to this definition"></a></dt>
+<dd><p>An instance of a NodeEdgeGatherer subclass responsible for collecting and
+applying node and edge parameters based on defined criteria.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer">NodeEdgeGatherer</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.add_parameters_to_nodes">
+<span class="sig-name descname"><span class="pre">add_parameters_to_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">nodes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.add_parameters_to_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.add_parameters_to_nodes" title="Link to this definition"></a></dt>
+<dd><p>Adds or updates parameters for the specified nodes based on the current gatherer’s criteria. If no nodes
+are specified, parameters are added or updated for all nodes in the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>nodes</strong> (<em>Optional</em><em>[</em><em>List</em><em>[</em><em>Tuple</em><em>[</em><em>int</em><em>]</em><em>]</em><em>]</em>) – List of node identifiers to update. If None, updates all nodes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.assign_random_influences">
+<span class="sig-name descname"><span class="pre">assign_random_influences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean_influence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">influence_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.assign_random_influences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.assign_random_influences" title="Link to this definition"></a></dt>
+<dd><p>Assigns random influence values to all edges within a specified range centered around a mean influence value.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>mean_influence</strong> (<em>float</em>) – The mean value around which the influence values are centered.</p></li>
+<li><p><strong>influence_range</strong> (<em>float</em>) – The range within which the random influence values will vary.</p></li>
+<li><p><strong>seed</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – An optional seed for the random number generator for reproducibility (default is None).</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.by_deletion">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">by_deletion</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">factor</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.by_deletion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.by_deletion" title="Link to this definition"></a></dt>
+<dd><p>Creates a HariGraph instance by deleting some of the edges of a fully connected graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>n</em>) – Number of nodes.</p></li>
+<li><p><strong>(</strong><strong>float</strong><strong>)</strong> (<em>factor</em>) – Factor representing how many edges to keep.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.check_all_paths_exist">
+<span class="sig-name descname"><span class="pre">check_all_paths_exist</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.check_all_paths_exist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.check_all_paths_exist" title="Link to this definition"></a></dt>
+<dd><p>Checks if there exists a path between every pair of nodes in the HariGraph instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if a path exists between every pair of nodes, False otherwise.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.copy" title="Link to this definition"></a></dt>
+<dd><p>Returns a copy of the graph.</p>
+<p>The copy method by default returns an independent shallow copy
+of the graph and attributes. That is, if an attribute is a
+container, that container is shared by the original an the copy.
+Use Python’s <cite>copy.deepcopy</cite> for new containers.</p>
+<p>If <cite>as_view</cite> is True then a view is returned instead of a copy.</p>
+<p class="rubric">Notes</p>
+<p>All copies reproduce the graph structure, but data attributes
+may be handled in different ways. There are four types of copies
+of a graph that people might want.</p>
+<p>Deepcopy – A “deepcopy” copies the graph structure as well as
+all data attributes and any objects they might contain.
+The entire graph object is new so that changes in the copy
+do not affect the original object. (see Python’s copy.deepcopy)</p>
+<p>Data Reference (Shallow) – For a shallow copy the graph structure
+is copied but the edge, node and graph attribute dicts are
+references to those in the original graph. This saves
+time and memory but could cause confusion if you change an attribute
+in one graph and it changes the attribute in the other.
+NetworkX does not provide this level of shallow copy.</p>
+<p>Independent Shallow – This copy creates new independent attribute
+dicts and then does a shallow copy of the attributes. That is, any
+attributes that are containers are shared between the new graph
+and the original. This is exactly what <cite>dict.copy()</cite> provides.
+You can obtain this style copy using:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">path_graph</span><span class="p">(</span><span class="mi">5</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">as_view</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="vm">__class__</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Fresh Data – For fresh data, the graph structure is copied while
+new empty data attribute dicts are created. The resulting graph
+is independent of the original and it has no edge, node or graph
+attributes. Fresh copies are not enabled. Instead use:</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="vm">__class__</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span><span class="o">.</span><span class="n">add_edges_from</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>View – Inspired by dict-views, graph-views act like read-only
+versions of the original graph, providing a copy of the original
+structure without requiring any memory for copying the information.</p>
+<p>See the Python copy module for more information on shallow
+and deep copies, <a class="reference external" href="https://docs.python.org/3/library/copy.html">https://docs.python.org/3/library/copy.html</a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>as_view</strong> (<em>bool</em><em>, </em><em>optional</em><em> (</em><em>default=False</em><em>)</em>) – If True, the returned graph-view provides a read-only view
+of the original graph without actually copying any data.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>G</strong> – A copy of the graph.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph">Graph</a></p>
+</dd>
+</dl>
+<div class="admonition seealso">
+<p class="admonition-title">See also</p>
+<dl class="simple">
+<dt><code class="xref py py-obj docutils literal notranslate"><span class="pre">to_directed</span></code></dt><dd><p>return a directed copy of the graph.</p>
+</dd>
+</dl>
+</div>
+<p class="rubric">Examples</p>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">G</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">path_graph</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>  <span class="c1"># or DiGraph, MultiGraph, MultiDiGraph, etc</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">H</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.dynamics_example_step">
+<span class="sig-name descname"><span class="pre">dynamics_example_step</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.dynamics_example_step"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.dynamics_example_step" title="Link to this definition"></a></dt>
+<dd><p>Updates the opinion of each node in the HariGraph instance based on the opinions of its predecessors.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>t</strong> – The time step factor influencing the dynamics.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.find_clusters">
+<span class="sig-name descname"><span class="pre">find_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">max_opinion_difference</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_influence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.find_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.find_clusters" title="Link to this definition"></a></dt>
+<dd><p>Finds clusters of nodes in the graph where the difference in the nodes’ opinions
+is less than max_opinion_difference, and the influence of i on j is higher than
+min_influence * size(i).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>max_opinion_difference</strong> (<em>float</em>) – Maximum allowed difference in the opinions of nodes to form a cluster.</p></li>
+<li><p><strong>min_influence</strong> (<em>float</em>) – Minimum required influence to form a cluster, adjusted by the size of the node.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of lists, where each inner list represents a cluster of node identifiers.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[List[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.get_cluster_mapping">
+<span class="sig-name descname"><span class="pre">get_cluster_mapping</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.get_cluster_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.get_cluster_mapping" title="Link to this definition"></a></dt>
+<dd><p>Generates a list of nodes in the unclustered graph to be clustered to get the current graph
+:return: A list representing the current clusters in the graph.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.get_graph">
+<span class="sig-name descname"><span class="pre">get_graph</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.get_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.get_graph" title="Link to this definition"></a></dt>
+<dd><p>Self call for union formatting with LazyHariGraph</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.guaranteed_connected">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">guaranteed_connected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.guaranteed_connected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.guaranteed_connected" title="Link to this definition"></a></dt>
+<dd><p>Creates a guaranteed connected HariGraph instance with n nodes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>n</em>) – Number of nodes.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.has_self_loops">
+<span class="sig-name descname"><span class="pre">has_self_loops</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.has_self_loops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.has_self_loops" title="Link to this definition"></a></dt>
+<dd><p>Checks if the graph contains any self-loops (edges that connect a node to itself).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>True if there is at least one self-loop in the graph, otherwise False.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.is_degroot_converging">
+<span class="sig-name descname"><span class="pre">is_degroot_converging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tolerance</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.01</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">bool</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.is_degroot_converging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.is_degroot_converging" title="Link to this definition"></a></dt>
+<dd><p>Checks if the graph’s influence structure adheres to the Degroot convergence criteria, i.e., the total
+incoming influence for each node is within a tolerance of 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>tolerance</strong> (<em>float</em>) – The tolerance within which the total influence must fall to be considered converging.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>True if the graph meets the Degroot convergence criteria, otherwise False.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>bool</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.make_degroot_converging">
+<span class="sig-name descname"><span class="pre">make_degroot_converging</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.make_degroot_converging"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.make_degroot_converging" title="Link to this definition"></a></dt>
+<dd><p>Adjusts the influence values on incoming edges for each node to ensure the graph meets the Degroot convergence
+criteria, i.e., the total incoming influence for each node equals 1.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> (<em>Optional</em><em>[</em><em>int</em><em>]</em>) – An optional seed for the random number generator for reproducibility (default is None).</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.mean_graph">
+<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.mean_graph" title="Link to this definition"></a></dt>
+<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
+that are the average of the corresponding attributes in the input graphs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>‘HariGraph’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.mean_opinion">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">mean_opinion</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">float</span></em><a class="headerlink" href="#hari_plotter.graph.Graph.mean_opinion" title="Link to this definition"></a></dt>
+<dd><p>Calculates the weighted mean opinion of the nodes in the graph.</p>
+<p>For each node, its opinion is multiplied by its weight.
+The weight of a node is the length of its label if defined,
+otherwise, it is assumed to be 1. The method returns the
+sum of the weighted opinions divided by the sum of the weights.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p><dl class="simple">
+<dt>The weighted mean opinion of the nodes in the graph.</dt><dd><p>Returns 0 if the total weight is 0 to avoid division by zero.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>float</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.merge_by_intervals">
+<span class="sig-name descname"><span class="pre">merge_by_intervals</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">intervals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.merge_by_intervals"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.merge_by_intervals" title="Link to this definition"></a></dt>
+<dd><p>Merges nodes into clusters based on the intervals defined by the input list of opinions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>intervals</strong> (<em>List</em><em>[</em><em>float</em><em>]</em>) – A sorted list of opinions representing the boundaries of the intervals.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.merge_clusters">
+<span class="sig-name descname"><span class="pre">merge_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_remaining</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.merge_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.merge_clusters" title="Link to this definition"></a></dt>
+<dd><p>Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>clusters</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>Set</em><em>[</em><em>int</em><em>]</em><em>]</em><em>, </em><em>Dict</em><em>[</em><em>int</em><em>, </em><em>int</em><em>]</em><em>]</em>) – A list where each element is a set containing
+the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
+to new node IDs.</p></li>
+<li><p><strong>merge_remaining</strong> (<em>bool</em>) – If True, merge the nodes not included in clusters into an additional cluster. Default is False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.merge_nodes">
+<span class="sig-name descname"><span class="pre">merge_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.merge_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.merge_nodes" title="Link to this definition"></a></dt>
+<dd><p>Merges two nodes in the graph into a new node.</p>
+<p>The new node’s opinion is a weighted average of the opinions of
+the merged nodes, and its name is the concatenation of the names
+of the merged nodes. The edges are reconnected to the new node,
+and the old nodes are removed.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>Tuple</strong><strong>[</strong><strong>int</strong><strong>]</strong> (<em>j</em>) – The identifier for the first node to merge.</p></li>
+<li><p><strong>Tuple</strong><strong>[</strong><strong>int</strong><strong>]</strong> – The identifier for the second node to merge.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.node_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">node_parameters</span></span><a class="headerlink" href="#hari_plotter.graph.Graph.node_parameters" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.opinions">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">opinions</span></span><a class="headerlink" href="#hari_plotter.graph.Graph.opinions" title="Link to this definition"></a></dt>
+<dd><p>Returns a dictionary with the opinions of the nodes.
+Key is the node ID, and opinion is the opinion of the node.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.position_nodes">
+<span class="sig-name descname"><span class="pre">position_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.position_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.position_nodes" title="Link to this definition"></a></dt>
+<dd><p>Determines the positions of the nodes in the graph using the spring layout algorithm.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>seed</strong> – int, optional
+Seed for the spring layout algorithm, affecting the randomness in the positioning of the nodes.
+If None, the positioning of the nodes will be determined by the underlying algorithm’s default behavior.
+Default is None.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>dict
+A dictionary representing the positions of the nodes in a 2D space, where the keys are node IDs
+and the opinions are the corresponding (x, y) coordinates.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.read_json">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.read_json" title="Link to this definition"></a></dt>
+<dd><p>Reads a HariGraph instance from a JSON file that contains both the graph’s structure and node attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Path to the JSON file from which the graph is to be loaded.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph’s nodes, edges, and associated attributes like opinions and influences.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HariGraph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.read_network">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opinion_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gatherer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><span class="pre">NodeEdgeGatherer</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">number_of_bots</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.read_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.read_network" title="Link to this definition"></a></dt>
+<dd><p>Reads a graph structure and node attributes from separate files and initializes a HariGraph instance with this data.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network_file</strong> (<em>str</em>) – Path to the file containing the network’s topology, specifying nodes and their connections.</p></li>
+<li><p><strong>opinion_file</strong> (<em>str</em>) – Path to the file containing node attributes, specifically their opinions and optionally activities.</p></li>
+<li><p><strong>gatherer</strong> (<a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><em>NodeEdgeGatherer</em></a><em> | </em><em>None</em>) – type of gatherer to be used</p></li>
+<li><p><strong>number_of_bots</strong> (<em>int</em>) – number of bots. First number_of_bots lines will be interpreted as bots</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of HariGraph populated with nodes, edges, and node attributes based on the provided files.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HariGraph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.remove_self_loops">
+<span class="sig-name descname"><span class="pre">remove_self_loops</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.remove_self_loops"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.remove_self_loops" title="Link to this definition"></a></dt>
+<dd><p>Removes all self-loops from the graph.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.set_gatherer">
+<span class="sig-name descname"><span class="pre">set_gatherer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">new_gatherer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Type</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><span class="pre">NodeEdgeGatherer</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.set_gatherer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.set_gatherer" title="Link to this definition"></a></dt>
+<dd><p>Sets a new gatherer for collecting and applying node and edge parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>new_gatherer</strong> (<em>Type</em><em>[</em><a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><em>NodeEdgeGatherer</em></a><em>]</em>) – The new gatherer class to be used.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.strongly_connected_components">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">strongly_connected_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_sizes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inter_cluster_edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mean_opinion</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.strongly_connected_components"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.strongly_connected_components" title="Link to this definition"></a></dt>
+<dd><p>Creates a HariGraph instance with multiple strongly connected components.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>cluster_sizes</strong> – List[int], sizes of the clusters.</p></li>
+<li><p><strong>inter_cluster_edges</strong> – int, number of edges between the components.</p></li>
+<li><p><strong>mean_opinion</strong> – float, mean opinion of the graph.</p></li>
+<li><p><strong>seed</strong> – int, random seed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.write_json">
+<span class="sig-name descname"><span class="pre">write_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.write_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.write_json" title="Link to this definition"></a></dt>
+<dd><p>Serializes the graph to a JSON file, including its structure (nodes and edges) and attributes (e.g., opinions).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – The file path where the graph will be saved in JSON format.</p>
+</dd>
+</dl>
+<p>This method creates a JSON representation of the graph, which includes detailed information about nodes and edges along with their attributes, making it suitable for storage, sharing, or further analysis.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.write_network">
+<span class="sig-name descname"><span class="pre">write_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opinion_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">delimiter</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.write_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.write_network" title="Link to this definition"></a></dt>
+<dd><p>Writes the current graph’s network structure and node attributes to specified files, using integers to represent node IDs based on a sorted mapping. The output is saved in the sorted order of these integer IDs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network_file</strong> (<em>str</em>) – Path to the file where the network structure will be saved.</p></li>
+<li><p><strong>opinion_file</strong> (<em>str</em>) – Path to the file where the node attributes, particularly opinions, will be saved.</p></li>
+<li><p><strong>delimiter</strong> (<em>str</em>) – The delimiter used to separate values in the output files.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

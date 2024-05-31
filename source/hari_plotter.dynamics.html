@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.dynamics module &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">hari_plotter.dynamics module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/hari_plotter.dynamics.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hari_plotter.dynamics">
+<span id="hari-plotter-dynamics-module"></span><h1>hari_plotter.dynamics module<a class="headerlink" href="#module-hari_plotter.dynamics" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.dynamics.</span></span><span class="sig-name descname"><span class="pre">Dynamics</span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>HariDynamics manages a list of LazyHariGraph objects that represent HariGraph instances.</p>
+<p>This class facilitates the batch processing of multiple LazyHariGraph instances. It allows for reading multiple
+networks and opinions, and provides a unified interface to access and manipulate each LazyHariGraph.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.lazy_hari_graphs">
+<span class="sig-name descname"><span class="pre">lazy_hari_graphs</span></span><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.lazy_hari_graphs" title="Link to this definition"></a></dt>
+<dd><p>A list of LazyHariGraph objects.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[LazyHariGraph]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.groups">
+<span class="sig-name descname"><span class="pre">groups</span></span><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.groups" title="Link to this definition"></a></dt>
+<dd><p>A list where each element is a list of indices representing a group.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List[List[int]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.initialized">
+<span class="sig-name descname"><span class="pre">initialized</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.initialized" title="Link to this definition"></a></dt>
+<dd><p>Returns indices of initialized LazyHariGraph instances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.uncluster">
+<span class="sig-name descname"><span class="pre">uncluster</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.uncluster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.uncluster" title="Link to this definition"></a></dt>
+<dd><p>Resets clustering for all LazyHariGraph instances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.read_network">
+<span class="sig-name descname"><span class="pre">read_network</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.read_network" title="Link to this definition"></a></dt>
+<dd><p>Reads network and opinion files to create and add LazyHariGraph objects.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.__getitem__">
+<span class="sig-name descname"><span class="pre">__getitem__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.__getitem__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.__getitem__" title="Link to this definition"></a></dt>
+<dd><p>Allows indexing to access individual LazyHariGraph instances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.__iter__">
+<span class="sig-name descname"><span class="pre">__iter__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.__iter__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.__iter__" title="Link to this definition"></a></dt>
+<dd><p>Allows iteration over LazyHariGraph instances.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.__getattr__">
+<span class="sig-name descname"><span class="pre">__getattr__</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.__getattr__"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.__getattr__" title="Link to this definition"></a></dt>
+<dd><p>Allows dynamic attribute access, attempting to get the attribute from LazyHariGraph instances.</p>
+</dd></dl>
+
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Any attribute that isn’t directly found on a HariDynamics object will attempt to be retrieved from its
+LazyHariGraph objects. If the attribute is callable, a function will be returned that when called, will
+apply the method on all LazyHariGraph instances. If the attribute is not callable, a list of its values
+from all LazyHariGraph instances will be returned.</p>
+</div>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.get_grouped_graphs">
+<span class="sig-name descname"><span class="pre">get_grouped_graphs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.lazy_graph.html#hari_plotter.lazy_graph.LazyGraph" title="hari_plotter.lazy_graph.LazyGraph"><span class="pre">LazyGraph</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.get_grouped_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.get_grouped_graphs" title="Link to this definition"></a></dt>
+<dd><p>Retrieves grouped LazyHariGraph objects based on the indices in self.groups.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>List of lists where each sublist contains LazyHariGraph objects.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[List[LazyHariGraph]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.group">
+<span class="sig-name descname"><span class="pre">group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">num_intervals</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interval_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">offset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.group" title="Link to this definition"></a></dt>
+<dd><p>Groups indices of LazyHariGraphs objects based on provided intervals, interval size, and an offset.
+Indices might show up multiple times or might never show up, depending on the parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>num_intervals</strong> (<em>int</em>) – The number of intervals.</p></li>
+<li><p><strong>interval_size</strong> (<em>int</em>) – The size of each interval.</p></li>
+<li><p><strong>offset</strong> (<em>int</em>) – Starting offset for the grouping.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="id0">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialized</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>List of indices of initialized LazyHariGraph instances.</p>
+<p>Iterates over each LazyHariGraph in the list <cite>lazy_hari_graphs</cite> and checks if it’s initialized.
+Returns a list containing the indices of all the LazyHariGraphs that are initialized.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Indices of all initialized LazyHariGraph instances.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>List[int]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.merge_nodes_by_index">
+<span class="sig-name descname"><span class="pre">merge_nodes_by_index</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">index</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.merge_nodes_by_index"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.merge_nodes_by_index" title="Link to this definition"></a></dt>
+<dd><p>Merges nodes in each LazyHariGraph based on the cluster mapping of the graph at the provided index.
+The graph at the provided index is skipped during merging.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>index</strong> (<em>int</em>) – The index of the LazyHariGraph whose cluster mapping should be used for merging nodes.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping">
+<span class="sig-name descname"><span class="pre">merge_nodes_by_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.merge_nodes_by_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping" title="Link to this definition"></a></dt>
+<dd><p>Merge nodes in each LazyHariGraph based on the provided mapping.
+If a graph was already initialized, uninitialize it first.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>mapping</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – A dictionary representing how nodes should be merged.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id1">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opinion_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><span class="pre">Dynamics</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd><p>Reads a list of network files and a list of opinion files to create LazyHariGraph objects
+and appends them to the lazy_hari_graphs list of a HariDynamics instance.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>network_files</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Either a single path or a list of paths to the network files.</p></li>
+<li><p><strong>opinion_files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of paths to the opinion files.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>An instance of HariDynamics with lazy_hari_graphs populated.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HariDynamics</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>ValueError</strong> – If the length of network_files is not equal to the length of opinion_files or other invalid cases.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="id2">
+<span class="sig-name descname"><span class="pre">uncluster</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.uncluster"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id2" title="Link to this definition"></a></dt>
+<dd><p>Resets the clustering and uninitializes all LazyHariGraph instances.</p>
+<p>For each LazyHariGraph in <cite>lazy_hari_graphs</cite>, resets its clustering by setting its mapping to None
+and then uninitializes the graph.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

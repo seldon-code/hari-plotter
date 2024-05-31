@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../../">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.graph &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+      <li class="breadcrumb-item active">hari_plotter.graph</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for hari_plotter.graph</h1><div class="highlight"><pre>
+<span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+
+<span class="kn">import</span> <span class="nn">json</span>
+<span class="kn">import</span> <span class="nn">os</span>
+<span class="kn">import</span> <span class="nn">random</span>
+<span class="kn">import</span> <span class="nn">re</span>
+<span class="kn">import</span> <span class="nn">warnings</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">permutations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">networkx.readwrite</span> <span class="kn">import</span> <span class="n">json_graph</span>
+
+<span class="kn">from</span> <span class="nn">.distributions</span> <span class="kn">import</span> <span class="n">generate_mixture_of_gaussians</span>
+<span class="kn">from</span> <span class="nn">.node_gatherer</span> <span class="kn">import</span> <span class="p">(</span><span class="n">ActivityDefaultNodeEdgeGatherer</span><span class="p">,</span>
+                            <span class="n">DefaultNodeEdgeGatherer</span><span class="p">,</span> <span class="n">NodeEdgeGatherer</span><span class="p">)</span>
+
+
+<div class="viewcode-block" id="Graph">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph">[docs]</a>
+<span class="k">class</span> <span class="nc">Graph</span><span class="p">(</span><span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    HariGraph extends the NetworkX DiGraph class to provide additional functionalities specific to complex network</span>
+<span class="sd">    analysis and manipulation. It includes methods for graph parameterization, node merging, influence assignment,</span>
+<span class="sd">    and serialization/deserialization to/from JSON format.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        gatherer (NodeEdgeGatherer): An instance of a NodeEdgeGatherer subclass responsible for collecting and</span>
+<span class="sd">                                    applying node and edge parameters based on defined criteria.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">incoming_graph_data</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initializes the HariGraph instance by extending the NetworkX DiGraph constructor.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            incoming_graph_data: Input graph data to initialize the graph (default is None).</span>
+<span class="sd">            attr: Additional attributes to add to the graph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">incoming_graph_data</span><span class="p">,</span> <span class="o">**</span><span class="n">attr</span><span class="p">)</span>
+        <span class="c1"># Default gatherer for node and edge parameters</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span> <span class="o">=</span> <span class="n">DefaultNodeEdgeGatherer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">node_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">node_parameters</span>
+
+<div class="viewcode-block" id="Graph.set_gatherer">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.set_gatherer">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_gatherer</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_gatherer</span><span class="p">:</span> <span class="n">Type</span><span class="p">[</span><span class="n">NodeEdgeGatherer</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Sets a new gatherer for collecting and applying node and edge parameters.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            new_gatherer (Type[NodeEdgeGatherer]): The new gatherer class to be used.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span> <span class="o">=</span> <span class="n">new_gatherer</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.add_parameters_to_nodes">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.add_parameters_to_nodes">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_parameters_to_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adds or updates parameters for the specified nodes based on the current gatherer&#39;s criteria. If no nodes</span>
+<span class="sd">        are specified, parameters are added or updated for all nodes in the graph.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            nodes (Optional[List[Tuple[int]]]): List of node identifiers to update. If None, updates all nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">gather_everything</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">key</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span><span class="p">[</span><span class="n">node</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="Graph.has_self_loops">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.has_self_loops">[docs]</a>
+    <span class="k">def</span> <span class="nf">has_self_loops</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the graph contains any self-loops (edges that connect a node to itself).</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if there is at least one self-loop in the graph, otherwise False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">any</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.remove_self_loops">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.remove_self_loops">[docs]</a>
+    <span class="k">def</span> <span class="nf">remove_self_loops</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Removes all self-loops from the graph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">remove_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.assign_random_influences">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.assign_random_influences">[docs]</a>
+    <span class="k">def</span> <span class="nf">assign_random_influences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mean_influence</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">influence_range</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns random influence values to all edges within a specified range centered around a mean influence value.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            mean_influence (float): The mean value around which the influence values are centered.</span>
+<span class="sd">            influence_range (float): The range within which the random influence values will vary.</span>
+<span class="sd">            seed (Optional[int]): An optional seed for the random number generator for reproducibility (default is None).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">lower_bound</span><span class="p">,</span> <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">mean_influence</span> <span class="o">-</span> \
+            <span class="n">influence_range</span> <span class="o">/</span> <span class="mi">2</span><span class="p">,</span> <span class="n">mean_influence</span> <span class="o">+</span> <span class="n">influence_range</span> <span class="o">/</span> <span class="mi">2</span>
+
+        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                <span class="n">lower_bound</span><span class="p">,</span> <span class="n">upper_bound</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.is_degroot_converging">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.is_degroot_converging">[docs]</a>
+    <span class="k">def</span> <span class="nf">is_degroot_converging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">tolerance</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">1e-2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if the graph&#39;s influence structure adheres to the Degroot convergence criteria, i.e., the total</span>
+<span class="sd">        incoming influence for each node is within a tolerance of 1.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            tolerance (float): The tolerance within which the total influence must fall to be considered converging.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: True if the graph meets the Degroot convergence criteria, otherwise False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">all</span><span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">tolerance</span> <span class="o">&lt;=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">predecessor</span><span class="p">,</span> <span class="n">node</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">predecessor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">))</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">tolerance</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.make_degroot_converging">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.make_degroot_converging">[docs]</a>
+    <span class="k">def</span> <span class="nf">make_degroot_converging</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Adjusts the influence values on incoming edges for each node to ensure the graph meets the Degroot convergence</span>
+<span class="sd">        criteria, i.e., the total incoming influence for each node equals 1.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            seed (Optional[int]): An optional seed for the random number generator for reproducibility (default is None).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">incoming_edges</span> <span class="o">=</span> <span class="p">[(</span><span class="n">neighbor</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span>
+                              <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">)]</span>
+            <span class="n">total_influence</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">incoming_edges</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">total_influence</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">incoming_edges</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+                <span class="n">total_influence</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">edge</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">edge</span> <span class="ow">in</span> <span class="n">incoming_edges</span><span class="p">)</span>
+
+            <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">incoming_edges</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">/=</span> <span class="n">total_influence</span></div>
+
+
+<div class="viewcode-block" id="Graph.mean_graph">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.mean_graph">[docs]</a>
+    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;Graph&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;Graph&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the mean graph from a list of HariGraph instances. The mean graph&#39;s nodes and edges have attributes</span>
+<span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            images (List[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            &#39;HariGraph&#39;: A new HariGraph instance representing the mean of the input graphs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">mean_graph</span><span class="p">(</span><span class="n">images</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.read_network">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.read_network">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read_network</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">network_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">opinion_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gatherer</span><span class="p">:</span> <span class="n">NodeEdgeGatherer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">number_of_bots</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="s1">&#39;Graph&#39;</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads a graph structure and node attributes from separate files and initializes a HariGraph instance with this data.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            network_file (str): Path to the file containing the network&#39;s topology, specifying nodes and their connections.</span>
+<span class="sd">            opinion_file (str): Path to the file containing node attributes, specifically their opinions and optionally activities.</span>
+<span class="sd">            gatherer (NodeEdgeGatherer | None): type of gatherer to be used</span>
+<span class="sd">            number_of_bots (int): number of bots. First number_of_bots lines will be interpreted as bots</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            HariGraph: An instance of HariGraph populated with nodes, edges, and node attributes based on the provided files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>  <span class="c1"># Instantiate a new HariGraph object</span>
+
+        <span class="c1"># Open and read the network file. Check if node IDs are represented as tuples (indicated by &#39;&amp;&#39;).</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">network_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">content</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+            <span class="c1"># Determine if node IDs include &#39;&amp;&#39;, implying tuple representation.</span>
+            <span class="n">has_tuples</span> <span class="o">=</span> <span class="s1">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">content</span>
+
+        <span class="c1"># Based on the presence of &#39;&amp;&#39;, define a function to parse node IDs appropriately.</span>
+        <span class="k">if</span> <span class="n">has_tuples</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">parse_node_id</span><span class="p">(</span><span class="n">node_id_str</span><span class="p">):</span>
+                <span class="c1"># Parse node ID string into a tuple if &#39;&amp;&#39; is present, otherwise keep it as a single integer.</span>
+                <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="n">node_id_str</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;&amp;&#39;</span><span class="p">)))</span> <span class="k">if</span> <span class="s1">&#39;&amp;&#39;</span> <span class="ow">in</span> <span class="n">node_id_str</span> <span class="k">else</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">node_id_str</span><span class="p">),)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">def</span> <span class="nf">parse_node_id</span><span class="p">(</span><span class="n">node_id_str</span><span class="p">):</span>
+                <span class="c1"># If no &#39;&amp;&#39;, node IDs are single integers wrapped in a tuple for consistency.</span>
+                <span class="k">return</span> <span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">node_id_str</span><span class="p">),)</span>
+
+        <span class="c1"># Process each line in the network file to construct the graph&#39;s structure.</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">network_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># Skip the header line</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">line</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">line</span><span class="p">:</span>
+                    <span class="k">continue</span>  <span class="c1"># Skip empty lines</span>
+
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="c1"># Extract and parse the node ID</span>
+                <span class="n">idx_agent</span> <span class="o">=</span> <span class="n">parse_node_id</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="c1"># Number of neighbors for this node</span>
+                <span class="n">n_neighbors</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+
+                <span class="c1"># For each neighbor, parse the neighbor&#39;s ID and the associated weight (influence).</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_neighbors</span><span class="p">):</span>
+                    <span class="n">neighbor_id</span> <span class="o">=</span> <span class="n">parse_node_id</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                    <span class="n">weight</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span> <span class="o">+</span> <span class="n">n_neighbors</span> <span class="o">+</span> <span class="n">i</span><span class="p">])</span>
+                    <span class="c1"># Add an edge with the influence attribute</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">idx_agent</span><span class="p">,</span> <span class="n">neighbor_id</span><span class="p">,</span> <span class="n">Influence</span><span class="o">=</span><span class="n">weight</span><span class="p">)</span>
+
+        <span class="c1"># Initialize a flag to track the presence of &#39;Activity&#39; data in the opinion file.</span>
+        <span class="n">has_activity</span> <span class="o">=</span> <span class="kc">False</span>
+
+        <span class="c1"># Open and process the opinion file to set node attributes.</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">opinion_file</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="nb">next</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>  <span class="c1"># Skip the header line</span>
+            <span class="k">for</span> <span class="n">line</span> <span class="ow">in</span> <span class="n">f</span><span class="p">:</span>
+                <span class="n">parts</span> <span class="o">=</span> <span class="n">line</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="c1"># Extract and parse the node ID</span>
+                <span class="n">idx_agent</span> <span class="o">=</span> <span class="n">parse_node_id</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">())</span>
+                <span class="n">opinion</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>  <span class="c1"># Extract the node&#39;s opinion</span>
+
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">G</span><span class="o">.</span><span class="n">has_node</span><span class="p">(</span><span class="n">idx_agent</span><span class="p">):</span>
+                    <span class="c1"># Add the node if it doesn&#39;t already exist in the graph</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">idx_agent</span><span class="p">)</span>
+
+                <span class="c1"># Set the &#39;Opinion&#39; attribute for the node</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">idx_agent</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opinion</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">idx_agent</span><span class="p">][</span><span class="s1">&#39;Type&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;Bot&#39;</span> <span class="k">if</span> <span class="n">idx_agent</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">number_of_bots</span> <span class="k">else</span> <span class="s1">&#39;&#39;</span>
+
+                <span class="c1"># If an additional column is present, it represents the node&#39;s &#39;Activity&#39; level.</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">parts</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="n">has_activity</span> <span class="o">=</span> <span class="kc">True</span>
+                    <span class="n">activity</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">parts</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+                    <span class="c1"># Set the &#39;Activity&#39; attribute for the node</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">idx_agent</span><span class="p">][</span><span class="s1">&#39;Activity&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">activity</span>
+
+        <span class="k">if</span> <span class="n">gatherer</span><span class="p">:</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="n">gatherer</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">has_activity</span><span class="p">:</span>
+            <span class="c1"># If any node&#39;s &#39;Activity&#39; level was provided, use the ActivityDefaultNodeEdgeGatherer for this graph.</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="n">ActivityDefaultNodeEdgeGatherer</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">G</span>  <span class="c1"># Return the constructed HariGraph instance</span></div>
+
+
+<div class="viewcode-block" id="Graph.write_network">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.write_network">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_network</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">network_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">opinion_file</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Writes the current graph&#39;s network structure and node attributes to specified files, using integers to represent node IDs based on a sorted mapping. The output is saved in the sorted order of these integer IDs.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            network_file (str): Path to the file where the network structure will be saved.</span>
+<span class="sd">            opinion_file (str): Path to the file where the node attributes, particularly opinions, will be saved.</span>
+<span class="sd">            delimiter (str): The delimiter used to separate values in the output files.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># Gather opinions for all nodes using the current gatherer</span>
+        <span class="n">opinions</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="s1">&#39;Opinion&#39;</span><span class="p">)</span>
+        <span class="n">activities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span>
+            <span class="s1">&#39;Activity&#39;</span><span class="p">)</span> <span class="k">if</span> <span class="s1">&#39;Activity&#39;</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">node_parameters</span> <span class="k">else</span> <span class="kc">None</span>
+
+        <span class="c1"># Create a mapping from node IDs to integers</span>
+        <span class="n">node_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">idx</span> <span class="k">for</span> <span class="n">idx</span><span class="p">,</span>
+                        <span class="n">node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="nb">sorted</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">))}</span>
+
+        <span class="c1"># Write the network structure to the specified network file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">network_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># Write the header line</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s2">&quot;# idx_agent</span><span class="si">{</span><span class="n">delimiter</span><span class="si">}</span><span class="s2">n_neighbors_in</span><span class="si">{</span><span class="n">delimiter</span><span class="si">}</span><span class="s2">indices_neighbors_in[...]</span><span class="si">{</span><span class="n">delimiter</span><span class="si">}</span><span class="s2">weights_in[...]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Iterate over the node mapping in sorted order of integer IDs</span>
+            <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">node_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="c1"># List of nodes influencing the current node</span>
+                <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+                <span class="c1"># List of influence weights from each neighbor</span>
+                <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span>
+                           <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
+                <span class="c1"># Use the mapping to get integer IDs for the neighbors</span>
+                <span class="n">neighbors_idxs</span> <span class="o">=</span> <span class="p">[</span><span class="n">node_mapping</span><span class="p">[</span><span class="n">neighbor</span><span class="p">]</span>
+                                  <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
+
+                <span class="c1"># Write the node data line with all necessary information</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">neighbors_idxs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_idx</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}</span><span class="s2">0</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_idx</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="nb">len</span><span class="p">(</span><span class="n">neighbors_idxs</span><span class="p">)</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">neighbors_idxs</span><span class="p">))</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="n">delimiter</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="nb">str</span><span class="p">,</span><span class="w"> </span><span class="n">weights</span><span class="p">))</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Write the node opinions to the specified opinion file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">opinion_file</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="c1"># Write the header line</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;# idx_agent</span><span class="si">{</span><span class="n">delimiter</span><span class="si">}</span><span class="s2">opinion[...]</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Iterate over the node mapping in sorted order of integer IDs for opinions</span>
+            <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">node_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
+                <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">opinions</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]:</span>
+                    <span class="c1"># Retrieve the opinion for the current node ID using the mapping</span>
+                    <span class="n">opinion</span> <span class="o">=</span> <span class="n">opinions</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">][</span><span class="n">opinions</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                        <span class="n">node</span><span class="p">)]</span>
+                    <span class="k">if</span> <span class="n">activities</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]:</span>
+                        <span class="n">activity</span> <span class="o">=</span> <span class="n">activities</span><span class="p">[</span><span class="s1">&#39;Activity&#39;</span><span class="p">][</span><span class="n">activities</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span>
+                            <span class="n">node</span><span class="p">)]</span>
+                        <span class="c1"># Write the node opinion line with activity if available</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_idx</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="n">opinion</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="n">activity</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Write the node opinion line without activity</span>
+                        <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">node_idx</span><span class="si">}{</span><span class="n">delimiter</span><span class="si">}{</span><span class="n">opinion</span><span class="si">}</span><span class="se">\n</span><span class="s2">&quot;</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.read_json">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.read_json">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reads a HariGraph instance from a JSON file that contains both the graph&#39;s structure and node attributes.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            filename (str): Path to the JSON file from which the graph is to be loaded.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph&#39;s nodes, edges, and associated attributes like opinions and influences.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="c1"># Convert the JSON data back into a NetworkX graph</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="n">json_graph</span><span class="o">.</span><span class="n">node_link_graph</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="n">filename</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">FileNotFoundError</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2"> does not exist.&quot;</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">file</span><span class="p">:</span>
+            <span class="n">graph_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="n">json_graph</span><span class="o">.</span><span class="n">node_link_graph</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.write_json">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.write_json">[docs]</a>
+    <span class="k">def</span> <span class="nf">write_json</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Serializes the graph to a JSON file, including its structure (nodes and edges) and attributes (e.g., opinions).</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            filename (str): The file path where the graph will be saved in JSON format.</span>
+
+<span class="sd">        This method creates a JSON representation of the graph, which includes detailed information about nodes and edges along with their attributes, making it suitable for storage, sharing, or further analysis.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">json_graph</span><span class="o">.</span><span class="n">node_link_data</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+        <span class="c1"># Write the JSON data to a file</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">json</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">data</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">indent</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.guaranteed_connected">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.guaranteed_connected">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">guaranteed_connected</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a guaranteed connected HariGraph instance with n nodes.</span>
+
+<span class="sd">        :param n (int): Number of nodes.</span>
+<span class="sd">        :return: A new HariGraph instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of nodes should be at least 2&quot;</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">((</span><span class="n">i</span><span class="p">,))</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[(</span><span class="n">i</span><span class="p">,)][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">nodes</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">nodes</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">])</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">nodes</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+        <span class="n">additional_edges</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">randint</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">additional_edges</span><span class="p">):</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">u</span> <span class="o">!=</span> <span class="n">v</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">G</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+                <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">G</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+        <span class="n">G</span><span class="o">.</span><span class="n">add_parameters_to_nodes</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="Graph.by_deletion">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.by_deletion">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">by_deletion</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">factor</span><span class="p">:</span> <span class="nb">float</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a HariGraph instance by deleting some of the edges of a fully connected graph.</span>
+
+<span class="sd">        :param n (int): Number of nodes.</span>
+<span class="sd">        :param factor (float): Factor representing how many edges to keep.</span>
+<span class="sd">        :return: A new HariGraph instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="mi">0</span> <span class="o">&lt;=</span> <span class="mi">1</span> <span class="o">-</span> <span class="n">factor</span> <span class="o">&lt;=</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Deletion factor must be between 0 and 1&quot;</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of nodes should be at least 2&quot;</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">((</span><span class="n">i</span><span class="p">,))</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[(</span><span class="n">i</span><span class="p">,)][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">i</span> <span class="o">!=</span> <span class="n">j</span><span class="p">:</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">((</span><span class="n">i</span><span class="p">,),</span> <span class="p">(</span><span class="n">j</span><span class="p">,))</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[(</span><span class="n">i</span><span class="p">,),</span> <span class="p">(</span><span class="n">j</span><span class="p">,)][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+        <span class="n">edges_to_remove</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span> <span class="o">-</span> <span class="n">factor</span><span class="p">)))</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">remove_edges_from</span><span class="p">(</span><span class="n">edges_to_remove</span><span class="p">)</span>
+
+        <span class="n">G</span><span class="o">.</span><span class="n">add_parameters_to_nodes</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="Graph.strongly_connected_components">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.strongly_connected_components">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">strongly_connected_components</span><span class="p">(</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">cluster_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">inter_cluster_edges</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mean_opinion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a HariGraph instance with multiple strongly connected components.</span>
+
+<span class="sd">        :param cluster_sizes: List[int], sizes of the clusters.</span>
+<span class="sd">        :param inter_cluster_edges: int, number of edges between the components.</span>
+<span class="sd">        :param mean_opinion: float, mean opinion of the graph.</span>
+<span class="sd">        :param seed: int, random seed.</span>
+<span class="sd">        :return: A new HariGraph instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">seed</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+            <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">inter_cluster_edges</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Number of inter-cluster edges should be at least the number of clusters.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Convert cluster_sizes to a list (if it isn&#39;t already) and shuffle it</span>
+        <span class="n">cluster_sizes</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span>
+        <span class="n">random</span><span class="o">.</span><span class="n">shuffle</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span>
+
+        <span class="c1"># Generate opinions based on the mixture of Gaussians</span>
+        <span class="n">total_nodes</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span>
+        <span class="n">opinions</span> <span class="o">=</span> <span class="n">generate_mixture_of_gaussians</span><span class="p">(</span><span class="n">n_samples</span><span class="o">=</span><span class="n">total_nodes</span><span class="p">,</span>
+                                                 <span class="n">number_of_peaks</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span>
+                                                     <span class="n">cluster_sizes</span><span class="p">),</span>
+                                                 <span class="n">opinion_limits</span><span class="o">=</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+                                                 <span class="n">mean_opinion</span><span class="o">=</span><span class="n">mean_opinion</span><span class="p">,</span>
+                                                 <span class="n">size_of_each_peak</span><span class="o">=</span><span class="n">cluster_sizes</span><span class="p">,</span>
+                                                 <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+        <span class="n">opinions</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">opinions</span><span class="p">)</span>
+
+        <span class="c1"># Step 1: Create the &quot;meta-graph&quot;</span>
+        <span class="n">meta_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">()</span>
+        <span class="n">meta_graph</span><span class="o">.</span><span class="n">add_nodes_from</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)))</span>
+        <span class="n">edge_counters</span> <span class="o">=</span> <span class="p">{}</span>
+
+        <span class="c1"># Ensure the meta-graph is connected by connecting nodes sequentially</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">meta_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">edge_counters</span><span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+            <span class="n">inter_cluster_edges</span> <span class="o">-=</span> <span class="mi">1</span>
+        <span class="n">meta_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+        <span class="n">edge_counters</span><span class="p">[(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)]</span> <span class="o">=</span> <span class="mi">1</span>
+        <span class="n">inter_cluster_edges</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># Spread the remaining inter-cluster edges across the meta-graph</span>
+        <span class="k">while</span> <span class="n">inter_cluster_edges</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">meta_graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">),</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">u</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span>
+                <span class="n">edge_key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="nb">sorted</span><span class="p">((</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)))</span>
+                <span class="k">if</span> <span class="n">edge_key</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edge_counters</span><span class="p">:</span>
+                    <span class="n">edge_counters</span><span class="p">[</span><span class="n">edge_key</span><span class="p">]</span> <span class="o">=</span> <span class="mi">0</span>
+                <span class="n">edge_counters</span><span class="p">[</span><span class="n">edge_key</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">inter_cluster_edges</span> <span class="o">-=</span> <span class="mi">1</span>
+
+        <span class="c1"># Step 2: Create the actual graph with strongly connected clusters</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="n">start</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">opinion_idx</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">size</span> <span class="ow">in</span> <span class="n">cluster_sizes</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">size</span><span class="p">):</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">((</span><span class="n">i</span><span class="p">,))</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[(</span><span class="n">i</span><span class="p">,)][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opinions</span><span class="p">[</span><span class="n">opinion_idx</span><span class="p">]</span>
+                <span class="n">opinion_idx</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">start</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">size</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">,</span> <span class="n">start</span> <span class="o">+</span> <span class="n">size</span><span class="p">):</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">((</span><span class="n">i</span><span class="p">,),</span> <span class="p">(</span><span class="n">j</span><span class="p">,))</span>
+                    <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">((</span><span class="n">j</span><span class="p">,),</span> <span class="p">(</span><span class="n">i</span><span class="p">,))</span>
+            <span class="n">start</span> <span class="o">+=</span> <span class="n">size</span>
+
+        <span class="c1"># Step 3: Add inter-cluster edges based on the meta-graph connections</span>
+        <span class="n">cluster_starts</span> <span class="o">=</span> <span class="p">[</span><span class="nb">sum</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">[:</span><span class="n">i</span><span class="p">])</span>
+                          <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">cluster_sizes</span><span class="p">))]</span>
+        <span class="k">for</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">count</span> <span class="ow">in</span> <span class="n">edge_counters</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">count</span><span class="p">):</span>
+                <span class="c1"># Pick random nodes from clusters u and v to connect</span>
+                <span class="n">source_node</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                    <span class="nb">range</span><span class="p">(</span><span class="n">cluster_starts</span><span class="p">[</span><span class="n">u</span><span class="p">],</span> <span class="n">cluster_starts</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">+</span> <span class="n">cluster_sizes</span><span class="p">[</span><span class="n">u</span><span class="p">]))</span>
+                <span class="n">target_node</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">(</span>
+                    <span class="nb">range</span><span class="p">(</span><span class="n">cluster_starts</span><span class="p">[</span><span class="n">v</span><span class="p">],</span> <span class="n">cluster_starts</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="o">+</span> <span class="n">cluster_sizes</span><span class="p">[</span><span class="n">v</span><span class="p">]))</span>
+                <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">((</span><span class="n">source_node</span><span class="p">,),</span> <span class="p">(</span><span class="n">target_node</span><span class="p">,))</span>
+
+        <span class="c1"># Assign random influences to the edges of the graph</span>
+        <span class="n">G</span><span class="o">.</span><span class="n">assign_random_influences</span><span class="p">(</span>
+            <span class="n">mean_influence</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">influence_range</span><span class="o">=</span><span class="mf">0.1</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span>
+
+        <span class="n">G</span><span class="o">.</span><span class="n">add_parameters_to_nodes</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="Graph.copy">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.copy">[docs]</a>
+    <span class="k">def</span> <span class="nf">copy</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+        <span class="n">G_copy</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">copy</span><span class="p">(</span><span class="n">as_view</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+        <span class="n">G_copy</span> <span class="o">=</span> <span class="n">Graph</span><span class="p">(</span><span class="n">G_copy</span><span class="p">)</span> <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span>
+            <span class="n">G_copy</span><span class="p">,</span> <span class="n">Graph</span><span class="p">)</span> <span class="k">else</span> <span class="n">G_copy</span>
+        <span class="n">G_copy</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">G_copy</span></div>
+
+
+    <span class="c1"># ---- Dynamics example ----</span>
+
+<div class="viewcode-block" id="Graph.dynamics_example_step">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.dynamics_example_step">[docs]</a>
+    <span class="k">def</span> <span class="nf">dynamics_example_step</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">:</span> <span class="nb">float</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Updates the opinion of each node in the HariGraph instance based on the opinions of its predecessors.</span>
+
+<span class="sd">        :param t: The time step factor influencing the dynamics.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">updated_opinions</span> <span class="o">=</span> <span class="p">{}</span>  <span class="c1"># Temporary dictionary to store updated opinions</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">vi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span>
+
+            <span class="c1"># Predecessors of a node are the start nodes of its incoming edges.</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">i</span><span class="p">):</span>
+                <span class="n">pij</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span>
+                <span class="n">vj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">j</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span>
+                <span class="n">vi</span> <span class="o">+=</span> <span class="n">pij</span> <span class="o">*</span> <span class="n">vj</span> <span class="o">*</span> <span class="n">t</span>  <span class="c1"># Calculate updated opinion based on each incoming edge</span>
+
+            <span class="c1"># Clip the updated opinion to [0, 1]</span>
+            <span class="c1"># vi = max(0, min(vi, 1))</span>
+
+            <span class="n">updated_opinions</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">vi</span>
+
+        <span class="c1"># Update the opinions in the graph with the calculated updated opinions</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">vi</span> <span class="ow">in</span> <span class="n">updated_opinions</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">vi</span></div>
+
+
+    <span class="c1"># ---- Merge Methods ----</span>
+
+<div class="viewcode-block" id="Graph.get_cluster_mapping">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.get_cluster_mapping">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_cluster_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Generates a list of nodes in the unclustered graph to be clustered to get the current graph</span>
+<span class="sd">        :return: A list representing the current clusters in the graph.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">sorted</span><span class="p">([</span><span class="nb">sorted</span><span class="p">([(</span><span class="n">element</span><span class="p">,)</span> <span class="k">for</span> <span class="n">element</span> <span class="ow">in</span> <span class="n">node</span><span class="p">])</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">])</span></div>
+
+
+<div class="viewcode-block" id="Graph.merge_nodes">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_nodes">[docs]</a>
+    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merges two nodes in the graph into a new node.</span>
+
+<span class="sd">        The new node&#39;s opinion is a weighted average of the opinions of</span>
+<span class="sd">        the merged nodes, and its name is the concatenation of the names</span>
+<span class="sd">        of the merged nodes. The edges are reconnected to the new node,</span>
+<span class="sd">        and the old nodes are removed.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            i Tuple[int]: The identifier for the first node to merge.</span>
+<span class="sd">            j Tuple[int]: The identifier for the second node to merge.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">merge_nodes</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.merge_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_clusters">[docs]</a>
+    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing</span>
+<span class="sd">                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs</span>
+<span class="sd">                                    to new node IDs.</span>
+<span class="sd">            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">merge_clusters</span><span class="p">(</span><span class="n">clusters</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ---- Clusterization Methods ----</span>
+
+<div class="viewcode-block" id="Graph.find_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.find_clusters">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_opinion_difference</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">,</span> <span class="n">min_influence</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.1</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Finds clusters of nodes in the graph where the difference in the nodes&#39; opinions</span>
+<span class="sd">        is less than max_opinion_difference, and the influence of i on j is higher than</span>
+<span class="sd">        min_influence * size(i).</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            max_opinion_difference (float): Maximum allowed difference in the opinions of nodes to form a cluster.</span>
+<span class="sd">            min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">visited_nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">visited_nodes</span><span class="p">:</span>
+                <span class="k">continue</span>
+
+            <span class="n">cluster</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">visited_nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+
+            <span class="c1"># Use a list as a simple queue for Breadth-First Search (BFS)</span>
+            <span class="n">queue</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span><span class="p">]</span>
+
+            <span class="k">while</span> <span class="n">queue</span><span class="p">:</span>
+                <span class="n">node</span> <span class="o">=</span> <span class="n">queue</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>  <span class="c1"># Dequeue a node</span>
+
+                <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">successors</span><span class="p">(</span><span class="n">node</span><span class="p">))</span><span class="o">.</span><span class="n">union</span><span class="p">(</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">visited_nodes</span><span class="p">:</span>
+                        <span class="k">continue</span>  <span class="c1"># Skip already visited nodes</span>
+
+                    <span class="n">vi</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span>
+                    <span class="n">vj</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span>
+                    <span class="n">size_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;cluster_size&#39;</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">neighbor</span><span class="p">):</span>
+                        <span class="n">influence_ij</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">neighbor</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">influence_ij</span> <span class="o">=</span> <span class="mi">0</span>
+
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">neighbor</span><span class="p">,</span> <span class="n">node</span><span class="p">):</span>
+                        <span class="n">influence_ji</span> <span class="o">=</span> <span class="bp">self</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">influence_ji</span> <span class="o">=</span> <span class="mi">0</span>
+
+                    <span class="c1"># Check conditions for being in the same cluster</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="nb">abs</span><span class="p">(</span><span class="n">vi</span> <span class="o">-</span> <span class="n">vj</span><span class="p">)</span> <span class="o">&lt;=</span> <span class="n">max_opinion_difference</span> <span class="ow">and</span>
+                            <span class="p">(</span><span class="n">influence_ij</span> <span class="o">&gt;=</span> <span class="n">min_influence</span> <span class="o">*</span> <span class="n">size_i</span> <span class="ow">or</span>
+                             <span class="n">influence_ji</span> <span class="o">&gt;=</span> <span class="n">min_influence</span> <span class="o">*</span> <span class="n">size_i</span><span class="p">)):</span>
+                        <span class="n">cluster</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>  <span class="c1"># Add to the current cluster</span>
+                        <span class="n">visited_nodes</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>
+                        <span class="n">queue</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">neighbor</span><span class="p">)</span>  <span class="c1"># Enqueue for BFS</span>
+
+            <span class="c1"># Add found cluster to the list of clusters</span>
+            <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">clusters</span></div>
+
+
+<div class="viewcode-block" id="Graph.merge_by_intervals">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_by_intervals">[docs]</a>
+    <span class="k">def</span> <span class="nf">merge_by_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intervals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Merges nodes into clusters based on the intervals defined by the input list of opinions.</span>
+
+<span class="sd">        Parameters:</span>
+<span class="sd">            intervals (List[float]): A sorted list of opinions representing the boundaries of the intervals.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">intervals</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Intervals list cannot be empty&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Sort the intervals to ensure they are in ascending order</span>
+        <span class="n">intervals</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span>
+        <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="c1"># Define the intervals</span>
+        <span class="n">intervals</span> <span class="o">=</span> <span class="p">[</span><span class="o">-</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span> <span class="o">+</span> <span class="n">intervals</span> <span class="o">+</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">inf</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">intervals</span><span class="p">)</span> <span class="o">-</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">cluster</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="n">lower_bound</span> <span class="o">=</span> <span class="n">intervals</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="n">upper_bound</span> <span class="o">=</span> <span class="n">intervals</span><span class="p">[</span><span class="n">i</span> <span class="o">+</span> <span class="mi">1</span><span class="p">]</span>
+
+            <span class="c1"># Iterate over all nodes and assign them to the appropriate cluster</span>
+            <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">lower_bound</span> <span class="o">&lt;=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">upper_bound</span><span class="p">:</span>
+                    <span class="n">cluster</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">clusters</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cluster</span><span class="p">)</span>
+
+        <span class="c1"># Merge the clusters</span>
+        <span class="k">if</span> <span class="n">clusters</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">merge_clusters</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span></div>
+
+
+    <span class="c1"># ---- Data Processing Methods ----</span>
+
+<div class="viewcode-block" id="Graph.check_all_paths_exist">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.check_all_paths_exist">[docs]</a>
+    <span class="k">def</span> <span class="nf">check_all_paths_exist</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Checks if there exists a path between every pair of nodes in the HariGraph instance.</span>
+
+<span class="sd">        :return: True if a path exists between every pair of nodes, False otherwise.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">for</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span> <span class="ow">in</span> <span class="n">permutations</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">has_path</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">source</span><span class="p">,</span> <span class="n">target</span><span class="p">):</span>
+                <span class="c1"># f&quot;No path exists from {source} to {target}&quot;</span>
+                <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">return</span> <span class="kc">True</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">mean_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">float</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculates the weighted mean opinion of the nodes in the graph.</span>
+
+<span class="sd">        For each node, its opinion is multiplied by its weight.</span>
+<span class="sd">        The weight of a node is the length of its label if defined,</span>
+<span class="sd">        otherwise, it is assumed to be 1. The method returns the</span>
+<span class="sd">        sum of the weighted opinions divided by the sum of the weights.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            float: The weighted mean opinion of the nodes in the graph.</span>
+<span class="sd">                Returns 0 if the total weight is 0 to avoid division by zero.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">total_opinion</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="n">total_weight</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+            <span class="n">opinion</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span>
+
+            <span class="c1"># If label is defined, the weight is the length of the label.</span>
+            <span class="c1"># If not defined, the weight is assumed to be 1.</span>
+            <span class="n">weight</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">node</span><span class="p">)</span>
+
+            <span class="n">total_opinion</span> <span class="o">+=</span> <span class="n">opinion</span> <span class="o">*</span> <span class="n">weight</span>
+            <span class="n">total_weight</span> <span class="o">+=</span> <span class="n">weight</span>
+
+        <span class="k">if</span> <span class="n">total_weight</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>  <span class="c1"># Prevent division by zero</span>
+            <span class="k">return</span> <span class="mi">0</span>
+
+        <span class="k">return</span> <span class="n">total_opinion</span> <span class="o">/</span> <span class="n">total_weight</span>
+
+<div class="viewcode-block" id="Graph.position_nodes">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.position_nodes">[docs]</a>
+    <span class="k">def</span> <span class="nf">position_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines the positions of the nodes in the graph using the spring layout algorithm.</span>
+
+<span class="sd">        :param seed: int, optional</span>
+<span class="sd">            Seed for the spring layout algorithm, affecting the randomness in the positioning of the nodes.</span>
+<span class="sd">            If None, the positioning of the nodes will be determined by the underlying algorithm&#39;s default behavior.</span>
+<span class="sd">            Default is None.</span>
+
+<span class="sd">        :return: dict</span>
+<span class="sd">            A dictionary representing the positions of the nodes in a 2D space, where the keys are node IDs</span>
+<span class="sd">            and the opinions are the corresponding (x, y) coordinates.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">nx</span><span class="o">.</span><span class="n">spring_layout</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">seed</span><span class="o">=</span><span class="n">seed</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="Graph.get_graph">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.get_graph">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&#39;&#39;&#39;Self call for union formatting with LazyHariGraph&#39;&#39;&#39;</span>
+        <span class="k">return</span> <span class="bp">self</span></div>
+
+
+    <span class="nd">@property</span>
+    <span class="k">def</span> <span class="nf">opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Returns a dictionary with the opinions of the nodes.</span>
+<span class="sd">        Key is the node ID, and opinion is the opinion of the node.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">}</span>
+
+    <span class="nd">@opinions</span><span class="o">.</span><span class="n">setter</span>
+    <span class="k">def</span> <span class="nf">opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span><span class="nb">float</span><span class="p">]]):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">opinion</span> <span class="ow">in</span> <span class="n">values</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">opinion</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s2">&quot;Node </span><span class="si">{</span><span class="n">node</span><span class="si">}</span><span class="s2"> does not exist in the graph.&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span>
+                <span class="sa">f</span><span class="s1">&#39;Values input type for the opinions </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">values</span><span class="p">)</span><span class="si">}</span><span class="s1"> is not supported&#39;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;HariGraph with </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span><span class="si">}</span><span class="s2"> nodes and </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_edges</span><span class="p">()</span><span class="si">}</span><span class="s2"> edges&gt;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;&lt;HariGraph object at </span><span class="si">{</span><span class="nb">id</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_nodes</span><span class="p">()</span><span class="si">}</span><span class="s2"> nodes, </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">number_of_edges</span><span class="p">()</span><span class="si">}</span><span class="s2"> edges&gt;&quot;</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

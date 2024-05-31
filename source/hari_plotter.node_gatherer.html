@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="../">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>hari_plotter.node_gatherer module &mdash; Hari Plotter  documentation</title>
+      <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
+
+  
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script src="../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../_static/documentation_options.js?v=5929fcd5"></script>
+        <script src="../_static/doctools.js?v=9a2dae69"></script>
+        <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="../index.html" class="icon icon-home">
+            Hari Plotter
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../installation.html">Installation</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../usage.html">Usage</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">Hari Plotter</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">hari_plotter.node_gatherer module</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="../_sources/source/hari_plotter.node_gatherer.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="module-hari_plotter.node_gatherer">
+<span id="hari-plotter-node-gatherer-module"></span><h1>hari_plotter.node_gatherer module<a class="headerlink" href="#module-hari_plotter.node_gatherer" title="Link to this heading"></a></h1>
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.node_gatherer.</span></span><span class="sig-name descname"><span class="pre">ActivityDefaultNodeEdgeGatherer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDefaultNodeEdgeGatherer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer" title="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer"><code class="xref py py-class docutils literal notranslate"><span class="pre">DefaultNodeEdgeGatherer</span></code></a></p>
+<p>Extends the DefaultNodeEdgeGatherer with functionality to handle node activity. It adds the ability to merge
+nodes based on activity levels in addition to the default parameters.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.activity">
+<span class="sig-name descname"><span class="pre">activity</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDefaultNodeEdgeGatherer.activity"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.activity" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their activity levels.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.edge_parameter_logger">
+<span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.mean_graph">
+<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDefaultNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
+<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
+that are the average of the corresponding attributes in the input graphs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>‘HariGraph’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDefaultNodeEdgeGatherer.merge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.merge" title="Link to this definition"></a></dt>
+<dd><p>Extends the merge function to include activity in the merged node attributes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node_ids</strong> (<em>List</em><em>[</em><em>dict</em><em>]</em>) – A list of node dictionaries to be merged.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the merged attributes, including activity.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Union[int, float, Dict]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.node_parameter_logger">
+<span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.node_gatherer.</span></span><span class="sig-name descname"><span class="pre">ActivityDrivenNodeEdgeGatherer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer" title="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer"><code class="xref py py-class docutils literal notranslate"><span class="pre">ActivityDefaultNodeEdgeGatherer</span></code></a></p>
+<p>Extends the ActivityDefaultNodeEdgeGatherer with functionality to accommodate ActivityDrivenModel.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.edge_parameter_logger">
+<span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.mean_graph">
+<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
+<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
+that are the average of the corresponding attributes in the input graphs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>‘HariGraph’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer.merge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge" title="Link to this definition"></a></dt>
+<dd><p>Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
+cluster size, aggregate opinions, and activity.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node_ids</strong> (<em>List</em><em>[</em><em>dict</em><em>]</em>) – A list of node attribute dictionaries to be merged.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the merged attributes of the nodes, including activity.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Union[int, float, Dict]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_clusters">
+<span class="sig-name descname"><span class="pre">merge_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_remaining</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer.merge_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_clusters" title="Link to this definition"></a></dt>
+<dd><p>Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
+node. Each new node represents its constituent cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>clusters</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>Tuple</em><em>[</em><em>int</em><em>]</em><em>]</em><em>]</em>) – A list of clusters, each represented as a list of node identifiers.</p></li>
+<li><p><strong>labels</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>None</em><em>]</em><em>, </em><em>optional</em>) – Labels for the new nodes created from each cluster. Defaults to None.</p></li>
+<li><p><strong>merge_remaining</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, merges nodes not included in any cluster into a separate new node. Defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_nodes">
+<span class="sig-name descname"><span class="pre">merge_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer.merge_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_nodes" title="Link to this definition"></a></dt>
+<dd><p>Merges two specified nodes into a single new node within the graph. The new node’s attributes are determined
+by the attributes of the merged nodes, and the edges are updated accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – Identifier for the first node to be merged.</p></li>
+<li><p><strong>j</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – Identifier for the second node to be merged.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.node_parameter_logger">
+<span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.node_gatherer.</span></span><span class="sig-name descname"><span class="pre">DefaultNodeEdgeGatherer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <a class="reference internal" href="#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><code class="xref py py-class docutils literal notranslate"><span class="pre">NodeEdgeGatherer</span></code></a></p>
+<p>Provides a default implementation for the NodeEdgeGatherer abstract base class. This class implements methods
+to extract and manipulate default parameters from nodes within a graph, such as merging nodes and clusters
+based on specific criteria.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.cluster_size">
+<span class="sig-name descname"><span class="pre">cluster_size</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.cluster_size"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.cluster_size" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their cluster sizes.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameter_logger">
+<span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.importance">
+<span class="sig-name descname"><span class="pre">importance</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.importance"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.importance" title="Link to this definition"></a></dt>
+<dd><p>Calculates and returns a mapping of node IDs to their importance, based on influence and size.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.inner_opinions">
+<span class="sig-name descname"><span class="pre">inner_opinions</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.inner_opinions"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.inner_opinions" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their inner opinions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.kde_scipy">
+<em class="property"><span class="pre">static</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">kde_scipy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_grid</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bandwidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.2</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.kde_scipy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.kde_scipy" title="Link to this definition"></a></dt>
+<dd><p>Kernel Density Estimation with Scipy</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label">
+<span class="sig-name descname"><span class="pre">label</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their types for all nodes including bots.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.max_opinion">
+<span class="sig-name descname"><span class="pre">max_opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.max_opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.max_opinion" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to the maximum opinion value among their inner opinions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph">
+<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
+<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
+that are the average of the corresponding attributes in the input graphs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>‘HariGraph’</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge">
+<span class="sig-name descname"><span class="pre">merge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">node_ids</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">dict</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">float</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">Dict</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.merge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge" title="Link to this definition"></a></dt>
+<dd><p>Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
+cluster size, and aggregate opinions.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>node_ids</strong> (<em>List</em><em>[</em><em>dict</em><em>]</em>) – A list of node attribute dictionaries to be merged.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the merged attributes of the nodes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Union[int, float, Dict]]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_clusters">
+<span class="sig-name descname"><span class="pre">merge_clusters</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">clusters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">merge_remaining</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.merge_clusters"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_clusters" title="Link to this definition"></a></dt>
+<dd><p>Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
+node. Each new node represents its constituent cluster.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>clusters</strong> (<em>List</em><em>[</em><em>List</em><em>[</em><em>Tuple</em><em>[</em><em>int</em><em>]</em><em>]</em><em>]</em>) – A list of clusters, each represented as a list of node identifiers.</p></li>
+<li><p><strong>labels</strong> (<em>Union</em><em>[</em><em>List</em><em>[</em><em>str</em><em>]</em><em>, </em><em>None</em><em>]</em><em>, </em><em>optional</em>) – Labels for the new nodes created from each cluster. Defaults to None.</p></li>
+<li><p><strong>merge_remaining</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, merges nodes not included in any cluster into a separate new node. Defaults to False.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_nodes">
+<span class="sig-name descname"><span class="pre">merge_nodes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">i</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">j</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.merge_nodes"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_nodes" title="Link to this definition"></a></dt>
+<dd><p>Merges two specified nodes into a single new node within the graph. The new node’s attributes are determined
+by the attributes of the merged nodes, and the edges are updated accordingly.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>i</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – Identifier for the first node to be merged.</p></li>
+<li><p><strong>j</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – Identifier for the second node to be merged.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.min_opinion">
+<span class="sig-name descname"><span class="pre">min_opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.min_opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.min_opinion" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to the minimum opinion value among their inner opinions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.neighbor_mean_opinion">
+<span class="sig-name descname"><span class="pre">neighbor_mean_opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.neighbor_mean_opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.neighbor_mean_opinion" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to the average opinion of their neighbors.</p>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.node_parameter_logger">
+<span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion">
+<span class="sig-name descname"><span class="pre">opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their opinions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion_density">
+<span class="sig-name descname"><span class="pre">opinion_density</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.opinion_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion_density" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their opinion distribution density.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.std_opinion">
+<span class="sig-name descname"><span class="pre">std_opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.std_opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.std_opinion" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to the standard deviation of opinion values among their inner opinions.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.node_gatherer.</span></span><span class="sig-name descname"><span class="pre">NodeEdgeGatherer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">G</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">ABC</span></code></p>
+<p>Abstract base class for gathering node and edge attributes within a graph. It defines a framework for extracting
+specific attributes or parameters of nodes and edges, facilitating customized data collection and analysis on
+graph-based structures.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.node_parameter_logger">
+<span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
+<dd><p>A logger for registering and tracking node parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger" title="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger">ParameterLogger</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.edge_parameter_logger">
+<span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
+<dd><p>A logger for registering and tracking edge parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger" title="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger">ParameterLogger</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.G">
+<span class="sig-name descname"><span class="pre">G</span></span><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.G" title="Link to this definition"></a></dt>
+<dd><p>The graph instance from NetworkX containing the nodes and edges for analysis.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>HariGraph</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">ParameterLogger</span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.ParameterLogger"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>A utility class used within NodeEdgeGatherer to log and manage parameters associated with nodes or edges.
+It allows for the dynamic registration of parameters to be gathered from the graph.</p>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.parameters">
+<span class="sig-name descname"><span class="pre">parameters</span></span><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.parameters" title="Link to this definition"></a></dt>
+<dd><p>A dictionary mapping parameter names to their corresponding functions
+or values within the graph structure.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.copy">
+<span class="sig-name descname"><span class="pre">copy</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger" title="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger"><span class="pre">ParameterLogger</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.ParameterLogger.copy"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.copy" title="Link to this definition"></a></dt>
+<dd><p>Creates a deep copy of the ParameterLogger instance, including its parameters.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A new instance of ParameterLogger with copied parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger" title="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger">NodeEdgeGatherer.ParameterLogger</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.keys">
+<span class="sig-name descname"><span class="pre">keys</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.ParameterLogger.keys"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger.keys" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of all registered parameter names.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id0">
+<span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.edge_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">edge_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.edge_parameters" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of all registered edge parameter names.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.gather">
+<span class="sig-name descname"><span class="pre">gather</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.gather"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.gather" title="Link to this definition"></a></dt>
+<dd><p>Gathers and organizes parameter data for all nodes or edges in the graph based on the specified parameter(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>param</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – The parameter name(s) to extract data for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><dl class="simple">
+<dt>A dictionary containing organized data for the requested parameter(s), including</dt><dd><p>a ‘Nodes’ key with a list of node names/IDs.</p>
+</dd>
+</dl>
+</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.gather_everything">
+<span class="sig-name descname"><span class="pre">gather_everything</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.gather_everything"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.gather_everything" title="Link to this definition"></a></dt>
+<dd><p>Gathers data for all registered parameters for nodes or edges in the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>A dictionary containing data for all registered parameters.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.gather_unprocessed">
+<span class="sig-name descname"><span class="pre">gather_unprocessed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">param</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#NodeEdgeGatherer.gather_unprocessed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.gather_unprocessed" title="Link to this definition"></a></dt>
+<dd><p>Gathers unprocessed parameter data for all nodes or edges in the graph based on the specified parameter(s).</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>param</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – The parameter name(s) to extract data for.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary containing the raw data for the requested parameter(s).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Dict[str, Any]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="id1">
+<span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py property">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.NodeEdgeGatherer.node_parameters">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">node_parameters</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#hari_plotter.node_gatherer.NodeEdgeGatherer.node_parameters" title="Link to this definition"></a></dt>
+<dd><p>Returns a list of all registered node parameter names.</p>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Amrita Goswami, Rohit Goswami, Moritz Sallermann, Ivan Tambovtsev.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
