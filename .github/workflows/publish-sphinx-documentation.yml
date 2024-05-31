@@ -1,0 +1,38 @@
+name: Build and Deploy Sphinx Documentation
+
+on:
+  push:
+    branches:
+      - main
+      - documentation
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'  # Specify Python version consistent with your matrix
+
+      - name: Install Poetry
+        run: |
+          pip install poetry
+
+      - name: Install dependencies using Poetry
+        run: |
+          poetry install  # This installs all dependencies including those in the dev group
+
+      - name: Build documentation
+        run: |
+          cd docs  # or your Sphinx root directory
+          poetry run sphinx-build -b html . _build/html  # Using poetry run to use the environment
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./docs/_build/html  # or your Sphinx build output directory
