@@ -14,8 +14,8 @@ Welcome to Hari Plotter's documentation!
    :caption: Contents:
 
    installation
-   usage
-   hariplotter
+   examples_page
+   source/modules
 
 
 Indices and tables
