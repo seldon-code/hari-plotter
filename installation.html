@@ -18,10 +18,11 @@
         <script src="_static/documentation_options.js?v=5929fcd5"></script>
         <script src="_static/doctools.js?v=9a2dae69"></script>
         <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+        <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Usage" href="usage.html" />
+    <link rel="next" title="Examples" href="examples_page.html" />
     <link rel="prev" title="Welcome to Hari Plotter’s documentation!" href="index.html" /> 
 </head>
 
@@ -46,8 +47,13 @@
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
               <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
 <ul class="current">
-<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a></li>
-<li class="toctree-l1"><a class="reference internal" href="usage.html">Usage</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#quick-start">Quick Start</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#testing-the-installation">Testing the Installation</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="examples_page.html">Examples</a></li>
+<li class="toctree-l1"><a class="reference internal" href="source/modules.html">hari_plotter</a></li>
 </ul>
 
         </div>
@@ -75,13 +81,38 @@
            <div itemprop="articleBody">
              
   <section id="installation">
-<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
-<p>To install ChemParse, clone the repository and use pip to install the package:</p>
-<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/seldon-code/hari-plotter
-<span class="nb">cd</span><span class="w"> </span>hari-plotter
-pip<span class="w"> </span>install<span class="w"> </span>.
+<span id="id1"></span><h1>Installation<a class="headerlink" href="#installation" title="Link to this heading"></a></h1>
+<p>This section covers the installation instructions for <cite>hari-plotter</cite>.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Ensure you have the necessary permissions to install software on your machine.</p>
+</div>
+<section id="quick-start">
+<h2>Quick Start<a class="headerlink" href="#quick-start" title="Link to this heading"></a></h2>
+<p>### Using Micromamba</p>
+<p>You can use a <cite>micromamba</cite> environment to get started and install all your dependencies:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>micromamba<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>environment.yml<span class="w">  </span><span class="c1"># Run this command only once to create the environment</span>
+micromamba<span class="w"> </span>activate<span class="w"> </span>hairplotterenv<span class="w">  </span><span class="c1"># Run this command every time to activate the environment</span>
 </pre></div>
 </div>
+<p>### Using pip</p>
+<p>If you prefer using <cite>pip</cite>, you can install <cite>hari-plotter</cite> with:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+<p>For using the Graphical User Interface (GUI), install with the <cite>qt</cite> extra:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>.<span class="o">[</span>qt<span class="o">]</span>
+</pre></div>
+</div>
+</section>
+<section id="testing-the-installation">
+<h2>Testing the Installation<a class="headerlink" href="#testing-the-installation" title="Link to this heading"></a></h2>
+<p>You can use <cite>pytest</cite> and <cite>coverage</cite> to run tests and check the coverage of your code:</p>
+<div class="highlight-bash notranslate"><div class="highlight"><pre><span></span>coverage<span class="w"> </span>run<span class="w"> </span>--source<span class="o">=</span>hari_plotter<span class="w"> </span>-m<span class="w"> </span>pytest<span class="w"> </span>tests/<span class="w">  </span><span class="c1"># Run tests</span>
+coverage<span class="w"> </span>report<span class="w">  </span><span class="c1"># Get the coverage report</span>
+</pre></div>
+</div>
+</section>
 </section>
 
 
@@ -89,7 +120,7 @@ pip<span class="w"> </span>install<span class="w"> </span>.
           </div>
           <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
         <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Hari Plotter’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
-        <a href="usage.html" class="btn btn-neutral float-right" title="Usage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="examples_page.html" class="btn btn-neutral float-right" title="Examples" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
     </div>
 
   <hr/>
