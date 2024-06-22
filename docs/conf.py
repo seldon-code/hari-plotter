@@ -19,6 +19,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.viewcode',
     'sphinx.ext.coverage',
+    'recommonmark',  # Handles markdown files
     'nbsphinx',  # Handles Jupyter notebooks
     'sphinx.ext.mathjax',
 ]
