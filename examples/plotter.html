@@ -7,7 +7,6 @@
   <title>Plotter &mdash; Hari Plotter  documentation</title>
       <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=80d5e7a1" />
       <link rel="stylesheet" type="text/css" href="../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../_static/nbsphinx-code-cells.css" />
 
   
   <!--[if lt IE 9]>
@@ -20,8 +19,6 @@
         <script src="../_static/doctools.js?v=9a2dae69"></script>
         <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
         <script crossorigin="anonymous" integrity="sha256-Ae2Vz/4ePdIu6ZyI/5ZGsYnb+m0JlOmKPjt6XZ9JJkA=" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.4/require.min.js"></script>
-        <script>window.MathJax = {"tex": {"inlineMath": [["$", "$"], ["\\(", "\\)"]], "processEscapes": true}, "options": {"ignoreHtmlClass": "tex2jax_ignore|mathjax_ignore|document", "processHtmlClass": "tex2jax_process|mathjax_process|math|output_area"}}</script>
-        <script defer="defer" src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
@@ -76,7 +73,7 @@
           <li class="breadcrumb-item"><a href="../examples_page.html">Examples</a></li>
       <li class="breadcrumb-item active">Plotter</li>
       <li class="wy-breadcrumbs-aside">
-            <a href="../_sources/examples/plotter.ipynb.txt" rel="nofollow"> View page source</a>
+            <a href="../_sources/examples/plotter.md.txt" rel="nofollow"> View page source</a>
       </li>
   </ul>
   <hr/>
@@ -84,13 +81,9 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
              
-  <section id="Plotter">
-<h1>Plotter<a class="headerlink" href="#Plotter" title="Link to this heading"></a></h1>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[1]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hari_plotter</span> <span class="kn">import</span> <span class="p">(</span>
+  <section id="plotter">
+<h1>Plotter<a class="headerlink" href="#plotter" title="Link to this heading"></a></h1>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">hari_plotter</span> <span class="kn">import</span> <span class="p">(</span>
     <span class="n">Simulation</span><span class="p">,</span>
     <span class="n">Interface</span><span class="p">,</span>
     <span class="n">Plotter</span><span class="p">,</span>
@@ -99,37 +92,16 @@
 <span class="kn">import</span> <span class="nn">os</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[2]:
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;save_dir&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="s2">&quot;save_dir&quot;</span><span class="p">,</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">Clustering</span><span class="o">.</span><span class="n">available_clustering_methods</span><span class="p">()</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[</span><span class="s1">&#39;Interval Clustering&#39;</span><span class="p">,</span> <span class="s1">&#39;K-Means Clustering&#39;</span><span class="p">]</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">Clustering</span><span class="o">.</span><span class="n">available_clustering_methods</span><span class="p">()</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[3]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[&#39;Interval Clustering&#39;, &#39;K-Means Clustering&#39;]
-</pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[4]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">cl</span> <span class="o">=</span> <span class="p">{</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cl</span> <span class="o">=</span> <span class="p">{</span>
     <span class="s2">&quot;clustering_method&quot;</span><span class="p">:</span> <span class="s2">&quot;K-Means Clustering&quot;</span><span class="p">,</span>
     <span class="s2">&quot;clustering_parameters&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Opinion&quot;</span><span class="p">,</span> <span class="s2">&quot;Neighbor mean opinion&quot;</span><span class="p">],</span>
     <span class="s2">&quot;scale&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Tanh&quot;</span><span class="p">,</span> <span class="s2">&quot;Tanh&quot;</span><span class="p">],</span>
@@ -137,95 +109,47 @@
 <span class="p">}</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[5]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">S</span> <span class="o">=</span> <span class="n">Simulation</span><span class="o">.</span><span class="n">from_dir</span><span class="p">(</span><span class="s2">&quot;big_test&quot;</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">S</span> <span class="o">=</span> <span class="n">Simulation</span><span class="o">.</span><span class="n">from_dir</span><span class="p">(</span><span class="s2">&quot;big_test&quot;</span><span class="p">)</span>
 <span class="n">S</span><span class="o">.</span><span class="n">group</span><span class="p">(</span><span class="n">num_intervals</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span> <span class="n">interval_size</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">S</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">S</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Simulation</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">ActivityDrivenModel</span><span class="p">(</span><span class="n">params</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;dt&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s1">&#39;m&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">,</span> <span class="s1">&#39;eps&#39;</span><span class="p">:</span> <span class="mf">0.01</span><span class="p">,</span> <span class="s1">&#39;gamma&#39;</span><span class="p">:</span> <span class="mf">2.1</span><span class="p">,</span> <span class="s1">&#39;reciprocity&#39;</span><span class="p">:</span> <span class="mf">0.5</span><span class="p">,</span> <span class="s1">&#39;homophily&#39;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;alpha&#39;</span><span class="p">:</span> <span class="mf">3.0</span><span class="p">,</span> <span class="s1">&#39;K&#39;</span><span class="p">:</span> <span class="mi">3</span><span class="p">}),</span> <span class="n">parameters</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;simulation&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;rng_seed&#39;</span><span class="p">:</span> <span class="mi">12345678019</span><span class="p">},</span> <span class="s1">&#39;model&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;max_iterations&#39;</span><span class="p">:</span> <span class="mi">2000</span><span class="p">},</span> <span class="s1">&#39;network&#39;</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;number_of_agents&#39;</span><span class="p">:</span> <span class="mi">1000</span><span class="p">,</span> <span class="s1">&#39;connections_per_agent&#39;</span><span class="p">:</span> <span class="mi">10</span><span class="p">}},</span> <span class="n">dynamics</span><span class="o">=&lt;</span><span class="n">HariDynamics</span> <span class="nb">object</span> <span class="k">with</span> <span class="mi">3</span> <span class="n">LazyHariGraphs</span> <span class="p">(</span><span class="mi">0</span> <span class="n">initialized</span><span class="p">)</span><span class="o">&gt;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[6]:
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">interface</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">create_interface</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Simulation(model=ActivityDrivenModel(params={&#39;dt&#39;: 0.01, &#39;m&#39;: 10, &#39;eps&#39;: 0.01, &#39;gamma&#39;: 2.1, &#39;reciprocity&#39;: 0.5, &#39;homophily&#39;: 3.0, &#39;alpha&#39;: 3.0, &#39;K&#39;: 3}), parameters={&#39;simulation&#39;: {&#39;rng_seed&#39;: 12345678019}, &#39;model&#39;: {&#39;max_iterations&#39;: 2000}, &#39;network&#39;: {&#39;number_of_agents&#39;: 1000, &#39;connections_per_agent&#39;: 10}}, dynamics=&lt;HariDynamics object with 3 LazyHariGraphs (0 initialized)&gt;)
-</pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[7]:
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">interface</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">track_clusters</span><span class="p">(</span><span class="n">cl</span><span class="p">)</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">interface</span> <span class="o">=</span> <span class="n">Interface</span><span class="o">.</span><span class="n">create_interface</span><span class="p">(</span><span class="n">S</span><span class="p">)</span>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="p">[{</span><span class="mi">0</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Cluster 0&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 0&#39;</span><span class="p">},</span>
+  <span class="mi">1</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Cluster 0&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 0&#39;</span><span class="p">},</span>
+  <span class="mi">2</span><span class="p">:</span> <span class="p">{</span><span class="s1">&#39;Cluster 0&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 0&#39;</span><span class="p">,</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">:</span> <span class="s1">&#39;Cluster 1&#39;</span><span class="p">}}]</span>
 </pre></div>
 </div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">interface</span><span class="o">.</span><span class="n">cluster_tracker</span><span class="o">.</span><span class="n">track_clusters</span><span class="p">(</span><span class="n">cl</span><span class="p">)</span>
-</pre></div>
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[8]:
-</pre></div>
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-[{0: {&#39;Cluster 0&#39;: &#39;Cluster 1&#39;, &#39;Cluster 1&#39;: &#39;Cluster 0&#39;},
-  1: {&#39;Cluster 0&#39;: &#39;Cluster 1&#39;, &#39;Cluster 1&#39;: &#39;Cluster 0&#39;},
-  2: {&#39;Cluster 0&#39;: &#39;Cluster 0&#39;, &#39;Cluster 1&#39;: &#39;Cluster 1&#39;}}]
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[9]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span> <span class="o">=</span> <span class="n">Plotter</span><span class="p">(</span><span class="n">interface</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span> <span class="o">=</span> <span class="n">Plotter</span><span class="p">(</span><span class="n">interface</span><span class="p">)</span>
 <span class="nb">print</span><span class="p">(</span><span class="n">plotter</span><span class="o">.</span><span class="n">available_plot_types_hint</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-Histogram: +
-Hexbin: +
-Scatter: +
-Clustering: Centroids: +
-Clustering: Fill: +
-Clustering: Degree of Membership: +
-Clustering: Density Plot: +
-Static: Time line: +
-Static: Node lines: +
-Static: Graph line: +
-Static: Graph Range: +
-Static: Clustering Line: +
-Static: Clustering Range: +
-
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[10]:
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Histogram</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Hexbin</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Scatter</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Clustering</span><span class="p">:</span> <span class="n">Centroids</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Clustering</span><span class="p">:</span> <span class="n">Fill</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Clustering</span><span class="p">:</span> <span class="n">Degree</span> <span class="n">of</span> <span class="n">Membership</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Clustering</span><span class="p">:</span> <span class="n">Density</span> <span class="n">Plot</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Time</span> <span class="n">line</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Node</span> <span class="n">lines</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Graph</span> <span class="n">line</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Graph</span> <span class="n">Range</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Clustering</span> <span class="n">Line</span><span class="p">:</span> <span class="o">+</span> 
+<span class="n">Static</span><span class="p">:</span> <span class="n">Clustering</span> <span class="n">Range</span><span class="p">:</span> <span class="o">+</span> 
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">add_plot</span><span class="p">(</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">add_plot</span><span class="p">(</span>
     <span class="s2">&quot;Static: Time line&quot;</span><span class="p">,</span>
     <span class="p">{</span>
         <span class="s2">&quot;parameters&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;Time&quot;</span><span class="p">,</span> <span class="s2">&quot;Opinion&quot;</span><span class="p">],</span>
@@ -384,154 +308,76 @@ Static: Clustering Range: +
 <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">==========&quot;</span><span class="p">,</span> <span class="n">plotter</span><span class="o">.</span><span class="n">info</span><span class="p">(),</span> <span class="s2">&quot;</span><span class="se">\n</span><span class="s2">==========&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">==========</span> 
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_time_line</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da680</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_clustering_line</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da5c0</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_fill_between_clustering</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da6e0</span><span class="o">&gt;</span>
 
-==========
-(1, 0) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_time_line object at 0x718ec87da680&gt;
-&lt;hari_plotter.plot.plot_clustering_line object at 0x718ec87da5c0&gt;
-&lt;hari_plotter.plot.plot_fill_between_clustering object at 0x718ec87da6e0&gt;
+<span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_time_line</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da620</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_node_lines</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da800</span><span class="o">&gt;</span>
 
-(2, 1) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_time_line object at 0x718ec87da620&gt;
-&lt;hari_plotter.plot.plot_node_lines object at 0x718ec87da800&gt;
+<span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_histogram</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da6b0</span><span class="o">&gt;</span>
 
-(0, 1) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_histogram object at 0x718ec87da6b0&gt;
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_histogram</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da740</span><span class="o">&gt;</span>
 
-(1, 2) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_histogram object at 0x718ec87da740&gt;
+<span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_clustering_fill</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da7a0</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_scatter</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da7d0</span><span class="o">&gt;</span>
 
-(1, 1) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_clustering_fill object at 0x718ec87da7a0&gt;
-&lt;hari_plotter.plot.plot_scatter object at 0x718ec87da7d0&gt;
-
-(2, 0) &lt;hari_plotter.interface.SimulationInterface object at 0x718edf1c6e00&gt;
-&lt;hari_plotter.plot.plot_scatter object at 0x718ec87da830&gt;
-
-==========
-</pre></div></div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span> <span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">interface</span><span class="o">.</span><span class="n">SimulationInterface</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718edf1c6e00</span><span class="o">&gt;</span>
+<span class="o">&lt;</span><span class="n">hari_plotter</span><span class="o">.</span><span class="n">plot</span><span class="o">.</span><span class="n">plot_scatter</span> <span class="nb">object</span> <span class="n">at</span> <span class="mh">0x718ec87da830</span><span class="o">&gt;</span>
+ 
+<span class="o">==========</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:912: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:914: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[11]:
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">912</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">914</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
-<div class="output_area docutils container">
-<img alt="../_images/examples_plotter_11_1.png" src="../_images/examples_plotter_11_1.png" />
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/examples_plotter_11_2.png" src="../_images/examples_plotter_11_2.png" />
-</div>
-</div>
-<div class="nbinput docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[12]:
-</pre></div>
-</div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">plot_dynamics</span><span class="p">(</span>
+<p><img alt="png" src="../_images/plotter_11_1.png" /></p>
+<p><img alt="png" src="../_images/plotter_11_2.png" /></p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plotter</span><span class="o">.</span><span class="n">plot_dynamics</span><span class="p">(</span>
     <span class="n">mode</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;show&quot;</span><span class="p">,</span> <span class="s2">&quot;save&quot;</span><span class="p">,</span> <span class="s2">&quot;gif&quot;</span><span class="p">,</span> <span class="s2">&quot;mp4&quot;</span><span class="p">],</span>
     <span class="n">save_dir</span><span class="o">=</span><span class="s2">&quot;save_dir&quot;</span><span class="p">,</span>
     <span class="n">animation_path</span><span class="o">=</span><span class="s2">&quot;save_dir/animation&quot;</span><span class="p">,</span>
 <span class="p">)</span>
 </pre></div>
 </div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:912: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:914: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/examples_plotter_12_1.png" src="../_images/examples_plotter_12_1.png" />
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:912: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:914: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/examples_plotter_12_3.png" src="../_images/examples_plotter_12_3.png" />
-</div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area stderr docutils container">
-<div class="highlight"><pre>
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:912: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 0] = np.arctanh(mesh_points_scaled[:, 0])
-/home/ivan/Projects/hari-plotter/hari_plotter/plot.py:914: RuntimeWarning: divide by zero encountered in arctanh
-  mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
-</pre></div></div>
-</div>
-<div class="nboutput docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<img alt="../_images/examples_plotter_12_5.png" src="../_images/examples_plotter_12_5.png" />
-</div>
-</div>
-<div class="nboutput nblast docutils container">
-<div class="prompt empty docutils container">
-</div>
-<div class="output_area docutils container">
-<div class="highlight"><pre>
-&lt;Figure size 640x480 with 0 Axes&gt;
-</pre></div></div>
-</div>
-<div class="nbinput nblast docutils container">
-<div class="prompt highlight-none notranslate"><div class="highlight"><pre><span></span>[ ]:
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">912</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">914</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
-<div class="input_area highlight-ipython3 notranslate"><div class="highlight"><pre><span></span>
+<p><img alt="png" src="../_images/plotter_12_1.png" /></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">912</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">914</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
 </pre></div>
 </div>
+<p><img alt="png" src="../_images/plotter_12_3.png" /></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">912</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">])</span>
+<span class="o">/</span><span class="n">home</span><span class="o">/</span><span class="n">ivan</span><span class="o">/</span><span class="n">Projects</span><span class="o">/</span><span class="n">hari</span><span class="o">-</span><span class="n">plotter</span><span class="o">/</span><span class="n">hari_plotter</span><span class="o">/</span><span class="n">plot</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">914</span><span class="p">:</span> <span class="ne">RuntimeWarning</span><span class="p">:</span> <span class="n">divide</span> <span class="n">by</span> <span class="n">zero</span> <span class="n">encountered</span> <span class="ow">in</span> <span class="n">arctanh</span>
+  <span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arctanh</span><span class="p">(</span><span class="n">mesh_points_scaled</span><span class="p">[:,</span> <span class="mi">1</span><span class="p">])</span>
+</pre></div>
+</div>
+<p><img alt="png" src="../_images/plotter_12_5.png" /></p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="o">&lt;</span><span class="n">Figure</span> <span class="n">size</span> <span class="mi">640</span><span class="n">x480</span> <span class="k">with</span> <span class="mi">0</span> <span class="n">Axes</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span>
+</pre></div>
 </div>
 </section>
 
