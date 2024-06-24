@@ -434,7 +434,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         return {node: data.get('Label', None) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Type')
-    def label(self) -> Dict[Tuple[int], str]:
+    def type(self) -> Dict[Tuple[int], str]:
         """Returns a mapping of node IDs to their types for all nodes including bots."""
         return {node: data.get('Type', None) for node, data in self.G.nodes(data=True)}
 
