@@ -278,23 +278,6 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     def get_number_of_clusters(self) -> int:
         return self.n_clusters  # Assuming self.n_clusters tracks the number of clusters
 
-    # def labels_nodes_dict(self) -> List[list]:
-    #     """
-    #     Maps each node to a cluster based on the parameter boundaries.
-
-    #     Returns:
-    #     - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.
-    #     """
-    #     cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
-
-    #     for i, point in enumerate(self.data):
-    #         cluster_index = self.find_cluster_index(point)
-    #         if cluster_index is not None:  # Point falls within defined boundaries
-    #             cluster_nodes[cluster_index].append(
-    #                 tuple(self.node_ids[i]))
-
-    #     return cluster_nodes
-
     def find_cluster_indices_on_grid(self, point: np.ndarray) -> np.ndarray:
         """
         Determines the indices of the clusters a point belongs to based on parameter boundaries.
@@ -309,10 +292,6 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         for i, boundaries in enumerate(self.parameter_boundaries):
             cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
         return cluster_indices
-
-    # def find_cluster_index(self, point):
-    #     cluster_indices = self.find_cluster_indices_on_grid(point)
-    #     return self._indices_mapping.get(cluster_indices, None)
 
     @classmethod
     def from_graph(cls, G: Graph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
@@ -429,39 +408,6 @@ class ValueIntervalsClustering(ParameterBasedClustering):
 
         return cluster_indexes
 
-    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
-    #     """
-    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
-
-    #     Args:
-    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
-    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
-
-    #     Returns:
-    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
-    #                           and contains the values of the specified parameter(s) for each point in that cluster.
-    #     """
-    #     if isinstance(key, str):
-    #         # Single parameter requested
-    #         key = [key]
-
-    #     if not all(k in self.parameters for k in key):
-    #         raise KeyError(
-    #             f"One or more requested parameters {key} are not found in the cluster parameters {self.parameters}.")
-
-    #     param_indices = [self.parameters.index(k) for k in key]
-
-    #     scaled_data = self.data[:, param_indices]
-    #     if not keep_scale:
-    #         for new_index, original_index in enumerate(param_indices):
-    #             used_scale = self.scales[original_index]
-    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
-    #                 scaled_data[:, new_index])
-
-    #     unique = np.unique(self.cluster_indexes)
-
-    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
-
 
 @Clustering.clustering_method("K-Means Clustering")
 class KMeansClustering(ParameterBasedClustering):
@@ -474,9 +420,6 @@ class KMeansClustering(ParameterBasedClustering):
 
     def unscaled_centroids(self) -> np.ndarray:
         return self._centroids.copy()
-
-    # def labels_nodes_dict(self) -> Dict[str, Tuple[Tuple[int]]]:
-    #     return {cluster_label: ids for cluster_label, ids in zip(self.cluster_labels, self.node_ids)}
 
     def get_number_of_clusters(self) -> int:
         """
