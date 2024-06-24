@@ -5,6 +5,7 @@ import warnings
 from collections import defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
+import matplotlib as mpl
 import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
@@ -74,7 +75,7 @@ def initialize_colormap(colormap: str | Dict[str, Any]) -> Tuple[str, Colormap]:
     # Colormap doesn't exist, create a new one
     colors = [anything_to_rgba(color) for color in colormap['Colors']]
     new_colormap = LinearSegmentedColormap.from_list(colormap_name, colors)
-    cm.register_cmap(name=colormap_name, cmap=new_colormap)
+    mpl.colormaps.register(name=colormap_name, cmap=new_colormap)
     print(f"Colormap '{colormap_name}' created and registered.")
     return colormap_name, new_colormap
 
