@@ -103,6 +103,40 @@ class Dynamics:
 
         return dynamics_instance
 
+    @classmethod
+    def read_json(cls, json_files: Union[str, List[str]], load_request: Dict[str, Any] = {}) -> Dynamics:
+        """
+        Reads a list of network files and a list of opinion files to create LazyHariGraph objects
+        and appends them to the lazy_hari_graphs list of a HariDynamics instance.
+
+        Parameters:
+            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.
+            opinion_files (List[str]): A list of paths to the opinion files.
+
+        Returns:
+            HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.
+
+        Raises:
+            ValueError: If the length of network_files is not equal to the length of opinion_files or other invalid cases.
+        """
+        # If json_files is a string, convert it to a list
+        if isinstance(json_files, str):
+            json_files = [json_files]
+
+        # Create an instance of HariDynamics
+        dynamics_instance = cls()
+        dynamics_instance.groups = []  # Initialize groups list
+
+        for idx, json_file in enumerate(json_files):
+            # Append LazyHariGraph objects to the list, with the class method and parameters needed
+            # to create the actual HariGraph instances when they are required.
+            dynamics_instance.lazy_hari_graphs.append(
+                LazyGraph(Graph.read_json, json_file, **load_request)
+            )
+            dynamics_instance.groups.append([idx])
+
+        return dynamics_instance
+
     def __getitem__(self, index):
         # Handle slices
         if isinstance(index, slice):

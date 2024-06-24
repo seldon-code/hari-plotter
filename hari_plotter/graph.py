@@ -311,12 +311,13 @@ class Graph(nx.DiGraph):
                         f.write(f"{node_idx}{delimiter}{opinion}\n")
 
     @classmethod
-    def read_json(cls, filename: str) -> Graph:
+    def read_json(cls, filename: str, gatherer: NodeEdgeGatherer | None = None) -> Graph:
         """
         Reads a HariGraph instance from a JSON file that contains both the graph's structure and node attributes.
 
         Parameters:
             filename (str): Path to the JSON file from which the graph is to be loaded.
+            gatherer (NodeEdgeGatherer | None): type of gatherer to be used
 
         Returns:
             HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph's nodes, edges, and associated attributes like opinions and influences.
@@ -335,8 +336,11 @@ class Graph(nx.DiGraph):
             graph_dict = json.load(file)
 
         G = json_graph.node_link_graph(data)
+        G = cls(G)
+        if gatherer:
+            G.set_gatherer(gatherer)
 
-        return cls(G)
+        return G
 
     def write_json(self, filename: str):
         """
