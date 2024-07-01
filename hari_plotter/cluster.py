@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import List, Dict, Union, Tuple
+from sklearn.cluster import DBSCAN
 
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from collections import defaultdict
@@ -552,35 +554,139 @@ class KMeansClustering(ParameterBasedClustering):
         self.labels = np.array([label_mapping[label] for label in self.labels])
         self.reorder_labels(new_order)
 
-    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
-    #     """
-    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
 
-    #     Args:
-    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
-    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
+@Clustering.clustering_method("DBSCAN Clustering")
+class DBSCANClustering(ParameterBasedClustering):
+    """A DBSCAN clustering representation, extending the generic Clustering class."""
 
-    #     Returns:
-    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
-    #                           and contains the values of the specified parameter(s) for each point in that cluster.
-    #     """
-    #     if isinstance(key, str):
-    #         # Single parameter requested
-    #         key = [key]
+    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+        super().__init__(G, node_ids=node_ids, parameters=parameters,
+                         scales=scales, cluster_indexes=cluster_indexes)
+        self.data = data
 
-    #     if not all(k in self.parameters for k in key):
-    #         raise KeyError(
-    #             "One or more requested parameters are not found in the cluster parameters.")
+    def get_number_of_clusters(self) -> int:
+        """
+        Get the number of clusters.
 
-    #     param_indices = [self.parameters.index(k) for k in key]
+        Returns:
+        - int : The number of clusters (excluding noise points).
+        """
+        return len(set(self.cluster_indexes)) - (1 if -1 in self.cluster_indexes else 0)
 
-    #     scaled_data = self.data[:, param_indices]
-    #     if not keep_scale:
-    #         for new_index, original_index in enumerate(param_indices):
-    #             used_scale = self.scales[original_index]
-    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
-    #                 scaled_data[:, new_index])
+    @classmethod
+    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str], List[str]], scale: Union[List[str], Dict[str, str], None] = None, eps: float = 0.5, min_samples: int = 5) -> Clustering:
+        """
+        Creates an instance of DBSCANClustering from a structured data dictionary,
+        applying specified scaling to each parameter if needed.
 
-    #     unique = np.unique(self.cluster_indexes)
+        Args:
+            G: HariGraph.
+            clustering_parameters: list of clustering parameters
+            scale: An optional dictionary where keys are parameter names and 
+                values are functions ('Linear' or 'Tanh') to be applied to 
+                the parameter values before clustering.
+            eps: The maximum distance between two samples for them to be considered as in the same neighborhood.
+            min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
 
-    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
+        Returns:
+            DBSCANClustering: An instance of DBSCANClustering with clusters and labels determined from the data.
+
+        Raises:
+            ValueError: If no data points remain after removing NaN values or if
+                        an unknown scaling function is specified.
+        """
+
+        data = G.gatherer.gather(clustering_parameters)
+
+        # Extract nodes and parameter names
+        nodes = data['Nodes']
+        parameter_names = clustering_parameters if clustering_parameters is not None else [
+            key for key in data.keys() if key != 'Nodes']
+
+        # Validate and process scale argument
+        if isinstance(scale, dict):
+            scale = [scale.get(param, 'Linear') for param in parameter_names]
+        elif isinstance(scale, list) and len(scale) != len(parameter_names):
+            raise ValueError('Length mismatch in scale list')
+        elif scale is None:
+            scale = ['Linear'] * len(parameter_names)
+
+        # Prepare data array
+        data = np.array([data[param] for param in parameter_names if param not in [
+                        'Time', 'Nodes']]).T
+
+        # Remove NaN values
+        valid_indices = ~np.isnan(data).any(axis=1)
+        data = data[valid_indices]
+        node_ids = np.array(nodes)[valid_indices]
+
+        if data.size == 0:
+            raise ValueError(
+                "No data points remain after removing NaN values.")
+
+        # Apply scaling to the parameters
+        for i, sc in enumerate(scale):
+            data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
+
+        # Perform clustering
+        clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
+                         scales=scale, cluster_indexes=np.zeros(data.shape[0]))
+        clustering.recluster(eps=eps, min_samples=min_samples)
+
+        return clustering
+
+    def recluster(self, eps: float, min_samples: int):
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        dbscan.fit(self.data)
+        self.cluster_indexes = dbscan.labels_
+
+    def unscaled_centroids(self) -> np.ndarray:
+        """
+        Calculate centroids for the clusters, excluding noise points.
+
+        Returns:
+        - np.ndarray: The centroids of the clusters.
+        """
+        unique_labels = set(self.cluster_indexes)
+        unique_labels.discard(-1)  # Remove noise label
+        centroids = np.array([self.data[self.cluster_indexes == label].mean(axis=0)
+                              for label in unique_labels])
+        return centroids
+
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+        """
+        Predicts the cluster indices to which new data points belong based on the clusters formed.
+
+        Args:
+            data_points: The new data points' parameter values as a numpy array.
+
+        Returns:
+            np.ndarray: An array of indices of the closest cluster centroid to each data point.
+
+        Raises:
+            ValueError: If the dimensionality of the data points does not match that of the centroids.
+        """
+        raise NotImplementedError(
+            "DBSCAN does not support prediction for new data points.")
+
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Reorders clusters and associated information based on a new order.
+
+        Args:
+            new_order: A list containing the indices of the clusters in their new order.
+
+        Raises:
+            ValueError: If new_order does not contain all existing cluster indices.
+        """
+        unique_labels = set(self.cluster_indexes)
+        unique_labels.discard(-1)  # Remove noise label
+        if set(new_order) != unique_labels:
+            raise ValueError(
+                "New order must contain all existing cluster indices.")
+
+        # Create a mapping from old to new labels
+        label_mapping = {old: new for new, old in enumerate(new_order)}
+        self.cluster_indexes = np.array(
+            [label_mapping[label] if label in label_mapping else -1 for label in self.cluster_indexes])
+        self.reorder_labels(new_order)
