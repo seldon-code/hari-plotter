@@ -89,7 +89,7 @@ class ColorScheme:
 
     available_colormaps = plt.colormaps()
     available_markers = list(Line2D.markers.keys())
-    default_markers = ('o', 'X', '<', '>', '^', 'v', '4', '5', '6', '7', '*', '+',
+    default_markers = ('o', 'X', '<', '>', '^', 'v', '4', '*', '+',
                             'D', 'H', 'P', 'd', 'h',  'p', 's', '_', '|', ',', '.',)
     default_scatter_marker = default_markers[0]
     default_none_marker = 'x'
