@@ -442,6 +442,14 @@ class Interface(ABC):
 
             :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
             :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.
+
+            :example: Output 
+
+            .. code-block:: python
+
+                [{'Cluster 0': [0, 1, 2], 'Cluster 1': [0, 1, 2], 'Cluster 2': [0, 1]}]
+
+            means that Cluster 0, Cluster 1, and Cluster 2 are present in frame 0 and 1, and only Cluster 0 and 1 are present in frame 2.
             """
             tracked_clusters_list = self.track_clusters(
                 clusterization_settings)
