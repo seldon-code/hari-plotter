@@ -226,6 +226,21 @@ class Interface(ABC):
         def clean(self):
             self._track_clusters_cache = {}
 
+        def get_clustering(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[Clustering]]:
+            """
+            Retrieves the clusterization for the given settings.
+
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of Clustering objects representing the clusterization for each frame.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
+            clusterizations = []
+            for clust_settings in clusterization_settings_list:
+                clusterizations.append([group.clustering(
+                    **clust_settings) for group in self._interface.groups])
+            return clusterizations
+
         def is_tracked(self, clusterization_settings: Union[dict, List[dict]]) -> List[bool]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
