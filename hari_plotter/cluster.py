@@ -15,6 +15,8 @@ from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 
+import matplotlib.pyplot as plt
+
 from .graph import Graph
 
 
@@ -464,8 +466,129 @@ class KMeansClustering(ParameterBasedClustering):
         nearest_centroid_indices = np.argmin(distances, axis=1)
         return nearest_centroid_indices
 
+    def recluster(self, n_clusters):
+        kmeans = KMeans(n_clusters=n_clusters, init='k-means++',
+                        n_init='auto', random_state=42)
+        kmeans.fit(self.data)
+        self._centroids = kmeans.cluster_centers_
+        self.cluster_indexes = kmeans.labels_
+
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Reorders clusters and associated information based on a new order.
+
+        Args:
+            new_order: A list containing the indices of the clusters in their new order.
+
+        Raises:
+            ValueError: If new_order does not contain all existing cluster indices.
+        """
+        if set(new_order) != set(range(len(self.centroids))):
+            raise ValueError(
+                "New order must contain all existing cluster indices.")
+
+        self.centroids = self.centroids[new_order]
+        self.clusters = [self.clusters[i] for i in new_order]
+        # Create a mapping from old to new labels
+        label_mapping = {old: new for new, old in enumerate(new_order)}
+        self.labels = np.array([label_mapping[label] for label in self.labels])
+        self.reorder_labels(new_order)
+
+    def calculate_wcss(self, max_clusters: int = 10) -> List[float]:
+        """
+        Calculate the within-cluster sum of squares (WCSS) for different numbers of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            List[float]: A list of WCSS values for each number of clusters.
+        """
+        wcss = []
+        for i in range(1, max_clusters + 1):
+            kmeans = KMeans(n_clusters=i, init='k-means++',
+                            n_init='auto', random_state=42)
+            kmeans.fit(self.data)
+            wcss.append(kmeans.inertia_)
+        return wcss
+
+    def plot_elbow_method(self, max_clusters: int = 10):
+        """
+        Plot the WCSS values to use the Elbow method for determining the optimal number of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+        """
+        wcss = self.calculate_wcss(max_clusters)
+        plt.plot(range(1, max_clusters + 1), wcss, marker='o')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WCSS')
+        plt.title('Elbow Method')
+        plt.show()
+
+    def calculate_silhouette_scores(self, max_clusters: int = 10) -> List[float]:
+        """
+        Calculate the silhouette scores for different numbers of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            List[float]: A list of silhouette scores for each number of clusters.
+        """
+        silhouette_scores = []
+        for i in range(2, max_clusters + 1):  # Silhouette score is undefined for 1 cluster
+            kmeans = KMeans(n_clusters=i, init='k-means++',
+                            n_init='auto', random_state=42)
+            kmeans.fit(self.data)
+            score = silhouette_score(self.data, kmeans.labels_)
+            silhouette_scores.append(score)
+        return silhouette_scores
+
+    def plot_silhouette_scores(self, max_clusters: int = 10):
+        """
+        Plot the silhouette scores to help determine the optimal number of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+        """
+        scores = self.calculate_silhouette_scores(max_clusters)
+        plt.plot(range(2, max_clusters + 1), scores, marker='o')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('Silhouette Score')
+        plt.title('Silhouette Score Method')
+        plt.show()
+
+    def optimal_number_of_clusters(self, method: str = 'silhouette', max_clusters: int = 10) -> int:
+        """
+        Determine the optimal number of clusters using the specified method.
+
+        Args:
+            method: The method to use ('elbow' or 'silhouette').
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            int: The optimal number of clusters.
+        """
+        if method == 'elbow':
+            wcss = self.calculate_wcss(max_clusters)
+            # Find the "elbow" point where the WCSS decreases at a slower rate
+            # A more advanced implementation could use the "knee point" detection algorithm
+            diffs = np.diff(wcss)
+            second_diffs = np.diff(diffs)
+            # Adding 2 because np.diff reduces the array length by 1 each time
+            optimal_clusters = np.argmax(second_diffs) + 2
+        elif method == 'silhouette':
+            scores = self.calculate_silhouette_scores(max_clusters)
+            # Adding 2 because silhouette score calculation starts at 2 clusters
+            optimal_clusters = np.argmax(scores) + 2
+        else:
+            raise ValueError("Unknown method. Use 'elbow' or 'silhouette'.")
+
+        return optimal_clusters
+
     @classmethod
-    def from_graph(cls, G: Graph, clustering_parameters:  Union[Tuple[str] | List[str]],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
+    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str] | List[str]], scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = -1, method: str = 'silhouette', max_clusters: int = 10) -> Clustering:
         """
         Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
@@ -476,7 +599,9 @@ class KMeansClustering(ParameterBasedClustering):
             scale: An optional dictionary where keys are parameter names and 
                 values are functions ('Linear' or 'Tanh') to be applied to 
                 the parameter values before clustering.
-            n_clusters: The number of clusters to form.
+            n_clusters: The number of clusters to form. If -1, the optimal number of clusters will be determined.
+            method: The method to use for determining the optimal number of clusters ('elbow' or 'silhouette').
+            max_clusters: The maximum number of clusters to consider.
 
         Returns:
             KMeansClustering: An instance of KMeansClustering with clusters, centroids, 
@@ -519,40 +644,19 @@ class KMeansClustering(ParameterBasedClustering):
         for i, sc in enumerate(scale):
             data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
 
+        # Determine the number of clusters if not provided
+        if n_clusters == -1:
+            temp_clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
+                                  scales=scale, cluster_indexes=np.zeros(data.shape[0]))
+            n_clusters = temp_clustering.optimal_number_of_clusters(
+                method=method, max_clusters=max_clusters)
+
         # Perform clustering
         clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
                          scales=scale, cluster_indexes=np.zeros(data.shape[0]))
         clustering.recluster(n_clusters=n_clusters)
 
         return clustering
-
-    def recluster(self, n_clusters):
-        kmeans = KMeans(n_clusters=n_clusters, init='k-means++',
-                        n_init='auto', random_state=42)
-        kmeans.fit(self.data)
-        self._centroids = kmeans.cluster_centers_
-        self.cluster_indexes = kmeans.labels_
-
-    def reorder_clusters(self, new_order: List[int]):
-        """
-        Reorders clusters and associated information based on a new order.
-
-        Args:
-            new_order: A list containing the indices of the clusters in their new order.
-
-        Raises:
-            ValueError: If new_order does not contain all existing cluster indices.
-        """
-        if set(new_order) != set(range(len(self.centroids))):
-            raise ValueError(
-                "New order must contain all existing cluster indices.")
-
-        self.centroids = self.centroids[new_order]
-        self.clusters = [self.clusters[i] for i in new_order]
-        # Create a mapping from old to new labels
-        label_mapping = {old: new for new, old in enumerate(new_order)}
-        self.labels = np.array([label_mapping[label] for label in self.labels])
-        self.reorder_labels(new_order)
 
 
 @Clustering.clustering_method("DBSCAN Clustering")
