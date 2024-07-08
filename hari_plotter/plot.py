@@ -901,6 +901,14 @@ class plot_clustering_fill(Plot):
         x_feature_index, y_feature_index = clustering.get_indices_from_parameters(
             [x_feature_name, y_feature_name])
 
+        if np.any(x_lim) == None:
+            x_lim = [np.nanmin(clustering.data[:, x_feature_index]), np.nanmax(
+                clustering.data[:, x_feature_index])]
+
+        if np.any(y_lim) == None:
+            y_lim = [np.nanmin(clustering.data[:, y_feature_index]), np.nanmax(
+                clustering.data[:, y_feature_index])]
+
         xx, yy = np.meshgrid(
             np.linspace(x_lim[0], x_lim[1], self.resolution), np.linspace(
                 y_lim[0], y_lim[1], self.resolution)
@@ -1117,6 +1125,133 @@ class plot_clustering_density(Plot):
         if self.show_y_label:
             ax.set_ylabel(Plotter._parameter_dict.get(
                 self.parameters[1], self.parameters[1]))
+
+
+@Plotter.plot_type("Clustered Histogram")
+class plot_clustered_histogram(Plot):
+    def __init__(self, interface: Interface, color_scheme: ColorScheme, parameter: str,
+                 clustering_settings: Optional[dict] = None,
+                 scale: Optional[Tuple[str] | None] = None,
+                 rotated: Optional[bool] = False,
+                 show_x_label: bool = True, show_y_label: bool = True,
+                 exclude_types: Tuple[str] = (),
+                 x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
+                 fill_color: str | dict | float | None = None):
+        self.interface: Interface = interface
+        self.color_scheme: ColorScheme = color_scheme
+        self.parameter: str = parameter
+        self.parameters: Tuple[str] = (parameter,)
+        self.clustering_settings = clustering_settings
+        self.scale: Tuple[str] = tuple(scale or ('Linear', 'Linear'))
+        self.exclude_types: Tuple[str] = exclude_types
+        self.rotated: bool = rotated
+        self.show_x_label: bool = show_x_label
+        self.show_y_label: bool = show_y_label
+        self._x_lim: Sequence[float] | None = x_lim
+        self._y_lim: Sequence[float] | None = y_lim
+
+        def fill_color_to_fill_color_settings(fill_color) -> dict:
+            if isinstance(fill_color, dict):
+                # check if only 'mode' and 'settings' in dict
+                if not all(key in {'mode', 'settings'} for key in fill_color.keys()):
+                    raise ValueError(
+                        'Histogram color is incorrectly formatted')
+                return fill_color
+            else:
+                return {'mode': 'Cluster Color', 'settings': {'clustering_settings': self.clustering_settings}}
+
+        self.fill_color_settings: dict = fill_color_to_fill_color_settings(
+            fill_color)
+
+    def get_track_clusterings_requests(self):
+        return [self.color_scheme.requires_tracking(self.fill_color_settings)]
+
+    def settings_to_code(self) -> str:
+        return ('\'parameter\':' + self.parameter +
+                ',\'scale\':' + str(self.scale) +
+                ',\'rotated\':' + str(self.rotated) +
+                ',\'show_x_label\':' + str(self.show_x_label) +
+                ',\'show_y_label\':' + str(self.show_y_label) +
+                ',\'x_lim\':' + str(self._x_lim) +
+                ',\'y_lim\':' + str(self._y_lim) +
+                ',\'fill_color\':' + str(self.fill_color_settings))
+
+    @staticmethod
+    def settings(interface: Interface) -> List[Parameter]:
+        return [ListParameter(name='Parameter', parameter_name='parameter', arguments=interface.node_parameters, comment='Parameter of the histogram'),
+                ListParameter(name='Scale', parameter_name='scale', arguments=[
+                              'Linear', 'Tanh'], comment='Scale of the parameter'),
+                BoolParameter(name='Rotate', parameter_name='rotated',
+                              default_value=False, comment='Should the histogram be rotated?'),
+                BoolParameter(
+                    name='Show X Label', parameter_name='show_x_label', default_value=True, comment=''),
+                BoolParameter(
+                    name='Show Y Label', parameter_name='show_y_label', default_value=True, comment=''),
+                NoneRangeParameter(name='X Limit', parameter_name='x_lim', default_min_value=None,
+                                   default_max_value=None, limits=(None, None), comment=''),
+                NoneRangeParameter(name='Y Limit', parameter_name='y_lim', default_min_value=None,
+                                   default_max_value=None, limits=(None, None), comment=''),
+                ]
+
+    @staticmethod
+    def qt_to_settings(qt_settings: dict) -> dict:
+        settings = qt_settings.copy()
+        parameter_value = settings.pop('parameter', None)
+        settings['parameter'] = parameter_value
+        settings['scale'] = (settings['scale'], 'Linear')
+        return settings
+
+    def get_dynamic_plot_requests(self):
+        return [{'method': 'get_clustering', 'settings': {'parameters': self.parameters, 'scale': self.scale, 'clustering_settings': self.clustering_settings}},
+                {'method': 'calculate_node_values', 'settings': {'parameters': (self.parameter, 'Type'), 'scale': self.scale}}]
+
+    def plot(self, ax: plt.Axes, group_number: int,  axis_limits: dict):
+        if len(self.parameters) != 1:
+            raise ValueError('Histogram expects only one parameter')
+
+        clustering: Clustering = self.interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            0]]
+        labels = clustering.cluster_labels
+
+        data = self.interface.dynamic_data_cache[group_number][self.get_dynamic_plot_requests()[
+            1]]
+
+        self.parameter = self.parameters[0]
+        values = np.array(data[self.parameter])
+
+        # Now get the limits and set default values if necessary
+        x_lim, y_lim = self.get_limits(axis_limits)
+
+        colors = self.color_scheme.fill_colors(
+            clusters=labels, group_number=group_number, **self.fill_color_settings)
+
+        cluster_labels = clustering.cluster_labels
+
+        # Iterate through each cluster and plot its histogram
+        for i, (cluster, color) in enumerate(zip(cluster_labels, colors)):
+            cluster_values = values[np.where(clustering.cluster_indexes == i)]
+
+            if self.rotated:
+                sns.histplot(y=cluster_values, kde=False, ax=ax, element="step", fill=False,
+                             stat="density", label=f'Cluster {cluster}', color=color)
+            else:
+                sns.histplot(cluster_values, kde=False, ax=ax, element="step", fill=False,
+                             stat="density", label=f'Cluster {cluster}', color=color)
+
+        ax.legend()
+
+        Plot.tanh_axis_labels(ax=ax, scale=self.scale)
+
+        if x_lim is not None:
+            ax.set_xlim(*x_lim)
+        if y_lim is not None:
+            ax.set_ylim(*y_lim)
+
+        if self.show_x_label:
+            ax.set_xlabel(Plotter._parameter_dict.get(
+                self.parameter, self.parameter))
+        if self.show_y_label:
+            ax.set_ylabel('Density')
 
 
 @Plotter.plot_type("Static: Time line")
