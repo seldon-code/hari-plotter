@@ -763,15 +763,36 @@ class DBSCANClustering(ParameterBasedClustering):
 
         Args:
             data_points: The new data points' parameter values as a numpy array.
+            points_scaled: A boolean indicating whether the data points are already scaled.
 
         Returns:
-            np.ndarray: An array of indices of the closest cluster centroid to each data point.
+            np.ndarray: An array of indices of the closest cluster point to each data point.
 
         Raises:
-            ValueError: If the dimensionality of the data points does not match that of the centroids.
+            ValueError: If the dimensionality of the data points does not match that of the original data.
         """
-        raise NotImplementedError(
-            "DBSCAN does not support prediction for new data points.")
+        if not points_scaled:
+            # Apply scaling to the new data points
+            for i, sc in enumerate(self.scales):
+                data_points[:, i] = self.scale_funcs[sc]['direct'](
+                    data_points[:, i])
+
+        # Check for dimensionality match
+        if data_points.shape[1] != self.data.shape[1]:
+            raise ValueError(
+                "Dimensionality of data points does not match that of the original data.")
+
+        # Compute distances from each new data point to all existing data points
+        distances = np.linalg.norm(
+            data_points[:, np.newaxis] - self.data, axis=2)
+
+        # Find the nearest existing data point for each new data point
+        nearest_indices = np.argmin(distances, axis=1)
+
+        # Assign each new data point to the cluster of the nearest existing data point
+        cluster_indices = self.cluster_indexes[nearest_indices]
+
+        return cluster_indices
 
     def reorder_clusters(self, new_order: List[int]):
         """
