@@ -515,6 +515,16 @@ class Interface(ABC):
     def group_time_range(self) -> List[float]:
         return [self.groups[0].mean_time(),  self.groups[-1].mean_time()]
 
+    def __repr__(self) -> str:
+        return (f"<{self.__class__.__name__}("
+                f"REQUIRED_TYPE={self.REQUIRED_TYPE.__name__}, "
+                f"data={repr(self.data)}, "
+                f"group_length={len(self.groups)}, "
+                f"time_range={self.time_range})>")
+
+    def __str__(self) -> str:
+        return f"Interface(type={self.REQUIRED_TYPE.__name__}, data={self.data}, groups={len(self.groups)}, time_range={self.time_range})"
+
 
 class HariGraphInterface(Interface):
     """Interface specifically designed for the HariGraph class."""
