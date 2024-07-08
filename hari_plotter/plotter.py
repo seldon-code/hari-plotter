@@ -192,6 +192,7 @@ class Plotter:
             Parameters:
             value (tuple[list[float], list[float]]): The size ratios.
             """
+            print(f'{value=}')
             if not len(value) == 2:
                 raise ValueError('Size ratios must be a tuple of two lists')
             if not all(isinstance(ratio, (tuple, list)) for ratio in value):
@@ -214,18 +215,18 @@ class Plotter:
                 return self._figsize
             else:
                 # Calculate size based on the sum of size ratios
-                width = np.sum(self._size_ratios[1])
-                height = np.sum(self._size_ratios[0])
+                width = np.sum(self.size_ratios[1])
+                height = np.sum(self.size_ratios[0])
 
             # Adjust the width and height to ensure the smallest dimension is higher than 3
             if width < height:
-                width = max(width, 4*len(self._size_ratios[1]))
+                width = max(width, 4*len(self.size_ratios[1]))
                 height = width * \
-                    (np.sum(self._size_ratios[0])/np.sum(self._size_ratios[1]))
+                    (np.sum(self.size_ratios[0])/np.sum(self.size_ratios[1]))
             else:
-                height = max(height, 4*len(self._size_ratios[0]))
+                height = max(height, 4*len(self.size_ratios[0]))
                 width = height * \
-                    (np.sum(self._size_ratios[1])/np.sum(self._size_ratios[0]))
+                    (np.sum(self.size_ratios[1])/np.sum(self.size_ratios[0]))
 
             self._figsize = (width, height)
 
@@ -251,7 +252,7 @@ class Plotter:
             Returns:
             int: The number of rows.
             """
-            return len(self._size_ratios[0])
+            return len(self.size_ratios[0])
 
         @property
         def num_cols(self) -> int:
@@ -261,7 +262,7 @@ class Plotter:
             Returns:
             int: The number of columns.
             """
-            return len(self._size_ratios[1])
+            return len(self.size_ratios[1])
 
         def fig(self) -> Figure:
             """
