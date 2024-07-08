@@ -410,7 +410,35 @@ class ValueIntervalsClustering(ParameterBasedClustering):
             # Determine the cluster indices for the current point across all parameters
             cluster_indexes.append(self.find_cluster_index(point))
 
-        return cluster_indexes
+        return np.array(cluster_indexes)
+
+    def find_cluster_indices_on_grid(self, point: np.ndarray) -> np.ndarray:
+        """
+        Determines the indices of the clusters a point belongs to based on parameter boundaries.
+
+        Args:
+        - point: The data point's parameter values as a numpy array.
+
+        Returns:
+        - np.ndarray: An array of the indices of the clusters the point belongs to.
+        """
+        cluster_indices = np.zeros(len(self.parameter_boundaries), dtype=int)
+        for i, boundaries in enumerate(self.parameter_boundaries):
+            cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
+        return cluster_indices
+
+    def find_cluster_index(self, point: np.ndarray) -> Union[int, None]:
+        """
+        Identifies the cluster index for a given point based on the parameter boundaries.
+
+        Args:
+        - point: The data point's parameter values as a numpy array.
+
+        Returns:
+        - int or None: The cluster index if the cell is a cluster, otherwise None.
+        """
+        cluster_indices = tuple(self.find_cluster_indices_on_grid(point))
+        return self._indices_mapping.get(cluster_indices, None)
 
 
 @Clustering.clustering_method("K-Means Clustering")
