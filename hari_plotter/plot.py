@@ -921,7 +921,8 @@ class plot_clustering_fill(Plot):
         if self.scale[1] == 'Tanh':
             mesh_points_scaled[:, 1] = np.arctanh(mesh_points_scaled[:, 1])
 
-        Z = clustering.predict_cluster(mesh_points_scaled)
+        Z = clustering.predict_cluster(
+            mesh_points_scaled, parameters=self.parameters)
         Z = Z.reshape(xx.shape)
 
         # Create a ListedColormap with your colors

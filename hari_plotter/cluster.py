@@ -205,7 +205,7 @@ class ParameterBasedClustering(Clustering):
             "This method must be implemented in subclasses")
 
     @abstractmethod
-    def predict_cluster(self, data_point: List[float]) -> int:
+    def predict_cluster(self, data_point: List[float], parameters: None | tuple[str] = None) -> int:
         """
         Abstract method to predict the cluster for a new data point.
         """
@@ -265,6 +265,13 @@ class ParameterBasedClustering(Clustering):
             return self.parameters[indices]
         else:
             return [self.parameters[index] for index in indices]
+
+    def prepare_data_point_for_prediction(self, data_points, parameters):
+        if set(self.parameters) > set(parameters):
+            raise ValueError(
+                "The provided parameters must include all parameters used for clustering.")
+
+        return data_points[:, [self.get_indices_from_parameters(param) for param in parameters if param in self.parameters]]
 
 
 @Clustering.clustering_method("Interval Clustering")
@@ -380,7 +387,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     def unscaled_centroids(self) -> np.ndarray:
         return np.array([np.mean(self.data[self.cluster_indexes == i], axis=0) for i in range(self.n_clusters)])
 
-    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
         """
         Predicts the cluster indices to which new data points belong based on the centroids.
 
@@ -393,6 +400,11 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         Raises:
             ValueError: If the dimensionality of the data points does not match that of the centroids.
         """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
         # Check if the data points are of the correct dimension
         if data_points.shape[1] != len(self.parameters):
             raise ValueError(
@@ -462,7 +474,7 @@ class KMeansClustering(ParameterBasedClustering):
         """
         return len(self._centroids)
 
-    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
         """
         Predicts the cluster indices to which new data points belong based on the centroids.
 
@@ -475,6 +487,11 @@ class KMeansClustering(ParameterBasedClustering):
         Raises:
             ValueError: If the dimensionality of the data points does not match that of the centroids.
         """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
         # Check if the data points are of the correct dimension
         centroids = self._centroids
         if data_points.shape[1] != centroids.shape[1]:
@@ -785,7 +802,7 @@ class DBSCANClustering(ParameterBasedClustering):
                               for label in unique_labels])
         return centroids
 
-    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
         """
         Predicts the cluster indices to which new data points belong based on the clusters formed.
 
@@ -799,6 +816,11 @@ class DBSCANClustering(ParameterBasedClustering):
         Raises:
             ValueError: If the dimensionality of the data points does not match that of the original data.
         """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
         if not points_scaled:
             # Apply scaling to the new data points
             for i, sc in enumerate(self.scales):
