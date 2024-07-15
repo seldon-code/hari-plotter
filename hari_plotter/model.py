@@ -41,7 +41,8 @@ class ModelFactory:
             An instance of the requested model type.
         """
         if model_type not in cls._registry:
-            raise ValueError(f"Unknown model type: {model_type}")
+            raise ValueError(
+                f"Unknown model type: {model_type}, available types: {list(cls._registry.keys())}")
         model_class = cls._registry[model_type]
         return model_class(params)
 
