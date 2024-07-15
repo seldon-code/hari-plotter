@@ -393,6 +393,26 @@ class Graph(nx.DiGraph):
         return G
 
     @classmethod
+    def unconnected(cls, n: int) -> Graph:
+        """
+        Creates a HariGraph instance with n nodes and no edges.
+
+        :param n (int): Number of nodes.
+        :return: A new HariGraph instance.
+        """
+        if n < 2:
+            raise ValueError("Number of nodes should be at least 2")
+
+        G = cls()
+        for i in range(n):
+            G.add_node((i,))
+            G.nodes[(i,)]['Opinion'] = random.random()
+
+        G.add_parameters_to_nodes()
+
+        return G
+
+    @classmethod
     def by_deletion(cls, n: int, factor: float) -> Graph:
         """
         Creates a HariGraph instance by deleting some of the edges of a fully connected graph.
