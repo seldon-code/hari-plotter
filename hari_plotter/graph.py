@@ -85,6 +85,47 @@ class Graph(nx.DiGraph):
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
 
+    def assign_parameter(self, parameter: str, method: None | dict = None) -> None:
+        """
+        Assigns random opinions to all nodes in the graph.
+
+        Parameters:
+
+            parameter (str): The parameter to be assigned random values.
+        """
+
+        if isinstance(method, dict):
+            if 'distribution' in method:
+                distribution = method['distribution']
+                if not distribution:
+                    values = np.random.rand(len(self.nodes))
+                elif isinstance(distribution, dict):
+                    if distribution['type'] == 'uniform':
+                        values = np.random.uniform(
+                            distribution.get('low', 0.0), distribution.get('high', 1.0), len(self.nodes))
+                    elif distribution['type'] == 'power_law':
+                        # Calculate power law distribution values
+                        epsilon = distribution.get('epsilon', 0.01)
+                        gamma = distribution.get('gamma', 2.1)
+                        values = np.random.uniform(epsilon, 1, len(self.nodes))
+                        values = (values ** (-1 / (gamma - 1)))
+                    elif distribution['type'] == 'constant':
+                        values = [method['constant']] * len(self.nodes)
+                    else:
+                        raise ValueError(
+                            f'Unknown distribution type: {type(distribution)}')
+                else:
+                    raise ValueError(
+                        f'Invalid distribution type: {type(distribution)}')
+
+            else:
+                raise ValueError('Invalid method type')
+        else:
+            raise ValueError('Invalid method type')
+
+        for node, value in zip(self.nodes, values):
+            self.nodes[node][parameter] = value
+
     def assign_random_influences(self, mean_influence: float, influence_range: float, seed: Optional[int] = None) -> None:
         """
         Assigns random influence values to all edges within a specified range centered around a mean influence value.
@@ -717,7 +758,7 @@ class Graph(nx.DiGraph):
                 return False
         return True
 
-    @property
+    @ property
     def mean_opinion(self) -> float:
         """
         Calculates the weighted mean opinion of the nodes in the graph.
@@ -768,7 +809,7 @@ class Graph(nx.DiGraph):
         '''Self call for union formatting with LazyHariGraph'''
         return self
 
-    @property
+    @ property
     def opinions(self):
         """
         Returns a dictionary with the opinions of the nodes.
@@ -776,7 +817,7 @@ class Graph(nx.DiGraph):
         """
         return {node: self.nodes[node]['Opinion'] for node in self.nodes}
 
-    @opinions.setter
+    @ opinions.setter
     def opinions(self, values: Union[int, float, Dict[Tuple[int]:float]]):
         if isinstance(values, (int, float)):
             for node in self.nodes:
