@@ -927,6 +927,16 @@ class plot_clustering_fill(Plot):
         # Create a ListedColormap with your colors
         cmap = ListedColormap(colors)
 
+        # Custom function to check if a value is None or NaN
+        def is_nan_or_none(value):
+            return value is None or (isinstance(value, float) and np.isnan(value))
+
+        # Replace None with np.nan
+        Z = np.where(Z == None, np.nan, Z)
+
+        # Convert the array to float
+        Z = Z.astype(float)
+
         # Use the custom colormap in imshow, with NoNorm to avoid normalization of Z values
         im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
                        origin='lower', aspect='auto', alpha=self.alpha, interpolation='nearest',
