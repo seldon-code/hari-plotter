@@ -23,7 +23,7 @@ class NodeEdgeGatherer(ABC):
     Attributes:
         node_parameter_logger (ParameterLogger): A logger for registering and tracking node parameters.
         edge_parameter_logger (ParameterLogger): A logger for registering and tracking edge parameters.
-        G (HariGraph): The graph instance from NetworkX containing the nodes and edges for analysis.
+        G (Graph): The graph instance from NetworkX containing the nodes and edges for analysis.
     """
 
     class ParameterLogger:
@@ -125,7 +125,7 @@ class NodeEdgeGatherer(ABC):
         Initializes a NodeEdgeGatherer instance with a specific graph.
 
         Parameters:
-            G (HariGraph): The graph containing the nodes and edges for data gathering.
+            G (Graph): The graph containing the nodes and edges for data gathering.
         """
         self.G = G
 
@@ -280,24 +280,26 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
                                         **self.G[predecessor][old_node_id])
                 self.G.remove_node(old_node_id)
 
-    def mean_graph(self, images: List[Graph]) -> Graph:
+    node_parameters_in_mean_graph = {'Opinion': 'mean'}
+    edge_parameters_in_mean_graph = {'Influence': 'mean'}
+
+    def mean_graph(self, images: List['Graph']) -> 'Graph':
         """
-        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
+        Calculates the mean graph from a list of Graph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
 
         Parameters:
-            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
+            images (List['Graph']): A list of Graph instances from which to calculate the mean graph.
 
         Returns:
-            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
+            'Graph': A new Graph instance representing the mean of the input graphs.
         """
         if not images:
             raise ValueError("Input list of graphs is empty.")
         if len(images) == 1:
             return images[0].copy()
 
-        mean_graph: Graph = type(self.G)()
-        mean_graph.set_gatherer(type(self))
+        mean_graph = Graph()
 
         # Assure all graphs have the same nodes
         nodes = set(images[0].nodes)
@@ -305,24 +307,39 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
             raise ValueError(
                 "Not all input graphs have the same set of nodes.")
 
-        # Calculate mean attributes for nodes
-        for node in nodes:
-            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
-            mean_graph.add_node(node, Opinion=mean_opinion)
+        # Prepare to gather node attributes
+        node_attributes = {node: {} for node in nodes}
+        for attr, method in self.node_parameters_in_mean_graph.items():
+            if method == 'mean':
+                for node in nodes:
+                    node_attributes[node][attr] = np.mean(
+                        [g.nodes[node][attr] for g in images])
+            elif method == 'all':
+                types = [g.nodes[node]['Type'] for g in images]
+                if not all(t == types[0] for t in types):
+                    warnings.warn(
+                        'Unexpected behavior: merging nodes of different types')
+                for node in nodes:
+                    node_attributes[node]['Type'] = types[0]
 
-        # Calculate mean attributes for edges
-        edges_set = set()
-        for graph in images:
-            edges_set.update(graph.edges)
+        # Add nodes with their attributes to the mean graph
+        for node, attr in node_attributes.items():
+            mean_graph.add_node(node, **attr)
+
+        # Prepare to gather edge attributes
+        edges_set = set().union(*(g.edges for g in images))
+        edge_attributes = {}
 
         for u, v in edges_set:
-            influences = []
-            for graph in images:
-                if graph.has_edge(u, v):
-                    influences.append(graph.edges[u, v]['Influence'])
-            if influences:  # Only add the edge if at least one graph has it
-                mean_influence = np.mean(influences)
-                mean_graph.add_edge(u, v, Influence=mean_influence)
+            edge_attr = {}
+            for attr, method in self.edge_parameters_in_mean_graph.items():
+                if method == 'mean':
+                    influences = [g.edges[u, v][attr]
+                                  for g in images if g.has_edge(u, v)]
+                    if influences:
+                        edge_attr[attr] = np.mean(influences)
+            if edge_attr:
+                mean_graph.add_edge(u, v, **edge_attr)
 
         return mean_graph
 
@@ -466,54 +483,8 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
         base_merged_data['Activity'] = activity
         return base_merged_data
 
-    def mean_graph(self, images: List[Graph]) -> Graph:
-        """
-        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
-        that are the average of the corresponding attributes in the input graphs.
-
-        Parameters:
-            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
-
-        Returns:
-            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
-        """
-        if not images:
-            raise ValueError("Input list of graphs is empty.")
-        if len(images) == 1:
-            return images[0].copy()
-
-        mean_graph: Graph = type(self.G)()
-        mean_graph.set_gatherer(type(self))
-
-        # Assure all graphs have the same nodes
-        nodes = set(images[0].nodes)
-        if not all(set(g.nodes) == nodes for g in images):
-            raise ValueError(
-                "Not all input graphs have the same set of nodes.")
-
-        # Calculate mean attributes for nodes
-        for node in nodes:
-            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
-            mean_activity = np.mean(
-                [g.nodes[node]['Activity'] for g in images])
-            mean_graph.add_node(node, Opinion=mean_opinion,
-                                Activity=mean_activity)
-
-        # Calculate mean attributes for edges
-        edges_set = set()
-        for graph in images:
-            edges_set.update(graph.edges)
-
-        for u, v in edges_set:
-            influences = []
-            for graph in images:
-                if graph.has_edge(u, v):
-                    influences.append(graph.edges[u, v]['Influence'])
-            if influences:  # Only add the edge if at least one graph has it
-                mean_influence = np.mean(influences)
-                mean_graph.add_edge(u, v, Influence=mean_influence)
-
-        return mean_graph
+    node_parameters_in_mean_graph = {'Opinion': 'mean', 'Activity': 'mean'}
+    edge_parameters_in_mean_graph = {'Influence': 'mean'}
 
     @node_parameter_logger('Activity')
     def activity(self) -> Dict[Tuple[int], float]:
@@ -647,55 +618,5 @@ class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
             'Activity': total_activity
         }
 
-    def mean_graph(self, images: List[Graph]) -> Graph:
-        """
-        Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
-        that are the average of the corresponding attributes in the input graphs.
-
-        Parameters:
-            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
-
-        Returns:
-            'HariGraph': A new HariGraph instance representing the mean of the input graphs.
-        """
-        if not images:
-            raise ValueError("Input list of graphs is empty.")
-        if len(images) == 1:
-            return images[0].copy()
-
-        mean_graph: Graph = type(self.G)()
-        mean_graph.set_gatherer(type(self))
-
-        # Assure all graphs have the same nodes
-        nodes = set(images[0].nodes)
-        if not all(set(g.nodes) == nodes for g in images):
-            raise ValueError(
-                "Not all input graphs have the same set of nodes.")
-
-        # Calculate mean attributes for nodes
-        for node in nodes:
-            mean_opinion = np.mean([g.nodes[node]['Opinion'] for g in images])
-            mean_activity = np.mean(
-                [g.nodes[node]['Activity'] for g in images])
-            types = [g.nodes[node]['Type'] for g in images]
-            if not all(t == types[0] for t in types):
-                warnings.warn(
-                    'Unexpected behavior: merging nodes of different types')
-            mean_graph.add_node(node, Opinion=mean_opinion, Type=types[0],
-                                Activity=mean_activity)
-
-        # Calculate mean attributes for edges
-        edges_set = set()
-        for graph in images:
-            edges_set.update(graph.edges)
-
-        for u, v in edges_set:
-            influences = []
-            for graph in images:
-                if graph.has_edge(u, v):
-                    influences.append(graph.edges[u, v]['Influence'])
-            if influences:  # Only add the edge if at least one graph has it
-                mean_influence = np.mean(influences)
-                mean_graph.add_edge(u, v, Influence=mean_influence)
-
-        return mean_graph
+    node_parameters_in_mean_graph = {
+        'Opinion': 'mean', 'Activity': 'mean', 'Type': 'all'}
