@@ -938,10 +938,9 @@ class plot_clustering_fill(Plot):
         # Convert the array to float
         Z = Z.astype(float)
 
-        # Use the custom colormap in imshow, with NoNorm to avoid normalization of Z values
         im = ax.imshow(Z, extent=[x_lim[0], x_lim[1], y_lim[0], y_lim[1]],
                        origin='lower', aspect='auto', alpha=self.alpha, interpolation='nearest',
-                       cmap=cmap, norm=NoNorm())
+                       cmap=cmap)
 
         Plot.tanh_axis_labels(ax=ax, scale=self.scale)
 
