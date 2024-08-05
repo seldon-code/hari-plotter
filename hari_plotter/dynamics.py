@@ -4,6 +4,9 @@ from typing import Any, Dict, List, Optional, Set, Tuple, Union
 
 from .graph import Graph
 from .lazy_graph import LazyGraph
+import numpy as np
+import matplotlib.pyplot as plt
+import math
 
 
 class Dynamics:
@@ -296,6 +299,47 @@ class Dynamics:
 
         mapping = target_lazy_graph.get_cluster_mapping()
         self.merge_nodes_by_mapping(mapping)
+
+    def plot_initialized(self):
+        initialized = np.array(
+            [lazy_graph.is_initialized for lazy_graph in self.lazy_hari_graphs])
+
+        # Find the appropriate power of 10 for the last axis dimension
+        sqrt_length = math.sqrt(len(initialized))
+        last_axis_size = max(
+            10 ** int(math.floor(math.log10(sqrt_length))), 10)
+
+        # Calculate the size of the other dimension
+        other_axis_size = int(np.ceil(len(initialized) / last_axis_size))
+
+        # Pad the array if necessary to fit the new shape, using NaN for padding
+        padded_length = other_axis_size * last_axis_size
+        padded_initialized = np.full(padded_length, np.nan)
+        padded_initialized[:len(initialized)] = initialized
+
+        # Reshape to 2D array
+        initialized_2d = padded_initialized.reshape(
+            (other_axis_size, last_axis_size))
+
+        # Determine the label format based on the last axis size
+        x_label_digits = int(math.log10(last_axis_size))
+        y_label_digits = int(math.log10(padded_length // last_axis_size))
+
+        # Plotting with imshow
+        plt.figure(figsize=(12, 6))
+        plt.imshow(initialized_2d, cmap='viridis', interpolation='nearest')
+        plt.colorbar(label='Initialized (False=0, True=1, NaN=Padding)')
+        plt.title('Initialization Status of Lazy Hari Graphs')
+        plt.xlabel(f'Last {x_label_digits} Digits of Graph ID')
+        plt.ylabel(f'Graph ID without Last {x_label_digits} Digits')
+
+        # Ensure axis labels are integers
+        plt.xticks(ticks=np.arange(0, last_axis_size, max(1, last_axis_size // 10)),
+                   labels=np.arange(0, last_axis_size, max(1, last_axis_size // 10)))
+        plt.yticks(ticks=np.arange(0, other_axis_size, max(1, other_axis_size // 10)),
+                   labels=np.arange(0, other_axis_size, max(1, other_axis_size // 10)))
+
+        plt.show()
 
     def __len__(self) -> int:
         return len(self.lazy_hari_graphs)
