@@ -336,6 +336,24 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_track_clusters_cache</span> <span class="o">=</span> <span class="p">{}</span></div>
 
 
+<div class="viewcode-block" id="Interface.ClusterTracker.get_clustering">
+<a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.get_clustering">[docs]</a>
+        <span class="k">def</span> <span class="nf">get_clustering</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Clustering</span><span class="p">]]:</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Retrieves the clusterization for the given settings.</span>
+
+<span class="sd">            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.</span>
+<span class="sd">            :return: A list of Clustering objects representing the clusterization for each frame.</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">clusterization_settings_list</span> <span class="o">=</span> <span class="p">[</span><span class="n">clusterization_settings</span><span class="p">]</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span>
+                <span class="n">clusterization_settings</span><span class="p">,</span> <span class="nb">dict</span><span class="p">)</span> <span class="k">else</span> <span class="n">clusterization_settings</span>
+            <span class="n">clusterizations</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">clust_settings</span> <span class="ow">in</span> <span class="n">clusterization_settings_list</span><span class="p">:</span>
+                <span class="n">clusterizations</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">group</span><span class="o">.</span><span class="n">clustering</span><span class="p">(</span>
+                    <span class="o">**</span><span class="n">clust_settings</span><span class="p">)</span> <span class="k">for</span> <span class="n">group</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">_interface</span><span class="o">.</span><span class="n">groups</span><span class="p">])</span>
+            <span class="k">return</span> <span class="n">clusterizations</span></div>
+
+
 <div class="viewcode-block" id="Interface.ClusterTracker.is_tracked">
 <a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.ClusterTracker.is_tracked">[docs]</a>
         <span class="k">def</span> <span class="nf">is_tracked</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusterization_settings</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">dict</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">bool</span><span class="p">]:</span>
@@ -569,6 +587,14 @@
 
 <span class="sd">            :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.</span>
 <span class="sd">            :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.</span>
+
+<span class="sd">            :example: Output </span>
+
+<span class="sd">            .. code-block:: python</span>
+
+<span class="sd">                [{&#39;Cluster 0&#39;: [0, 1, 2], &#39;Cluster 1&#39;: [0, 1, 2], &#39;Cluster 2&#39;: [0, 1]}]</span>
+
+<span class="sd">            means that Cluster 0, Cluster 1, and Cluster 2 are present in frame 0 and 1, and only Cluster 0 and 1 are present in frame 2.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="n">tracked_clusters_list</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">track_clusters</span><span class="p">(</span>
                 <span class="n">clusterization_settings</span><span class="p">)</span>
@@ -628,7 +654,17 @@
 <a class="viewcode-back" href="../../source/hari_plotter.interface.html#hari_plotter.interface.Interface.group_time_range">[docs]</a>
     <span class="k">def</span> <span class="nf">group_time_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
         <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">mean_time</span><span class="p">(),</span>  <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">mean_time</span><span class="p">()]</span></div>
-</div>
+
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="sa">f</span><span class="s2">&quot;&lt;</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="vm">__class__</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">(&quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;REQUIRED_TYPE=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;data=</span><span class="si">{</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;group_length=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span><span class="si">}</span><span class="s2">, &quot;</span>
+                <span class="sa">f</span><span class="s2">&quot;time_range=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_range</span><span class="si">}</span><span class="s2">)&gt;&quot;</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__str__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">return</span> <span class="sa">f</span><span class="s2">&quot;Interface(type=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">REQUIRED_TYPE</span><span class="o">.</span><span class="vm">__name__</span><span class="si">}</span><span class="s2">, data=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="si">}</span><span class="s2">, groups=</span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">)</span><span class="si">}</span><span class="s2">, time_range=</span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">time_range</span><span class="si">}</span><span class="s2">)&quot;</span></div>
 
 
 

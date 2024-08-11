@@ -135,6 +135,17 @@ are specified, parameters are added or updated for all nodes in the graph.</p>
 </dd></dl>
 
 <dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.assign_parameter">
+<span class="sig-name descname"><span class="pre">assign_parameter</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameter</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">method</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.assign_parameter"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.assign_parameter" title="Link to this definition"></a></dt>
+<dd><p>Assigns random opinions to all nodes in the graph.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>parameter</strong> (<em>str</em>) – The parameter to be assigned random values.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.graph.Graph.assign_random_influences">
 <span class="sig-name descname"><span class="pre">assign_random_influences</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mean_influence</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">influence_range</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">seed</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.assign_random_influences"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.assign_random_influences" title="Link to this definition"></a></dt>
 <dd><p>Assigns random influence values to all edges within a specified range centered around a mean influence value.</p>
@@ -474,11 +485,14 @@ and the opinions are the corresponding (x, y) coordinates.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.graph.Graph.read_json">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.read_json" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">gatherer</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><span class="pre">NodeEdgeGatherer</span></a><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.read_json" title="Link to this definition"></a></dt>
 <dd><p>Reads a HariGraph instance from a JSON file that contains both the graph’s structure and node attributes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>filename</strong> (<em>str</em>) – Path to the JSON file from which the graph is to be loaded.</p>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<em>str</em>) – Path to the JSON file from which the graph is to be loaded.</p></li>
+<li><p><strong>gatherer</strong> (<a class="reference internal" href="hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer" title="hari_plotter.node_gatherer.NodeEdgeGatherer"><em>NodeEdgeGatherer</em></a><em> | </em><em>None</em>) – type of gatherer to be used</p></li>
+</ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph’s nodes, edges, and associated attributes like opinions and influences.</p>
@@ -540,6 +554,20 @@ and the opinions are the corresponding (x, y) coordinates.</p>
 <li><p><strong>mean_opinion</strong> – float, mean opinion of the graph.</p></li>
 <li><p><strong>seed</strong> – int, random seed.</p></li>
 </ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A new HariGraph instance.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.graph.Graph.unconnected">
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">unconnected</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">n</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/graph.html#Graph.unconnected"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.graph.Graph.unconnected" title="Link to this definition"></a></dt>
+<dd><p>Creates a HariGraph instance with n nodes and no edges.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>(</strong><strong>int</strong><strong>)</strong> (<em>n</em>) – Number of nodes.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A new HariGraph instance.</p>

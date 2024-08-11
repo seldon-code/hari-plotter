@@ -101,7 +101,7 @@
 <span class="sd">    Attributes:</span>
 <span class="sd">        node_parameter_logger (ParameterLogger): A logger for registering and tracking node parameters.</span>
 <span class="sd">        edge_parameter_logger (ParameterLogger): A logger for registering and tracking edge parameters.</span>
-<span class="sd">        G (HariGraph): The graph instance from NetworkX containing the nodes and edges for analysis.</span>
+<span class="sd">        G (Graph): The graph instance from NetworkX containing the nodes and edges for analysis.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
 <div class="viewcode-block" id="NodeEdgeGatherer.ParameterLogger">
@@ -212,7 +212,7 @@
 <span class="sd">        Initializes a NodeEdgeGatherer instance with a specific graph.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            G (HariGraph): The graph containing the nodes and edges for data gathering.</span>
+<span class="sd">            G (Graph): The graph containing the nodes and edges for data gathering.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="n">G</span>
 
@@ -385,51 +385,80 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">remove_node</span><span class="p">(</span><span class="n">old_node_id</span><span class="p">)</span></div>
 
 
+    <span class="n">node_parameters_in_mean_graph</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Opinion&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">}</span>
+    <span class="n">edge_parameters_in_mean_graph</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Influence&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">}</span>
+
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.mean_graph">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph">[docs]</a>
-    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the mean graph from a list of HariGraph instances. The mean graph&#39;s nodes and edges have attributes</span>
+<span class="sd">        Calculates the mean graph from a list of Graph instances. The mean graph&#39;s nodes and edges have attributes</span>
 <span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            images (List[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
+<span class="sd">            images (List[nx.Graph]): A list of Graph instances from which to calculate the mean graph.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            &#39;HariGraph&#39;: A new HariGraph instance representing the mean of the input graphs.</span>
+<span class="sd">            nx.Graph: A new Graph instance representing the mean of the input graphs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">images</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input list of graphs is empty.&quot;</span><span class="p">)</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
 
-        <span class="n">mean_graph</span><span class="p">:</span> <span class="n">Graph</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)()</span>
-        <span class="n">mean_graph</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
+        <span class="n">mean_graph</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">])()</span>
 
-        <span class="c1"># Assure all graphs have the same nodes</span>
+        <span class="c1"># Ensure all graphs have the same nodes</span>
         <span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;Not all input graphs have the same set of nodes.&quot;</span><span class="p">)</span>
 
-        <span class="c1"># Calculate mean attributes for nodes</span>
-        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
-            <span class="n">mean_opinion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
-            <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Opinion</span><span class="o">=</span><span class="n">mean_opinion</span><span class="p">)</span>
+        <span class="c1"># Collect node attributes in numpy arrays</span>
+        <span class="n">node_attributes</span> <span class="o">=</span> <span class="p">{</span><span class="n">attr</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">nodes</span><span class="p">))</span>
+                           <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_parameters_in_mean_graph</span><span class="p">}</span>
+        <span class="n">node_index</span> <span class="o">=</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">node</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">nodes</span><span class="p">)}</span>
 
-        <span class="c1"># Calculate mean attributes for edges</span>
+        <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
+            <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">node_index</span><span class="p">[</span><span class="n">node</span><span class="p">]</span>
+                <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_parameters_in_mean_graph</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+                        <span class="n">node_attributes</span><span class="p">[</span><span class="n">attr</span><span class="p">][</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="n">graph</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span>
+
+        <span class="c1"># Calculate mean for node attributes</span>
+        <span class="n">num_graphs</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">node_attributes</span><span class="p">:</span>
+            <span class="n">node_attributes</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">/=</span> <span class="n">num_graphs</span>
+
+        <span class="c1"># Add nodes to mean_graph with averaged attributes</span>
+        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
+            <span class="n">node_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="n">attr</span><span class="p">:</span> <span class="n">node_attributes</span><span class="p">[</span><span class="n">attr</span><span class="p">][</span><span class="n">node_index</span><span class="p">[</span><span class="n">node</span><span class="p">]]</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">node_attributes</span><span class="p">}</span>
+            <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="o">**</span><span class="n">node_data</span><span class="p">)</span>
+
+        <span class="c1"># Collect and average edge attributes</span>
+        <span class="n">edge_attributes</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">edges_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
         <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
             <span class="n">edges_set</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
 
         <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">edges_set</span><span class="p">:</span>
-            <span class="n">influences</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">if</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="n">edge_attributes</span><span class="p">:</span>
+                <span class="n">edge_attributes</span><span class="p">[(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)]</span> <span class="o">=</span> <span class="p">{</span>
+                    <span class="n">attr</span><span class="p">:</span> <span class="mf">0.0</span> <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_parameters_in_mean_graph</span><span class="p">}</span>
+
             <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
                 <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-                    <span class="n">influences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">influences</span><span class="p">:</span>  <span class="c1"># Only add the edge if at least one graph has it</span>
-                <span class="n">mean_influence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">influences</span><span class="p">)</span>
-                <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Influence</span><span class="o">=</span><span class="n">mean_influence</span><span class="p">)</span>
+                    <span class="k">for</span> <span class="n">attr</span><span class="p">,</span> <span class="n">method</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">edge_parameters_in_mean_graph</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;mean&#39;</span><span class="p">:</span>
+                            <span class="n">edge_attributes</span><span class="p">[(</span>
+                                <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)][</span><span class="n">attr</span><span class="p">]</span> <span class="o">+=</span> <span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="n">attr</span><span class="p">]</span>
+
+        <span class="k">for</span> <span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">attr_values</span> <span class="ow">in</span> <span class="n">edge_attributes</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">attr</span> <span class="ow">in</span> <span class="n">attr_values</span><span class="p">:</span>
+                <span class="n">attr_values</span><span class="p">[</span><span class="n">attr</span><span class="p">]</span> <span class="o">/=</span> <span class="n">num_graphs</span>
+            <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="o">**</span><span class="n">attr_values</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">mean_graph</span></div>
 
@@ -569,15 +598,18 @@
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
 
+<div class="viewcode-block" id="DefaultNodeEdgeGatherer.label">
+<a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Label&#39;</span><span class="p">)</span>
     <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their labels.&quot;&quot;&quot;</span>
-        <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Label&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span>
+        <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Label&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
-<div class="viewcode-block" id="DefaultNodeEdgeGatherer.label">
-<a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label">[docs]</a>
+
+<div class="viewcode-block" id="DefaultNodeEdgeGatherer.type">
+<a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.type">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Type&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their types for all nodes including bots.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 </div>
@@ -616,57 +648,8 @@
         <span class="k">return</span> <span class="n">base_merged_data</span></div>
 
 
-<div class="viewcode-block" id="ActivityDefaultNodeEdgeGatherer.mean_graph">
-<a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.mean_graph">[docs]</a>
-    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the mean graph from a list of HariGraph instances. The mean graph&#39;s nodes and edges have attributes</span>
-<span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
-
-<span class="sd">        Parameters:</span>
-<span class="sd">            images (List[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            &#39;HariGraph&#39;: A new HariGraph instance representing the mean of the input graphs.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">images</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input list of graphs is empty.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-        <span class="n">mean_graph</span><span class="p">:</span> <span class="n">Graph</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)()</span>
-        <span class="n">mean_graph</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-
-        <span class="c1"># Assure all graphs have the same nodes</span>
-        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Not all input graphs have the same set of nodes.&quot;</span><span class="p">)</span>
-
-        <span class="c1"># Calculate mean attributes for nodes</span>
-        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
-            <span class="n">mean_opinion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
-            <span class="n">mean_activity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Activity&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
-            <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Opinion</span><span class="o">=</span><span class="n">mean_opinion</span><span class="p">,</span>
-                                <span class="n">Activity</span><span class="o">=</span><span class="n">mean_activity</span><span class="p">)</span>
-
-        <span class="c1"># Calculate mean attributes for edges</span>
-        <span class="n">edges_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
-            <span class="n">edges_set</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">edges_set</span><span class="p">:</span>
-            <span class="n">influences</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-                    <span class="n">influences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">influences</span><span class="p">:</span>  <span class="c1"># Only add the edge if at least one graph has it</span>
-                <span class="n">mean_influence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">influences</span><span class="p">)</span>
-                <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Influence</span><span class="o">=</span><span class="n">mean_influence</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">mean_graph</span></div>
-
+    <span class="n">node_parameters_in_mean_graph</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Opinion&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Activity&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">}</span>
+    <span class="n">edge_parameters_in_mean_graph</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;Influence&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">}</span>
 
 <div class="viewcode-block" id="ActivityDefaultNodeEdgeGatherer.activity">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.activity">[docs]</a>
@@ -815,61 +798,8 @@
         <span class="p">}</span></div>
 
 
-<div class="viewcode-block" id="ActivityDrivenNodeEdgeGatherer.mean_graph">
-<a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.mean_graph">[docs]</a>
-    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        Calculates the mean graph from a list of HariGraph instances. The mean graph&#39;s nodes and edges have attributes</span>
-<span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
-
-<span class="sd">        Parameters:</span>
-<span class="sd">            images (List[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
-
-<span class="sd">        Returns:</span>
-<span class="sd">            &#39;HariGraph&#39;: A new HariGraph instance representing the mean of the input graphs.</span>
-<span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="n">images</span><span class="p">:</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Input list of graphs is empty.&quot;</span><span class="p">)</span>
-        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">images</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
-            <span class="k">return</span> <span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
-
-        <span class="n">mean_graph</span><span class="p">:</span> <span class="n">Graph</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="p">)()</span>
-        <span class="n">mean_graph</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">))</span>
-
-        <span class="c1"># Assure all graphs have the same nodes</span>
-        <span class="n">nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="n">images</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
-        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span> <span class="o">==</span> <span class="n">nodes</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">):</span>
-            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
-                <span class="s2">&quot;Not all input graphs have the same set of nodes.&quot;</span><span class="p">)</span>
-
-        <span class="c1"># Calculate mean attributes for nodes</span>
-        <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="n">nodes</span><span class="p">:</span>
-            <span class="n">mean_opinion</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">([</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
-            <span class="n">mean_activity</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span>
-                <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Activity&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">])</span>
-            <span class="n">types</span> <span class="o">=</span> <span class="p">[</span><span class="n">g</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Type&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">images</span><span class="p">]</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span><span class="p">(</span><span class="n">t</span> <span class="o">==</span> <span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">types</span><span class="p">):</span>
-                <span class="n">warnings</span><span class="o">.</span><span class="n">warn</span><span class="p">(</span>
-                    <span class="s1">&#39;Unexpected behavior: merging nodes of different types&#39;</span><span class="p">)</span>
-            <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_node</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">Opinion</span><span class="o">=</span><span class="n">mean_opinion</span><span class="p">,</span> <span class="n">Type</span><span class="o">=</span><span class="n">types</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
-                                <span class="n">Activity</span><span class="o">=</span><span class="n">mean_activity</span><span class="p">)</span>
-
-        <span class="c1"># Calculate mean attributes for edges</span>
-        <span class="n">edges_set</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
-        <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
-            <span class="n">edges_set</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">)</span>
-
-        <span class="k">for</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">edges_set</span><span class="p">:</span>
-            <span class="n">influences</span> <span class="o">=</span> <span class="p">[]</span>
-            <span class="k">for</span> <span class="n">graph</span> <span class="ow">in</span> <span class="n">images</span><span class="p">:</span>
-                <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-                    <span class="n">influences</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">graph</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">])</span>
-            <span class="k">if</span> <span class="n">influences</span><span class="p">:</span>  <span class="c1"># Only add the edge if at least one graph has it</span>
-                <span class="n">mean_influence</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">influences</span><span class="p">)</span>
-                <span class="n">mean_graph</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">Influence</span><span class="o">=</span><span class="n">mean_influence</span><span class="p">)</span>
-
-        <span class="k">return</span> <span class="n">mean_graph</span></div>
-</div>
+    <span class="n">node_parameters_in_mean_graph</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;Opinion&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Activity&#39;</span><span class="p">:</span> <span class="s1">&#39;mean&#39;</span><span class="p">,</span> <span class="s1">&#39;Type&#39;</span><span class="p">:</span> <span class="s1">&#39;all&#39;</span><span class="p">}</span></div>
 
 </pre></div>
 

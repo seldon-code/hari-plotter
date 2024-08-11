@@ -175,6 +175,50 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">remove_edge</span><span class="p">(</span><span class="n">node</span><span class="p">,</span> <span class="n">node</span><span class="p">)</span></div>
 
 
+<div class="viewcode-block" id="Graph.assign_parameter">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.assign_parameter">[docs]</a>
+    <span class="k">def</span> <span class="nf">assign_parameter</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameter</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">dict</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Assigns random opinions to all nodes in the graph.</span>
+
+<span class="sd">        Parameters:</span>
+
+<span class="sd">            parameter (str): The parameter to be assigned random values.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">method</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="k">if</span> <span class="s1">&#39;distribution&#39;</span> <span class="ow">in</span> <span class="n">method</span><span class="p">:</span>
+                <span class="n">distribution</span> <span class="o">=</span> <span class="n">method</span><span class="p">[</span><span class="s1">&#39;distribution&#39;</span><span class="p">]</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">distribution</span><span class="p">:</span>
+                    <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">rand</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">distribution</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="n">distribution</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;uniform&#39;</span><span class="p">:</span>
+                        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span>
+                            <span class="n">distribution</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;low&#39;</span><span class="p">,</span> <span class="mf">0.0</span><span class="p">),</span> <span class="n">distribution</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;high&#39;</span><span class="p">,</span> <span class="mf">1.0</span><span class="p">),</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">))</span>
+                    <span class="k">elif</span> <span class="n">distribution</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;power_law&#39;</span><span class="p">:</span>
+                        <span class="c1"># Calculate power law distribution values</span>
+                        <span class="n">epsilon</span> <span class="o">=</span> <span class="n">distribution</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;epsilon&#39;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">)</span>
+                        <span class="n">gamma</span> <span class="o">=</span> <span class="n">distribution</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;gamma&#39;</span><span class="p">,</span> <span class="mf">2.1</span><span class="p">)</span>
+                        <span class="n">values</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">uniform</span><span class="p">(</span><span class="n">epsilon</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">))</span>
+                        <span class="n">values</span> <span class="o">=</span> <span class="p">(</span><span class="n">values</span> <span class="o">**</span> <span class="p">(</span><span class="o">-</span><span class="mi">1</span> <span class="o">/</span> <span class="p">(</span><span class="n">gamma</span> <span class="o">-</span> <span class="mi">1</span><span class="p">)))</span>
+                    <span class="k">elif</span> <span class="n">distribution</span><span class="p">[</span><span class="s1">&#39;type&#39;</span><span class="p">]</span> <span class="o">==</span> <span class="s1">&#39;constant&#39;</span><span class="p">:</span>
+                        <span class="n">values</span> <span class="o">=</span> <span class="p">[</span><span class="n">method</span><span class="p">[</span><span class="s1">&#39;constant&#39;</span><span class="p">]]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                            <span class="sa">f</span><span class="s1">&#39;Unknown distribution type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">distribution</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                        <span class="sa">f</span><span class="s1">&#39;Invalid distribution type: </span><span class="si">{</span><span class="nb">type</span><span class="p">(</span><span class="n">distribution</span><span class="p">)</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
+
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid method type&#39;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Invalid method type&#39;</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">,</span> <span class="n">values</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="n">parameter</span><span class="p">]</span> <span class="o">=</span> <span class="n">value</span></div>
+
+
 <div class="viewcode-block" id="Graph.assign_random_influences">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.assign_random_influences">[docs]</a>
     <span class="k">def</span> <span class="nf">assign_random_influences</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mean_influence</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">influence_range</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -421,12 +465,13 @@
 <div class="viewcode-block" id="Graph.read_json">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.read_json">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">filename</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">gatherer</span><span class="p">:</span> <span class="n">NodeEdgeGatherer</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reads a HariGraph instance from a JSON file that contains both the graph&#39;s structure and node attributes.</span>
 
 <span class="sd">        Parameters:</span>
 <span class="sd">            filename (str): Path to the JSON file from which the graph is to be loaded.</span>
+<span class="sd">            gatherer (NodeEdgeGatherer | None): type of gatherer to be used</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph&#39;s nodes, edges, and associated attributes like opinions and influences.</span>
@@ -445,8 +490,11 @@
             <span class="n">graph_dict</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">file</span><span class="p">)</span>
 
         <span class="n">G</span> <span class="o">=</span> <span class="n">json_graph</span><span class="o">.</span><span class="n">node_link_graph</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">gatherer</span><span class="p">:</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">set_gatherer</span><span class="p">(</span><span class="n">gatherer</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="p">)</span></div>
+        <span class="k">return</span> <span class="n">G</span></div>
 
 
 <div class="viewcode-block" id="Graph.write_json">
@@ -499,6 +547,29 @@
                 <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">choice</span><span class="p">([</span><span class="kc">True</span><span class="p">,</span> <span class="kc">False</span><span class="p">])</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">G</span><span class="o">.</span><span class="n">has_edge</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">):</span>
                     <span class="n">G</span><span class="o">.</span><span class="n">add_edge</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">)</span>
                     <span class="n">G</span><span class="o">.</span><span class="n">edges</span><span class="p">[</span><span class="n">v</span><span class="p">,</span> <span class="n">u</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+
+        <span class="n">G</span><span class="o">.</span><span class="n">add_parameters_to_nodes</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="n">G</span></div>
+
+
+<div class="viewcode-block" id="Graph.unconnected">
+<a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.unconnected">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">unconnected</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">n</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a HariGraph instance with n nodes and no edges.</span>
+
+<span class="sd">        :param n (int): Number of nodes.</span>
+<span class="sd">        :return: A new HariGraph instance.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">n</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Number of nodes should be at least 2&quot;</span><span class="p">)</span>
+
+        <span class="n">G</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">()</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">add_node</span><span class="p">((</span><span class="n">i</span><span class="p">,))</span>
+            <span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[(</span><span class="n">i</span><span class="p">,)][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
 
         <span class="n">G</span><span class="o">.</span><span class="n">add_parameters_to_nodes</span><span class="p">()</span>
 

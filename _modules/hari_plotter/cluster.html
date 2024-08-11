@@ -75,6 +75,8 @@
              
   <h1>Source code for hari_plotter.cluster</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Union</span><span class="p">,</span> <span class="n">Tuple</span>
+<span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">DBSCAN</span>
 
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractclassmethod</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
 <span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
@@ -88,6 +90,8 @@
 <span class="kn">from</span> <span class="nn">scipy.spatial.distance</span> <span class="kn">import</span> <span class="n">cdist</span>
 <span class="kn">from</span> <span class="nn">sklearn.cluster</span> <span class="kn">import</span> <span class="n">KMeans</span>
 <span class="kn">from</span> <span class="nn">sklearn.metrics</span> <span class="kn">import</span> <span class="n">silhouette_score</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
 
 <span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">Graph</span>
 
@@ -332,7 +336,7 @@
 <div class="viewcode-block" id="ParameterBasedClustering.predict_cluster">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ParameterBasedClustering.predict_cluster">[docs]</a>
     <span class="nd">@abstractmethod</span>
-    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_point</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_point</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">],</span> <span class="n">parameters</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Abstract method to predict the cluster for a new data point.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
@@ -404,6 +408,16 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">indices</span><span class="p">]</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">[</span><span class="n">index</span><span class="p">]</span> <span class="k">for</span> <span class="n">index</span> <span class="ow">in</span> <span class="n">indices</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="ParameterBasedClustering.prepare_data_point_for_prediction">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ParameterBasedClustering.prepare_data_point_for_prediction">[docs]</a>
+    <span class="k">def</span> <span class="nf">prepare_data_point_for_prediction</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">,</span> <span class="n">parameters</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span> <span class="o">&gt;</span> <span class="nb">set</span><span class="p">(</span><span class="n">parameters</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;The provided parameters must include all parameters used for clustering.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">data_points</span><span class="p">[:,</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">get_indices_from_parameters</span><span class="p">(</span><span class="n">param</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameters</span> <span class="k">if</span> <span class="n">param</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">]]</span></div>
 </div>
 
 
@@ -428,25 +442,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_clusters</span>  <span class="c1"># Assuming self.n_clusters tracks the number of clusters</span></div>
 
 
-    <span class="c1"># def labels_nodes_dict(self) -&gt; List[list]:</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Maps each node to a cluster based on the parameter boundaries.</span>
-
-    <span class="c1">#     Returns:</span>
-    <span class="c1">#     - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]</span>
-
-    <span class="c1">#     for i, point in enumerate(self.data):</span>
-    <span class="c1">#         cluster_index = self.find_cluster_index(point)</span>
-    <span class="c1">#         if cluster_index is not None:  # Point falls within defined boundaries</span>
-    <span class="c1">#             cluster_nodes[cluster_index].append(</span>
-    <span class="c1">#                 tuple(self.node_ids[i]))</span>
-
-    <span class="c1">#     return cluster_nodes</span>
-
-<div class="viewcode-block" id="ValueIntervalsClustering.find_cluster_indices_on_grid">
-<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ValueIntervalsClustering.find_cluster_indices_on_grid">[docs]</a>
     <span class="k">def</span> <span class="nf">find_cluster_indices_on_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determines the indices of the clusters a point belongs to based on parameter boundaries.</span>
@@ -460,12 +455,7 @@
         <span class="n">cluster_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_boundaries</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">boundaries</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_boundaries</span><span class="p">):</span>
             <span class="n">cluster_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">point</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">boundaries</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">cluster_indices</span></div>
-
-
-    <span class="c1"># def find_cluster_index(self, point):</span>
-    <span class="c1">#     cluster_indices = self.find_cluster_indices_on_grid(point)</span>
-    <span class="c1">#     return self._indices_mapping.get(cluster_indices, None)</span>
+        <span class="k">return</span> <span class="n">cluster_indices</span>
 
 <div class="viewcode-block" id="ValueIntervalsClustering.from_graph">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ValueIntervalsClustering.from_graph">[docs]</a>
@@ -564,7 +554,7 @@
 
 <div class="viewcode-block" id="ValueIntervalsClustering.predict_cluster">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ValueIntervalsClustering.predict_cluster">[docs]</a>
-    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Predicts the cluster indices to which new data points belong based on the centroids.</span>
 
@@ -577,6 +567,11 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the dimensionality of the data points does not match that of the centroids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_data_point_for_prediction</span><span class="p">(</span>
+                <span class="n">data_points</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
         <span class="c1"># Check if the data points are of the correct dimension</span>
         <span class="k">if</span> <span class="n">data_points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">):</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -594,42 +589,43 @@
             <span class="c1"># Determine the cluster indices for the current point across all parameters</span>
             <span class="n">cluster_indexes</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">find_cluster_index</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
 
-        <span class="k">return</span> <span class="n">cluster_indexes</span></div>
+        <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">cluster_indexes</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="ValueIntervalsClustering.find_cluster_indices_on_grid">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ValueIntervalsClustering.find_cluster_indices_on_grid">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_cluster_indices_on_grid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determines the indices of the clusters a point belongs to based on parameter boundaries.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - point: The data point&#39;s parameter values as a numpy array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - np.ndarray: An array of the indices of the clusters the point belongs to.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cluster_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_boundaries</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="nb">int</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">boundaries</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">parameter_boundaries</span><span class="p">):</span>
+            <span class="n">cluster_indices</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">point</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">boundaries</span><span class="p">))</span>
+        <span class="k">return</span> <span class="n">cluster_indices</span></div>
+
+
+<div class="viewcode-block" id="ValueIntervalsClustering.find_cluster_index">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.ValueIntervalsClustering.find_cluster_index">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_cluster_index</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">point</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="kc">None</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Identifies the cluster index for a given point based on the parameter boundaries.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">        - point: The data point&#39;s parameter values as a numpy array.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - int or None: The cluster index if the cell is a cluster, otherwise None.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">cluster_indices</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">find_cluster_indices_on_grid</span><span class="p">(</span><span class="n">point</span><span class="p">))</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_indices_mapping</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">cluster_indices</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span></div>
 </div>
 
-
-    <span class="c1"># def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -&gt; List[np.ndarray]:</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Returns the values corresponding to the given parameter(s) for all points in the clusters.</span>
-
-    <span class="c1">#     Args:</span>
-    <span class="c1">#         key (Union[str, List[str]]): The parameter name or list of parameter names.</span>
-    <span class="c1">#         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.</span>
-
-    <span class="c1">#     Returns:</span>
-    <span class="c1">#         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster</span>
-    <span class="c1">#                           and contains the values of the specified parameter(s) for each point in that cluster.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     if isinstance(key, str):</span>
-    <span class="c1">#         # Single parameter requested</span>
-    <span class="c1">#         key = [key]</span>
-
-    <span class="c1">#     if not all(k in self.parameters for k in key):</span>
-    <span class="c1">#         raise KeyError(</span>
-    <span class="c1">#             f&quot;One or more requested parameters {key} are not found in the cluster parameters {self.parameters}.&quot;)</span>
-
-    <span class="c1">#     param_indices = [self.parameters.index(k) for k in key]</span>
-
-    <span class="c1">#     scaled_data = self.data[:, param_indices]</span>
-    <span class="c1">#     if not keep_scale:</span>
-    <span class="c1">#         for new_index, original_index in enumerate(param_indices):</span>
-    <span class="c1">#             used_scale = self.scales[original_index]</span>
-    <span class="c1">#             scaled_data[:, new_index] = self.scale_funcs[used_scale][&#39;inverse&#39;](</span>
-    <span class="c1">#                 scaled_data[:, new_index])</span>
-
-    <span class="c1">#     unique = np.unique(self.cluster_indexes)</span>
-
-    <span class="c1">#     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]</span>
 
 
 <div class="viewcode-block" id="KMeansClustering">
@@ -649,9 +645,6 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_centroids</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span></div>
 
 
-    <span class="c1"># def labels_nodes_dict(self) -&gt; Dict[str, Tuple[Tuple[int]]]:</span>
-    <span class="c1">#     return {cluster_label: ids for cluster_label, ids in zip(self.cluster_labels, self.node_ids)}</span>
-
 <div class="viewcode-block" id="KMeansClustering.get_number_of_clusters">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.get_number_of_clusters">[docs]</a>
     <span class="k">def</span> <span class="nf">get_number_of_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
@@ -666,7 +659,7 @@
 
 <div class="viewcode-block" id="KMeansClustering.predict_cluster">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.predict_cluster">[docs]</a>
-    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Predicts the cluster indices to which new data points belong based on the centroids.</span>
 
@@ -679,6 +672,11 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the dimensionality of the data points does not match that of the centroids.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_data_point_for_prediction</span><span class="p">(</span>
+                <span class="n">data_points</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
         <span class="c1"># Check if the data points are of the correct dimension</span>
         <span class="n">centroids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_centroids</span>
         <span class="k">if</span> <span class="n">data_points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="n">centroids</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
@@ -699,10 +697,152 @@
         <span class="k">return</span> <span class="n">nearest_centroid_indices</span></div>
 
 
+<div class="viewcode-block" id="KMeansClustering.recluster">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.recluster">[docs]</a>
+    <span class="k">def</span> <span class="nf">recluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">):</span>
+        <span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span>
+                        <span class="n">n_init</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+        <span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_centroids</span> <span class="o">=</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">cluster_centers_</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="o">=</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">labels_</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.reorder_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.reorder_clusters">[docs]</a>
+    <span class="k">def</span> <span class="nf">reorder_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_order</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Reorders clusters and associated information based on a new order.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            new_order: A list containing the indices of the clusters in their new order.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If new_order does not contain all existing cluster indices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">new_order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">))):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;New order must contain all existing cluster indices.&quot;</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">[</span><span class="n">new_order</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_order</span><span class="p">]</span>
+        <span class="c1"># Create a mapping from old to new labels</span>
+        <span class="n">label_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="n">old</span><span class="p">:</span> <span class="n">new</span> <span class="k">for</span> <span class="n">new</span><span class="p">,</span> <span class="n">old</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_order</span><span class="p">)}</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">label_mapping</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">reorder_labels</span><span class="p">(</span><span class="n">new_order</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.calculate_wcss">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.calculate_wcss">[docs]</a>
+    <span class="k">def</span> <span class="nf">calculate_wcss</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the within-cluster sum of squares (WCSS) for different numbers of clusters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[float]: A list of WCSS values for each number of clusters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">wcss</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_clusters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span>
+                            <span class="n">n_init</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+            <span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">wcss</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">kmeans</span><span class="o">.</span><span class="n">inertia_</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">wcss</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.plot_elbow_method">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.plot_elbow_method">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_elbow_method</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the WCSS values to use the Elbow method for determining the optimal number of clusters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">wcss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_wcss</span><span class="p">(</span><span class="n">max_clusters</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_clusters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">wcss</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Number of Clusters&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;WCSS&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Elbow Method&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.calculate_silhouette_scores">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.calculate_silhouette_scores">[docs]</a>
+    <span class="k">def</span> <span class="nf">calculate_silhouette_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate the silhouette scores for different numbers of clusters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            List[float]: A list of silhouette scores for each number of clusters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">silhouette_scores</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_clusters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">):</span>  <span class="c1"># Silhouette score is undefined for 1 cluster</span>
+            <span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">i</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span>
+                            <span class="n">n_init</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
+            <span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+            <span class="n">score</span> <span class="o">=</span> <span class="n">silhouette_score</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">labels_</span><span class="p">)</span>
+            <span class="n">silhouette_scores</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">score</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">silhouette_scores</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.plot_silhouette_scores">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.plot_silhouette_scores">[docs]</a>
+    <span class="k">def</span> <span class="nf">plot_silhouette_scores</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Plot the silhouette scores to help determine the optimal number of clusters.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_silhouette_scores</span><span class="p">(</span><span class="n">max_clusters</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="n">max_clusters</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">scores</span><span class="p">,</span> <span class="n">marker</span><span class="o">=</span><span class="s1">&#39;o&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="s1">&#39;Number of Clusters&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="s1">&#39;Silhouette Score&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="s1">&#39;Silhouette Score Method&#39;</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div>
+
+
+<div class="viewcode-block" id="KMeansClustering.optimal_number_of_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.optimal_number_of_clusters">[docs]</a>
+    <span class="k">def</span> <span class="nf">optimal_number_of_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;silhouette&#39;</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Determine the optimal number of clusters using the specified method.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            method: The method to use (&#39;elbow&#39; or &#39;silhouette&#39;).</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            int: The optimal number of clusters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;elbow&#39;</span><span class="p">:</span>
+            <span class="n">wcss</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_wcss</span><span class="p">(</span><span class="n">max_clusters</span><span class="p">)</span>
+            <span class="c1"># Find the &quot;elbow&quot; point where the WCSS decreases at a slower rate</span>
+            <span class="c1"># A more advanced implementation could use the &quot;knee point&quot; detection algorithm</span>
+            <span class="n">diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">wcss</span><span class="p">)</span>
+            <span class="n">second_diffs</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">diff</span><span class="p">(</span><span class="n">diffs</span><span class="p">)</span>
+            <span class="c1"># Adding 2 because np.diff reduces the array length by 1 each time</span>
+            <span class="n">optimal_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">second_diffs</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">elif</span> <span class="n">method</span> <span class="o">==</span> <span class="s1">&#39;silhouette&#39;</span><span class="p">:</span>
+            <span class="n">scores</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">calculate_silhouette_scores</span><span class="p">(</span><span class="n">max_clusters</span><span class="p">)</span>
+            <span class="c1"># Adding 2 because silhouette score calculation starts at 2 clusters</span>
+            <span class="n">optimal_clusters</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmax</span><span class="p">(</span><span class="n">scores</span><span class="p">)</span> <span class="o">+</span> <span class="mi">2</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Unknown method. Use &#39;elbow&#39; or &#39;silhouette&#39;.&quot;</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">optimal_clusters</span></div>
+
+
 <div class="viewcode-block" id="KMeansClustering.from_graph">
 <a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.from_graph">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">from_graph</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">Graph</span><span class="p">,</span> <span class="n">clustering_parameters</span><span class="p">:</span>  <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span>  <span class="n">scale</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">2</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Clustering</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">from_graph</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">Graph</span><span class="p">,</span> <span class="n">clustering_parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">scale</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">method</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;silhouette&#39;</span><span class="p">,</span> <span class="n">max_clusters</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Clustering</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates an instance of KMeansClustering from a structured data dictionary,</span>
 <span class="sd">        applying specified scaling to each parameter if needed.</span>
@@ -713,7 +853,9 @@
 <span class="sd">            scale: An optional dictionary where keys are parameter names and </span>
 <span class="sd">                values are functions (&#39;Linear&#39; or &#39;Tanh&#39;) to be applied to </span>
 <span class="sd">                the parameter values before clustering.</span>
-<span class="sd">            n_clusters: The number of clusters to form.</span>
+<span class="sd">            n_clusters: The number of clusters to form. If -1, the optimal number of clusters will be determined.</span>
+<span class="sd">            method: The method to use for determining the optimal number of clusters (&#39;elbow&#39; or &#39;silhouette&#39;).</span>
+<span class="sd">            max_clusters: The maximum number of clusters to consider.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            KMeansClustering: An instance of KMeansClustering with clusters, centroids, </span>
@@ -756,26 +898,182 @@
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">scale</span><span class="p">):</span>
             <span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">scale_funcs</span><span class="p">[</span><span class="n">sc</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">](</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
 
+        <span class="c1"># Determine the number of clusters if not provided</span>
+        <span class="k">if</span> <span class="n">n_clusters</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="n">temp_clustering</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">node_ids</span><span class="o">=</span><span class="n">node_ids</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span>
+                                  <span class="n">scales</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">cluster_indexes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+            <span class="n">n_clusters</span> <span class="o">=</span> <span class="n">temp_clustering</span><span class="o">.</span><span class="n">optimal_number_of_clusters</span><span class="p">(</span>
+                <span class="n">method</span><span class="o">=</span><span class="n">method</span><span class="p">,</span> <span class="n">max_clusters</span><span class="o">=</span><span class="n">max_clusters</span><span class="p">)</span>
+
         <span class="c1"># Perform clustering</span>
         <span class="n">clustering</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">node_ids</span><span class="o">=</span><span class="n">node_ids</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span>
                          <span class="n">scales</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">cluster_indexes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
         <span class="n">clustering</span><span class="o">.</span><span class="n">recluster</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">clustering</span></div>
+</div>
 
 
-<div class="viewcode-block" id="KMeansClustering.recluster">
-<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.recluster">[docs]</a>
-    <span class="k">def</span> <span class="nf">recluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n_clusters</span><span class="p">):</span>
-        <span class="n">kmeans</span> <span class="o">=</span> <span class="n">KMeans</span><span class="p">(</span><span class="n">n_clusters</span><span class="o">=</span><span class="n">n_clusters</span><span class="p">,</span> <span class="n">init</span><span class="o">=</span><span class="s1">&#39;k-means++&#39;</span><span class="p">,</span>
-                        <span class="n">n_init</span><span class="o">=</span><span class="s1">&#39;auto&#39;</span><span class="p">,</span> <span class="n">random_state</span><span class="o">=</span><span class="mi">42</span><span class="p">)</span>
-        <span class="n">kmeans</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">_centroids</span> <span class="o">=</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">cluster_centers_</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="o">=</span> <span class="n">kmeans</span><span class="o">.</span><span class="n">labels_</span></div>
+
+<div class="viewcode-block" id="DBSCANClustering">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering">[docs]</a>
+<span class="nd">@Clustering</span><span class="o">.</span><span class="n">clustering_method</span><span class="p">(</span><span class="s2">&quot;DBSCAN Clustering&quot;</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">DBSCANClustering</span><span class="p">(</span><span class="n">ParameterBasedClustering</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A DBSCAN clustering representation, extending the generic Clustering class.&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">Graph</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">scales</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">cluster_indexes</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">G</span><span class="p">,</span> <span class="n">node_ids</span><span class="o">=</span><span class="n">node_ids</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameters</span><span class="p">,</span>
+                         <span class="n">scales</span><span class="o">=</span><span class="n">scales</span><span class="p">,</span> <span class="n">cluster_indexes</span><span class="o">=</span><span class="n">cluster_indexes</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">data</span> <span class="o">=</span> <span class="n">data</span>
+
+<div class="viewcode-block" id="DBSCANClustering.get_number_of_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.get_number_of_clusters">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_number_of_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Get the number of clusters.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - int : The number of clusters (excluding noise points).</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="nb">len</span><span class="p">(</span><span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span><span class="p">))</span> <span class="o">-</span> <span class="p">(</span><span class="mi">1</span> <span class="k">if</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span></div>
 
 
-<div class="viewcode-block" id="KMeansClustering.reorder_clusters">
-<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.KMeansClustering.reorder_clusters">[docs]</a>
+<div class="viewcode-block" id="DBSCANClustering.from_graph">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.from_graph">[docs]</a>
+    <span class="nd">@classmethod</span>
+    <span class="k">def</span> <span class="nf">from_graph</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">G</span><span class="p">:</span> <span class="n">Graph</span><span class="p">,</span> <span class="n">clustering_parameters</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">scale</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">min_samples</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">5</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Clustering</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates an instance of DBSCANClustering from a structured data dictionary,</span>
+<span class="sd">        applying specified scaling to each parameter if needed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            G: HariGraph.</span>
+<span class="sd">            clustering_parameters: list of clustering parameters</span>
+<span class="sd">            scale: An optional dictionary where keys are parameter names and </span>
+<span class="sd">                values are functions (&#39;Linear&#39; or &#39;Tanh&#39;) to be applied to </span>
+<span class="sd">                the parameter values before clustering.</span>
+<span class="sd">            eps: The maximum distance between two samples for them to be considered as in the same neighborhood.</span>
+<span class="sd">            min_samples: The number of samples in a neighborhood for a point to be considered as a core point.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            DBSCANClustering: An instance of DBSCANClustering with clusters and labels determined from the data.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If no data points remain after removing NaN values or if</span>
+<span class="sd">                        an unknown scaling function is specified.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">data</span> <span class="o">=</span> <span class="n">G</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">gather</span><span class="p">(</span><span class="n">clustering_parameters</span><span class="p">)</span>
+
+        <span class="c1"># Extract nodes and parameter names</span>
+        <span class="n">nodes</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]</span>
+        <span class="n">parameter_names</span> <span class="o">=</span> <span class="n">clustering_parameters</span> <span class="k">if</span> <span class="n">clustering_parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="p">[</span>
+            <span class="n">key</span> <span class="k">for</span> <span class="n">key</span> <span class="ow">in</span> <span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="k">if</span> <span class="n">key</span> <span class="o">!=</span> <span class="s1">&#39;Nodes&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Validate and process scale argument</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="p">[</span><span class="n">scale</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="s1">&#39;Linear&#39;</span><span class="p">)</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_names</span><span class="p">]</span>
+        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">scale</span><span class="p">,</span> <span class="nb">list</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">scale</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">&#39;Length mismatch in scale list&#39;</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">scale</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">scale</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Linear&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">parameter_names</span><span class="p">)</span>
+
+        <span class="c1"># Prepare data array</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">data</span><span class="p">[</span><span class="n">param</span><span class="p">]</span> <span class="k">for</span> <span class="n">param</span> <span class="ow">in</span> <span class="n">parameter_names</span> <span class="k">if</span> <span class="n">param</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span>
+                        <span class="s1">&#39;Time&#39;</span><span class="p">,</span> <span class="s1">&#39;Nodes&#39;</span><span class="p">]])</span><span class="o">.</span><span class="n">T</span>
+
+        <span class="c1"># Remove NaN values</span>
+        <span class="n">valid_indices</span> <span class="o">=</span> <span class="o">~</span><span class="n">np</span><span class="o">.</span><span class="n">isnan</span><span class="p">(</span><span class="n">data</span><span class="p">)</span><span class="o">.</span><span class="n">any</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+        <span class="n">data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="n">valid_indices</span><span class="p">]</span>
+        <span class="n">node_ids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">nodes</span><span class="p">)[</span><span class="n">valid_indices</span><span class="p">]</span>
+
+        <span class="k">if</span> <span class="n">data</span><span class="o">.</span><span class="n">size</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;No data points remain after removing NaN values.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Apply scaling to the parameters</span>
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">scale</span><span class="p">):</span>
+            <span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">cls</span><span class="o">.</span><span class="n">scale_funcs</span><span class="p">[</span><span class="n">sc</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">](</span><span class="n">data</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># Perform clustering</span>
+        <span class="n">clustering</span> <span class="o">=</span> <span class="bp">cls</span><span class="p">(</span><span class="n">G</span><span class="o">=</span><span class="n">G</span><span class="p">,</span> <span class="n">data</span><span class="o">=</span><span class="n">data</span><span class="p">,</span> <span class="n">node_ids</span><span class="o">=</span><span class="n">node_ids</span><span class="p">,</span> <span class="n">parameters</span><span class="o">=</span><span class="n">parameter_names</span><span class="p">,</span>
+                         <span class="n">scales</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">cluster_indexes</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+        <span class="n">clustering</span><span class="o">.</span><span class="n">recluster</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="n">min_samples</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">clustering</span></div>
+
+
+<div class="viewcode-block" id="DBSCANClustering.recluster">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.recluster">[docs]</a>
+    <span class="k">def</span> <span class="nf">recluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">eps</span><span class="p">:</span> <span class="nb">float</span><span class="p">,</span> <span class="n">min_samples</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+        <span class="n">dbscan</span> <span class="o">=</span> <span class="n">DBSCAN</span><span class="p">(</span><span class="n">eps</span><span class="o">=</span><span class="n">eps</span><span class="p">,</span> <span class="n">min_samples</span><span class="o">=</span><span class="n">min_samples</span><span class="p">)</span>
+        <span class="n">dbscan</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="o">=</span> <span class="n">dbscan</span><span class="o">.</span><span class="n">labels_</span></div>
+
+
+<div class="viewcode-block" id="DBSCANClustering.unscaled_centroids">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.unscaled_centroids">[docs]</a>
+    <span class="k">def</span> <span class="nf">unscaled_centroids</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Calculate centroids for the clusters, excluding noise points.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">        - np.ndarray: The centroids of the clusters.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">unique_labels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span><span class="p">)</span>
+        <span class="n">unique_labels</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Remove noise label</span>
+        <span class="n">centroids</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="o">==</span> <span class="n">label</span><span class="p">]</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+                              <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">unique_labels</span><span class="p">])</span>
+        <span class="k">return</span> <span class="n">centroids</span></div>
+
+
+<div class="viewcode-block" id="DBSCANClustering.predict_cluster">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.predict_cluster">[docs]</a>
+    <span class="k">def</span> <span class="nf">predict_cluster</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data_points</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">points_scaled</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="kc">None</span> <span class="o">|</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Predicts the cluster indices to which new data points belong based on the clusters formed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data_points: The new data points&#39; parameter values as a numpy array.</span>
+<span class="sd">            points_scaled: A boolean indicating whether the data points are already scaled.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            np.ndarray: An array of indices of the closest cluster point to each data point.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the dimensionality of the data points does not match that of the original data.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="k">if</span> <span class="n">parameters</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">data_points</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">prepare_data_point_for_prediction</span><span class="p">(</span>
+                <span class="n">data_points</span><span class="p">,</span> <span class="n">parameters</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">points_scaled</span><span class="p">:</span>
+            <span class="c1"># Apply scaling to the new data points</span>
+            <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">sc</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">scales</span><span class="p">):</span>
+                <span class="n">data_points</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">scale_funcs</span><span class="p">[</span><span class="n">sc</span><span class="p">][</span><span class="s1">&#39;direct&#39;</span><span class="p">](</span>
+                    <span class="n">data_points</span><span class="p">[:,</span> <span class="n">i</span><span class="p">])</span>
+
+        <span class="c1"># Check for dimensionality match</span>
+        <span class="k">if</span> <span class="n">data_points</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">!=</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">shape</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
+                <span class="s2">&quot;Dimensionality of data points does not match that of the original data.&quot;</span><span class="p">)</span>
+
+        <span class="c1"># Compute distances from each new data point to all existing data points</span>
+        <span class="n">distances</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linalg</span><span class="o">.</span><span class="n">norm</span><span class="p">(</span>
+            <span class="n">data_points</span><span class="p">[:,</span> <span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">data</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">2</span><span class="p">)</span>
+
+        <span class="c1"># Find the nearest existing data point for each new data point</span>
+        <span class="n">nearest_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">argmin</span><span class="p">(</span><span class="n">distances</span><span class="p">,</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+
+        <span class="c1"># Assign each new data point to the cluster of the nearest existing data point</span>
+        <span class="n">cluster_indices</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span><span class="p">[</span><span class="n">nearest_indices</span><span class="p">]</span>
+
+        <span class="k">return</span> <span class="n">cluster_indices</span></div>
+
+
+<div class="viewcode-block" id="DBSCANClustering.reorder_clusters">
+<a class="viewcode-back" href="../../source/hari_plotter.cluster.html#hari_plotter.cluster.DBSCANClustering.reorder_clusters">[docs]</a>
     <span class="k">def</span> <span class="nf">reorder_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">new_order</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reorders clusters and associated information based on a new order.</span>
@@ -786,51 +1084,19 @@
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If new_order does not contain all existing cluster indices.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">new_order</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">set</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">))):</span>
+        <span class="n">unique_labels</span> <span class="o">=</span> <span class="nb">set</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span><span class="p">)</span>
+        <span class="n">unique_labels</span><span class="o">.</span><span class="n">discard</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># Remove noise label</span>
+        <span class="k">if</span> <span class="nb">set</span><span class="p">(</span><span class="n">new_order</span><span class="p">)</span> <span class="o">!=</span> <span class="n">unique_labels</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
                 <span class="s2">&quot;New order must contain all existing cluster indices.&quot;</span><span class="p">)</span>
 
-        <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">centroids</span><span class="p">[</span><span class="n">new_order</span><span class="p">]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">clusters</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">clusters</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">new_order</span><span class="p">]</span>
         <span class="c1"># Create a mapping from old to new labels</span>
         <span class="n">label_mapping</span> <span class="o">=</span> <span class="p">{</span><span class="n">old</span><span class="p">:</span> <span class="n">new</span> <span class="k">for</span> <span class="n">new</span><span class="p">,</span> <span class="n">old</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">new_order</span><span class="p">)}</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">labels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">label_mapping</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">labels</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span>
+            <span class="p">[</span><span class="n">label_mapping</span><span class="p">[</span><span class="n">label</span><span class="p">]</span> <span class="k">if</span> <span class="n">label</span> <span class="ow">in</span> <span class="n">label_mapping</span> <span class="k">else</span> <span class="o">-</span><span class="mi">1</span> <span class="k">for</span> <span class="n">label</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cluster_indexes</span><span class="p">])</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">reorder_labels</span><span class="p">(</span><span class="n">new_order</span><span class="p">)</span></div>
 </div>
 
-
-    <span class="c1"># def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -&gt; List[np.ndarray]:</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     Returns the values corresponding to the given parameter(s) for all points in the clusters.</span>
-
-    <span class="c1">#     Args:</span>
-    <span class="c1">#         key (Union[str, List[str]]): The parameter name or list of parameter names.</span>
-    <span class="c1">#         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.</span>
-
-    <span class="c1">#     Returns:</span>
-    <span class="c1">#         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster</span>
-    <span class="c1">#                           and contains the values of the specified parameter(s) for each point in that cluster.</span>
-    <span class="c1">#     &quot;&quot;&quot;</span>
-    <span class="c1">#     if isinstance(key, str):</span>
-    <span class="c1">#         # Single parameter requested</span>
-    <span class="c1">#         key = [key]</span>
-
-    <span class="c1">#     if not all(k in self.parameters for k in key):</span>
-    <span class="c1">#         raise KeyError(</span>
-    <span class="c1">#             &quot;One or more requested parameters are not found in the cluster parameters.&quot;)</span>
-
-    <span class="c1">#     param_indices = [self.parameters.index(k) for k in key]</span>
-
-    <span class="c1">#     scaled_data = self.data[:, param_indices]</span>
-    <span class="c1">#     if not keep_scale:</span>
-    <span class="c1">#         for new_index, original_index in enumerate(param_indices):</span>
-    <span class="c1">#             used_scale = self.scales[original_index]</span>
-    <span class="c1">#             scaled_data[:, new_index] = self.scale_funcs[used_scale][&#39;inverse&#39;](</span>
-    <span class="c1">#                 scaled_data[:, new_index])</span>
-
-    <span class="c1">#     unique = np.unique(self.cluster_indexes)</span>
-
-    <span class="c1">#     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]</span>
 </pre></div>
 
            </div>

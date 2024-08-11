@@ -120,23 +120,10 @@ nodes based on activity levels in addition to the default parameters.</p>
 <span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
-<dl class="py method">
-<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.mean_graph">
-<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDefaultNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
-<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
-that are the average of the corresponding attributes in the input graphs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>‘HariGraph’</p>
-</dd>
-</dl>
-</dd></dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.edge_parameters_in_mean_graph">
+<span class="sig-name descname"><span class="pre">edge_parameters_in_mean_graph</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Influence':</span> <span class="pre">'mean'}</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.edge_parameters_in_mean_graph" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.merge">
@@ -160,6 +147,11 @@ that are the average of the corresponding attributes in the input graphs.</p>
 <span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.node_parameters_in_mean_graph">
+<span class="sig-name descname"><span class="pre">node_parameters_in_mean_graph</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Activity':</span> <span class="pre">'mean',</span> <span class="pre">'Opinion':</span> <span class="pre">'mean'}</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.node_parameters_in_mean_graph" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -171,24 +163,6 @@ that are the average of the corresponding attributes in the input graphs.</p>
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.edge_parameter_logger">
 <span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
 <dd></dd></dl>
-
-<dl class="py method">
-<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.mean_graph">
-<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#ActivityDrivenNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
-<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
-that are the average of the corresponding attributes in the input graphs.</p>
-<dl class="field-list simple">
-<dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
-</dd>
-<dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>‘HariGraph’</p>
-</dd>
-</dl>
-</dd></dl>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge">
@@ -244,6 +218,11 @@ by the attributes of the merged nodes, and the edges are updated accordingly.</p
 <span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.node_parameters_in_mean_graph">
+<span class="sig-name descname"><span class="pre">node_parameters_in_mean_graph</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Activity':</span> <span class="pre">'mean',</span> <span class="pre">'Opinion':</span> <span class="pre">'mean',</span> <span class="pre">'Type':</span> <span class="pre">'all'}</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.node_parameters_in_mean_graph" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 </dd></dl>
 
 <dl class="py class">
@@ -262,6 +241,11 @@ based on specific criteria.</p>
 <dl class="py attribute">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameter_logger">
 <span class="sig-name descname"><span class="pre">edge_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameter_logger" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameters_in_mean_graph">
+<span class="sig-name descname"><span class="pre">edge_parameters_in_mean_graph</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Influence':</span> <span class="pre">'mean'}</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.edge_parameters_in_mean_graph" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py method">
@@ -285,7 +269,7 @@ based on specific criteria.</p>
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label">
 <span class="sig-name descname"><span class="pre">label</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.label"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label" title="Link to this definition"></a></dt>
-<dd><p>Returns a mapping of node IDs to their types for all nodes including bots.</p>
+<dd><p>Returns a mapping of node IDs to their labels.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -296,18 +280,18 @@ based on specific criteria.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph">
-<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
-<dd><p>Calculates the mean graph from a list of HariGraph instances. The mean graph’s nodes and edges have attributes
+<span class="sig-name descname"><span class="pre">mean_graph</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">Graph</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Graph</span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.mean_graph"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph" title="Link to this definition"></a></dt>
+<dd><p>Calculates the mean graph from a list of Graph instances. The mean graph’s nodes and edges have attributes
 that are the average of the corresponding attributes in the input graphs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>'HariGraph'</em><em>]</em>) – A list of HariGraph instances from which to calculate the mean graph.</p>
+<dd class="field-odd"><p><strong>images</strong> (<em>List</em><em>[</em><em>nx.Graph</em><em>]</em>) – A list of Graph instances from which to calculate the mean graph.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>A new HariGraph instance representing the mean of the input graphs.</p>
+<dd class="field-even"><p>A new Graph instance representing the mean of the input graphs.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>‘HariGraph’</p>
+<dd class="field-odd"><p>nx.Graph</p>
 </dd>
 </dl>
 </dd></dl>
@@ -378,6 +362,11 @@ by the attributes of the merged nodes, and the edges are updated accordingly.</p
 <span class="sig-name descname"><span class="pre">node_parameter_logger</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">&lt;hari_plotter.node_gatherer.NodeEdgeGatherer.ParameterLogger</span> <span class="pre">object&gt;</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.node_parameter_logger" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py attribute">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.node_parameters_in_mean_graph">
+<span class="sig-name descname"><span class="pre">node_parameters_in_mean_graph</span></span><em class="property"><span class="w"> </span><span class="p"><span class="pre">=</span></span><span class="w"> </span><span class="pre">{'Opinion':</span> <span class="pre">'mean'}</span></em><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.node_parameters_in_mean_graph" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion">
 <span class="sig-name descname"><span class="pre">opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion" title="Link to this definition"></a></dt>
@@ -394,6 +383,12 @@ by the attributes of the merged nodes, and the edges are updated accordingly.</p
 <dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.std_opinion">
 <span class="sig-name descname"><span class="pre">std_opinion</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.std_opinion"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.std_opinion" title="Link to this definition"></a></dt>
 <dd><p>Returns a mapping of node IDs to the standard deviation of opinion values among their inner opinions.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.type">
+<span class="sig-name descname"><span class="pre">type</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/node_gatherer.html#DefaultNodeEdgeGatherer.type"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.type" title="Link to this definition"></a></dt>
+<dd><p>Returns a mapping of node IDs to their types for all nodes including bots.</p>
 </dd></dl>
 
 </dd></dl>
@@ -433,7 +428,7 @@ graph-based structures.</p>
 <dd><p>The graph instance from NetworkX containing the nodes and edges for analysis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>HariGraph</p>
+<dd class="field-odd"><p><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph">Graph</a></p>
 </dd>
 </dl>
 </dd></dl>
