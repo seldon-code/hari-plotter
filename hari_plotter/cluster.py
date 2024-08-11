@@ -1,4 +1,6 @@
 from __future__ import annotations
+from typing import List, Dict, Union, Tuple
+from sklearn.cluster import DBSCAN
 
 from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
 from collections import defaultdict
@@ -12,6 +14,8 @@ import skfuzzy as fuzz
 from scipy.spatial.distance import cdist
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
+
+import matplotlib.pyplot as plt
 
 from .graph import Graph
 
@@ -201,7 +205,7 @@ class ParameterBasedClustering(Clustering):
             "This method must be implemented in subclasses")
 
     @abstractmethod
-    def predict_cluster(self, data_point: List[float]) -> int:
+    def predict_cluster(self, data_point: List[float], parameters: None | tuple[str] = None) -> int:
         """
         Abstract method to predict the cluster for a new data point.
         """
@@ -262,6 +266,13 @@ class ParameterBasedClustering(Clustering):
         else:
             return [self.parameters[index] for index in indices]
 
+    def prepare_data_point_for_prediction(self, data_points, parameters):
+        if set(self.parameters) > set(parameters):
+            raise ValueError(
+                "The provided parameters must include all parameters used for clustering.")
+
+        return data_points[:, [self.get_indices_from_parameters(param) for param in parameters if param in self.parameters]]
+
 
 @Clustering.clustering_method("Interval Clustering")
 class ValueIntervalsClustering(ParameterBasedClustering):
@@ -278,23 +289,6 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     def get_number_of_clusters(self) -> int:
         return self.n_clusters  # Assuming self.n_clusters tracks the number of clusters
 
-    # def labels_nodes_dict(self) -> List[list]:
-    #     """
-    #     Maps each node to a cluster based on the parameter boundaries.
-
-    #     Returns:
-    #     - List[list]: A list of lists, where each sublist contains the nodes belonging to that cluster.
-    #     """
-    #     cluster_nodes = [[] for _ in range(self.get_number_of_clusters())]
-
-    #     for i, point in enumerate(self.data):
-    #         cluster_index = self.find_cluster_index(point)
-    #         if cluster_index is not None:  # Point falls within defined boundaries
-    #             cluster_nodes[cluster_index].append(
-    #                 tuple(self.node_ids[i]))
-
-    #     return cluster_nodes
-
     def find_cluster_indices_on_grid(self, point: np.ndarray) -> np.ndarray:
         """
         Determines the indices of the clusters a point belongs to based on parameter boundaries.
@@ -309,10 +303,6 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         for i, boundaries in enumerate(self.parameter_boundaries):
             cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
         return cluster_indices
-
-    # def find_cluster_index(self, point):
-    #     cluster_indices = self.find_cluster_indices_on_grid(point)
-    #     return self._indices_mapping.get(cluster_indices, None)
 
     @classmethod
     def from_graph(cls, G: Graph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
@@ -397,7 +387,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
     def unscaled_centroids(self) -> np.ndarray:
         return np.array([np.mean(self.data[self.cluster_indexes == i], axis=0) for i in range(self.n_clusters)])
 
-    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
         """
         Predicts the cluster indices to which new data points belong based on the centroids.
 
@@ -410,6 +400,11 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         Raises:
             ValueError: If the dimensionality of the data points does not match that of the centroids.
         """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
         # Check if the data points are of the correct dimension
         if data_points.shape[1] != len(self.parameters):
             raise ValueError(
@@ -427,40 +422,35 @@ class ValueIntervalsClustering(ParameterBasedClustering):
             # Determine the cluster indices for the current point across all parameters
             cluster_indexes.append(self.find_cluster_index(point))
 
-        return cluster_indexes
+        return np.array(cluster_indexes)
 
-    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
-    #     """
-    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
+    def find_cluster_indices_on_grid(self, point: np.ndarray) -> np.ndarray:
+        """
+        Determines the indices of the clusters a point belongs to based on parameter boundaries.
 
-    #     Args:
-    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
-    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
+        Args:
+        - point: The data point's parameter values as a numpy array.
 
-    #     Returns:
-    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
-    #                           and contains the values of the specified parameter(s) for each point in that cluster.
-    #     """
-    #     if isinstance(key, str):
-    #         # Single parameter requested
-    #         key = [key]
+        Returns:
+        - np.ndarray: An array of the indices of the clusters the point belongs to.
+        """
+        cluster_indices = np.zeros(len(self.parameter_boundaries), dtype=int)
+        for i, boundaries in enumerate(self.parameter_boundaries):
+            cluster_indices[i] = np.sum(point[i] < np.array(boundaries))
+        return cluster_indices
 
-    #     if not all(k in self.parameters for k in key):
-    #         raise KeyError(
-    #             f"One or more requested parameters {key} are not found in the cluster parameters {self.parameters}.")
+    def find_cluster_index(self, point: np.ndarray) -> Union[int, None]:
+        """
+        Identifies the cluster index for a given point based on the parameter boundaries.
 
-    #     param_indices = [self.parameters.index(k) for k in key]
+        Args:
+        - point: The data point's parameter values as a numpy array.
 
-    #     scaled_data = self.data[:, param_indices]
-    #     if not keep_scale:
-    #         for new_index, original_index in enumerate(param_indices):
-    #             used_scale = self.scales[original_index]
-    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
-    #                 scaled_data[:, new_index])
-
-    #     unique = np.unique(self.cluster_indexes)
-
-    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]
+        Returns:
+        - int or None: The cluster index if the cell is a cluster, otherwise None.
+        """
+        cluster_indices = tuple(self.find_cluster_indices_on_grid(point))
+        return self._indices_mapping.get(cluster_indices, None)
 
 
 @Clustering.clustering_method("K-Means Clustering")
@@ -475,9 +465,6 @@ class KMeansClustering(ParameterBasedClustering):
     def unscaled_centroids(self) -> np.ndarray:
         return self._centroids.copy()
 
-    # def labels_nodes_dict(self) -> Dict[str, Tuple[Tuple[int]]]:
-    #     return {cluster_label: ids for cluster_label, ids in zip(self.cluster_labels, self.node_ids)}
-
     def get_number_of_clusters(self) -> int:
         """
         Get the number of clusters.
@@ -487,7 +474,7 @@ class KMeansClustering(ParameterBasedClustering):
         """
         return len(self._centroids)
 
-    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False) -> np.ndarray:
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
         """
         Predicts the cluster indices to which new data points belong based on the centroids.
 
@@ -500,6 +487,11 @@ class KMeansClustering(ParameterBasedClustering):
         Raises:
             ValueError: If the dimensionality of the data points does not match that of the centroids.
         """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
         # Check if the data points are of the correct dimension
         centroids = self._centroids
         if data_points.shape[1] != centroids.shape[1]:
@@ -519,8 +511,129 @@ class KMeansClustering(ParameterBasedClustering):
         nearest_centroid_indices = np.argmin(distances, axis=1)
         return nearest_centroid_indices
 
+    def recluster(self, n_clusters):
+        kmeans = KMeans(n_clusters=n_clusters, init='k-means++',
+                        n_init='auto', random_state=42)
+        kmeans.fit(self.data)
+        self._centroids = kmeans.cluster_centers_
+        self.cluster_indexes = kmeans.labels_
+
+    def reorder_clusters(self, new_order: List[int]):
+        """
+        Reorders clusters and associated information based on a new order.
+
+        Args:
+            new_order: A list containing the indices of the clusters in their new order.
+
+        Raises:
+            ValueError: If new_order does not contain all existing cluster indices.
+        """
+        if set(new_order) != set(range(len(self.centroids))):
+            raise ValueError(
+                "New order must contain all existing cluster indices.")
+
+        self.centroids = self.centroids[new_order]
+        self.clusters = [self.clusters[i] for i in new_order]
+        # Create a mapping from old to new labels
+        label_mapping = {old: new for new, old in enumerate(new_order)}
+        self.labels = np.array([label_mapping[label] for label in self.labels])
+        self.reorder_labels(new_order)
+
+    def calculate_wcss(self, max_clusters: int = 10) -> List[float]:
+        """
+        Calculate the within-cluster sum of squares (WCSS) for different numbers of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            List[float]: A list of WCSS values for each number of clusters.
+        """
+        wcss = []
+        for i in range(1, max_clusters + 1):
+            kmeans = KMeans(n_clusters=i, init='k-means++',
+                            n_init='auto', random_state=42)
+            kmeans.fit(self.data)
+            wcss.append(kmeans.inertia_)
+        return wcss
+
+    def plot_elbow_method(self, max_clusters: int = 10):
+        """
+        Plot the WCSS values to use the Elbow method for determining the optimal number of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+        """
+        wcss = self.calculate_wcss(max_clusters)
+        plt.plot(range(1, max_clusters + 1), wcss, marker='o')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('WCSS')
+        plt.title('Elbow Method')
+        plt.show()
+
+    def calculate_silhouette_scores(self, max_clusters: int = 10) -> List[float]:
+        """
+        Calculate the silhouette scores for different numbers of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            List[float]: A list of silhouette scores for each number of clusters.
+        """
+        silhouette_scores = []
+        for i in range(2, max_clusters + 1):  # Silhouette score is undefined for 1 cluster
+            kmeans = KMeans(n_clusters=i, init='k-means++',
+                            n_init='auto', random_state=42)
+            kmeans.fit(self.data)
+            score = silhouette_score(self.data, kmeans.labels_)
+            silhouette_scores.append(score)
+        return silhouette_scores
+
+    def plot_silhouette_scores(self, max_clusters: int = 10):
+        """
+        Plot the silhouette scores to help determine the optimal number of clusters.
+
+        Args:
+            max_clusters: The maximum number of clusters to consider.
+        """
+        scores = self.calculate_silhouette_scores(max_clusters)
+        plt.plot(range(2, max_clusters + 1), scores, marker='o')
+        plt.xlabel('Number of Clusters')
+        plt.ylabel('Silhouette Score')
+        plt.title('Silhouette Score Method')
+        plt.show()
+
+    def optimal_number_of_clusters(self, method: str = 'silhouette', max_clusters: int = 10) -> int:
+        """
+        Determine the optimal number of clusters using the specified method.
+
+        Args:
+            method: The method to use ('elbow' or 'silhouette').
+            max_clusters: The maximum number of clusters to consider.
+
+        Returns:
+            int: The optimal number of clusters.
+        """
+        if method == 'elbow':
+            wcss = self.calculate_wcss(max_clusters)
+            # Find the "elbow" point where the WCSS decreases at a slower rate
+            # A more advanced implementation could use the "knee point" detection algorithm
+            diffs = np.diff(wcss)
+            second_diffs = np.diff(diffs)
+            # Adding 2 because np.diff reduces the array length by 1 each time
+            optimal_clusters = np.argmax(second_diffs) + 2
+        elif method == 'silhouette':
+            scores = self.calculate_silhouette_scores(max_clusters)
+            # Adding 2 because silhouette score calculation starts at 2 clusters
+            optimal_clusters = np.argmax(scores) + 2
+        else:
+            raise ValueError("Unknown method. Use 'elbow' or 'silhouette'.")
+
+        return optimal_clusters
+
     @classmethod
-    def from_graph(cls, G: Graph, clustering_parameters:  Union[Tuple[str] | List[str]],  scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = 2) -> Clustering:
+    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str] | List[str]], scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = -1, method: str = 'silhouette', max_clusters: int = 10) -> Clustering:
         """
         Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
@@ -531,7 +644,9 @@ class KMeansClustering(ParameterBasedClustering):
             scale: An optional dictionary where keys are parameter names and 
                 values are functions ('Linear' or 'Tanh') to be applied to 
                 the parameter values before clustering.
-            n_clusters: The number of clusters to form.
+            n_clusters: The number of clusters to form. If -1, the optimal number of clusters will be determined.
+            method: The method to use for determining the optimal number of clusters ('elbow' or 'silhouette').
+            max_clusters: The maximum number of clusters to consider.
 
         Returns:
             KMeansClustering: An instance of KMeansClustering with clusters, centroids, 
@@ -574,6 +689,13 @@ class KMeansClustering(ParameterBasedClustering):
         for i, sc in enumerate(scale):
             data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
 
+        # Determine the number of clusters if not provided
+        if n_clusters == -1:
+            temp_clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
+                                  scales=scale, cluster_indexes=np.zeros(data.shape[0]))
+            n_clusters = temp_clustering.optimal_number_of_clusters(
+                method=method, max_clusters=max_clusters)
+
         # Perform clustering
         clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
                          scales=scale, cluster_indexes=np.zeros(data.shape[0]))
@@ -581,12 +703,146 @@ class KMeansClustering(ParameterBasedClustering):
 
         return clustering
 
-    def recluster(self, n_clusters):
-        kmeans = KMeans(n_clusters=n_clusters, init='k-means++',
-                        n_init='auto', random_state=42)
-        kmeans.fit(self.data)
-        self._centroids = kmeans.cluster_centers_
-        self.cluster_indexes = kmeans.labels_
+
+@Clustering.clustering_method("DBSCAN Clustering")
+class DBSCANClustering(ParameterBasedClustering):
+    """A DBSCAN clustering representation, extending the generic Clustering class."""
+
+    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+        super().__init__(G, node_ids=node_ids, parameters=parameters,
+                         scales=scales, cluster_indexes=cluster_indexes)
+        self.data = data
+
+    def get_number_of_clusters(self) -> int:
+        """
+        Get the number of clusters.
+
+        Returns:
+        - int : The number of clusters (excluding noise points).
+        """
+        return len(set(self.cluster_indexes)) - (1 if -1 in self.cluster_indexes else 0)
+
+    @classmethod
+    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str], List[str]], scale: Union[List[str], Dict[str, str], None] = None, eps: float = 0.5, min_samples: int = 5) -> Clustering:
+        """
+        Creates an instance of DBSCANClustering from a structured data dictionary,
+        applying specified scaling to each parameter if needed.
+
+        Args:
+            G: HariGraph.
+            clustering_parameters: list of clustering parameters
+            scale: An optional dictionary where keys are parameter names and 
+                values are functions ('Linear' or 'Tanh') to be applied to 
+                the parameter values before clustering.
+            eps: The maximum distance between two samples for them to be considered as in the same neighborhood.
+            min_samples: The number of samples in a neighborhood for a point to be considered as a core point.
+
+        Returns:
+            DBSCANClustering: An instance of DBSCANClustering with clusters and labels determined from the data.
+
+        Raises:
+            ValueError: If no data points remain after removing NaN values or if
+                        an unknown scaling function is specified.
+        """
+
+        data = G.gatherer.gather(clustering_parameters)
+
+        # Extract nodes and parameter names
+        nodes = data['Nodes']
+        parameter_names = clustering_parameters if clustering_parameters is not None else [
+            key for key in data.keys() if key != 'Nodes']
+
+        # Validate and process scale argument
+        if isinstance(scale, dict):
+            scale = [scale.get(param, 'Linear') for param in parameter_names]
+        elif isinstance(scale, list) and len(scale) != len(parameter_names):
+            raise ValueError('Length mismatch in scale list')
+        elif scale is None:
+            scale = ['Linear'] * len(parameter_names)
+
+        # Prepare data array
+        data = np.array([data[param] for param in parameter_names if param not in [
+                        'Time', 'Nodes']]).T
+
+        # Remove NaN values
+        valid_indices = ~np.isnan(data).any(axis=1)
+        data = data[valid_indices]
+        node_ids = np.array(nodes)[valid_indices]
+
+        if data.size == 0:
+            raise ValueError(
+                "No data points remain after removing NaN values.")
+
+        # Apply scaling to the parameters
+        for i, sc in enumerate(scale):
+            data[:, i] = cls.scale_funcs[sc]['direct'](data[:, i])
+
+        # Perform clustering
+        clustering = cls(G=G, data=data, node_ids=node_ids, parameters=parameter_names,
+                         scales=scale, cluster_indexes=np.zeros(data.shape[0]))
+        clustering.recluster(eps=eps, min_samples=min_samples)
+
+        return clustering
+
+    def recluster(self, eps: float, min_samples: int):
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        dbscan.fit(self.data)
+        self.cluster_indexes = dbscan.labels_
+
+    def unscaled_centroids(self) -> np.ndarray:
+        """
+        Calculate centroids for the clusters, excluding noise points.
+
+        Returns:
+        - np.ndarray: The centroids of the clusters.
+        """
+        unique_labels = set(self.cluster_indexes)
+        unique_labels.discard(-1)  # Remove noise label
+        centroids = np.array([self.data[self.cluster_indexes == label].mean(axis=0)
+                              for label in unique_labels])
+        return centroids
+
+    def predict_cluster(self, data_points: np.ndarray, points_scaled: bool = False, parameters: None | tuple[str] = None) -> np.ndarray:
+        """
+        Predicts the cluster indices to which new data points belong based on the clusters formed.
+
+        Args:
+            data_points: The new data points' parameter values as a numpy array.
+            points_scaled: A boolean indicating whether the data points are already scaled.
+
+        Returns:
+            np.ndarray: An array of indices of the closest cluster point to each data point.
+
+        Raises:
+            ValueError: If the dimensionality of the data points does not match that of the original data.
+        """
+
+        if parameters is not None:
+            data_points = self.prepare_data_point_for_prediction(
+                data_points, parameters)
+
+        if not points_scaled:
+            # Apply scaling to the new data points
+            for i, sc in enumerate(self.scales):
+                data_points[:, i] = self.scale_funcs[sc]['direct'](
+                    data_points[:, i])
+
+        # Check for dimensionality match
+        if data_points.shape[1] != self.data.shape[1]:
+            raise ValueError(
+                "Dimensionality of data points does not match that of the original data.")
+
+        # Compute distances from each new data point to all existing data points
+        distances = np.linalg.norm(
+            data_points[:, np.newaxis] - self.data, axis=2)
+
+        # Find the nearest existing data point for each new data point
+        nearest_indices = np.argmin(distances, axis=1)
+
+        # Assign each new data point to the cluster of the nearest existing data point
+        cluster_indices = self.cluster_indexes[nearest_indices]
+
+        return cluster_indices
 
     def reorder_clusters(self, new_order: List[int]):
         """
@@ -598,46 +854,14 @@ class KMeansClustering(ParameterBasedClustering):
         Raises:
             ValueError: If new_order does not contain all existing cluster indices.
         """
-        if set(new_order) != set(range(len(self.centroids))):
+        unique_labels = set(self.cluster_indexes)
+        unique_labels.discard(-1)  # Remove noise label
+        if set(new_order) != unique_labels:
             raise ValueError(
                 "New order must contain all existing cluster indices.")
 
-        self.centroids = self.centroids[new_order]
-        self.clusters = [self.clusters[i] for i in new_order]
         # Create a mapping from old to new labels
         label_mapping = {old: new for new, old in enumerate(new_order)}
-        self.labels = np.array([label_mapping[label] for label in self.labels])
+        self.cluster_indexes = np.array(
+            [label_mapping[label] if label in label_mapping else -1 for label in self.cluster_indexes])
         self.reorder_labels(new_order)
-
-    # def get_values(self, key: Union[str, List[str]], keep_scale: bool = False) -> List[np.ndarray]:
-    #     """
-    #     Returns the values corresponding to the given parameter(s) for all points in the clusters.
-
-    #     Args:
-    #         key (Union[str, List[str]]): The parameter name or list of parameter names.
-    #         keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
-
-    #     Returns:
-    #         List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
-    #                           and contains the values of the specified parameter(s) for each point in that cluster.
-    #     """
-    #     if isinstance(key, str):
-    #         # Single parameter requested
-    #         key = [key]
-
-    #     if not all(k in self.parameters for k in key):
-    #         raise KeyError(
-    #             "One or more requested parameters are not found in the cluster parameters.")
-
-    #     param_indices = [self.parameters.index(k) for k in key]
-
-    #     scaled_data = self.data[:, param_indices]
-    #     if not keep_scale:
-    #         for new_index, original_index in enumerate(param_indices):
-    #             used_scale = self.scales[original_index]
-    #             scaled_data[:, new_index] = self.scale_funcs[used_scale]['inverse'](
-    #                 scaled_data[:, new_index])
-
-    #     unique = np.unique(self.cluster_indexes)
-
-    #     return [scaled_data[self.cluster_indexes == u_i, :] for u_i in unique]

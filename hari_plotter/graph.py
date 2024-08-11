@@ -85,6 +85,47 @@ class Graph(nx.DiGraph):
             if self.has_edge(node, node):
                 self.remove_edge(node, node)
 
+    def assign_parameter(self, parameter: str, method: None | dict = None) -> None:
+        """
+        Assigns random opinions to all nodes in the graph.
+
+        Parameters:
+
+            parameter (str): The parameter to be assigned random values.
+        """
+
+        if isinstance(method, dict):
+            if 'distribution' in method:
+                distribution = method['distribution']
+                if not distribution:
+                    values = np.random.rand(len(self.nodes))
+                elif isinstance(distribution, dict):
+                    if distribution['type'] == 'uniform':
+                        values = np.random.uniform(
+                            distribution.get('low', 0.0), distribution.get('high', 1.0), len(self.nodes))
+                    elif distribution['type'] == 'power_law':
+                        # Calculate power law distribution values
+                        epsilon = distribution.get('epsilon', 0.01)
+                        gamma = distribution.get('gamma', 2.1)
+                        values = np.random.uniform(epsilon, 1, len(self.nodes))
+                        values = (values ** (-1 / (gamma - 1)))
+                    elif distribution['type'] == 'constant':
+                        values = [method['constant']] * len(self.nodes)
+                    else:
+                        raise ValueError(
+                            f'Unknown distribution type: {type(distribution)}')
+                else:
+                    raise ValueError(
+                        f'Invalid distribution type: {type(distribution)}')
+
+            else:
+                raise ValueError('Invalid method type')
+        else:
+            raise ValueError('Invalid method type')
+
+        for node, value in zip(self.nodes, values):
+            self.nodes[node][parameter] = value
+
     def assign_random_influences(self, mean_influence: float, influence_range: float, seed: Optional[int] = None) -> None:
         """
         Assigns random influence values to all edges within a specified range centered around a mean influence value.
@@ -311,12 +352,13 @@ class Graph(nx.DiGraph):
                         f.write(f"{node_idx}{delimiter}{opinion}\n")
 
     @classmethod
-    def read_json(cls, filename: str) -> Graph:
+    def read_json(cls, filename: str, gatherer: NodeEdgeGatherer | None = None) -> Graph:
         """
         Reads a HariGraph instance from a JSON file that contains both the graph's structure and node attributes.
 
         Parameters:
             filename (str): Path to the JSON file from which the graph is to be loaded.
+            gatherer (NodeEdgeGatherer | None): type of gatherer to be used
 
         Returns:
             HariGraph: A new HariGraph instance constructed based on the data contained in the JSON file. This method reconstructs the graph's nodes, edges, and associated attributes like opinions and influences.
@@ -335,8 +377,11 @@ class Graph(nx.DiGraph):
             graph_dict = json.load(file)
 
         G = json_graph.node_link_graph(data)
+        G = cls(G)
+        if gatherer:
+            G.set_gatherer(gatherer)
 
-        return cls(G)
+        return G
 
     def write_json(self, filename: str):
         """
@@ -383,6 +428,26 @@ class Graph(nx.DiGraph):
                 if random.choice([True, False]) and not G.has_edge(v, u):
                     G.add_edge(v, u)
                     G.edges[v, u]['Influence'] = random.random()
+
+        G.add_parameters_to_nodes()
+
+        return G
+
+    @classmethod
+    def unconnected(cls, n: int) -> Graph:
+        """
+        Creates a HariGraph instance with n nodes and no edges.
+
+        :param n (int): Number of nodes.
+        :return: A new HariGraph instance.
+        """
+        if n < 2:
+            raise ValueError("Number of nodes should be at least 2")
+
+        G = cls()
+        for i in range(n):
+            G.add_node((i,))
+            G.nodes[(i,)]['Opinion'] = random.random()
 
         G.add_parameters_to_nodes()
 

@@ -226,6 +226,21 @@ class Interface(ABC):
         def clean(self):
             self._track_clusters_cache = {}
 
+        def get_clustering(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[Clustering]]:
+            """
+            Retrieves the clusterization for the given settings.
+
+            :param clusterization_settings: The settings for clusterization, either a single dictionary for all frames or a list of dictionaries for each frame.
+            :return: A list of Clustering objects representing the clusterization for each frame.
+            """
+            clusterization_settings_list = [clusterization_settings] if isinstance(
+                clusterization_settings, dict) else clusterization_settings
+            clusterizations = []
+            for clust_settings in clusterization_settings_list:
+                clusterizations.append([group.clustering(
+                    **clust_settings) for group in self._interface.groups])
+            return clusterizations
+
         def is_tracked(self, clusterization_settings: Union[dict, List[dict]]) -> List[bool]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
@@ -442,6 +457,14 @@ class Interface(ABC):
 
             :param clusterization_settings: The settings used for clusterization, either a single dictionary or a list of dictionaries for multiple types.
             :return: A list of dictionaries, each mapping unique cluster names to frame presence for one type of clustering.
+
+            :example: Output 
+
+            .. code-block:: python
+
+                [{'Cluster 0': [0, 1, 2], 'Cluster 1': [0, 1, 2], 'Cluster 2': [0, 1]}]
+
+            means that Cluster 0, Cluster 1, and Cluster 2 are present in frame 0 and 1, and only Cluster 0 and 1 are present in frame 2.
             """
             tracked_clusters_list = self.track_clusters(
                 clusterization_settings)
@@ -491,6 +514,16 @@ class Interface(ABC):
 
     def group_time_range(self) -> List[float]:
         return [self.groups[0].mean_time(),  self.groups[-1].mean_time()]
+
+    def __repr__(self) -> str:
+        return (f"<{self.__class__.__name__}("
+                f"REQUIRED_TYPE={self.REQUIRED_TYPE.__name__}, "
+                f"data={repr(self.data)}, "
+                f"group_length={len(self.groups)}, "
+                f"time_range={self.time_range})>")
+
+    def __str__(self) -> str:
+        return f"Interface(type={self.REQUIRED_TYPE.__name__}, data={self.data}, groups={len(self.groups)}, time_range={self.time_range})"
 
 
 class HariGraphInterface(Interface):

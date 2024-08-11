@@ -1,3 +1,6 @@
+import filecmp
+import os
+
 import networkx as nx
 import numpy as np
 import pytest
@@ -5,6 +8,17 @@ import pytest
 from hari_plotter import ColorScheme, Graph, Interface, Plotter, Simulation
 from hari_plotter.color_scheme import initialize_colormap
 from hari_plotter.lazy_graph import LazyGraph
+
+
+def compare_dirs(dir1, dir2):
+    comparison = filecmp.dircmp(dir1, dir2)
+    if comparison.left_only or comparison.right_only or comparison.diff_files:
+        return False
+    for subdir in comparison.common_dirs:
+        if not compare_dirs(os.path.join(dir1, subdir), os.path.join(dir2, subdir)):
+            return False
+    return True
+
 
 cl = {
     "clustering_method": "K-Means Clustering",
@@ -255,42 +269,29 @@ plot_list = [
 
 
 class TestPlotter:
-    @classmethod
-    def setup_class(cls):
-        ColorScheme.default_colormap_name, ColorScheme.default_colormap = initialize_colormap(
-            {
-                "Name": "custom1",
-                "Colors": [
-                    # (223 / 255, 294 / 255, 255 / 255),
-                    (255 / 255, 79 / 255, 20 / 255),
-                    (1 / 255, 180 / 255, 155 / 255),
-                    (71 / 255, 71 / 255, 240 / 255),
-                    # (250 / 255, 200 / 255, 180 / 255),
-                ],
-            }
-        )
-        cls.S = Simulation.from_dir("tests/big_test")
-
     @pytest.mark.parametrize("plot_index, plot", [(i, plot) for i, plot in enumerate(plot_list)])
-    def test_plot_individual(self, plot_index, plot, tmpdir):
-        plotter = Plotter.create_plotter(self.S)
+    def test_plot_individual(self, plot_index, plot, setup_simulation, save_dir, tmpdir):
+        plotter = Plotter.create_plotter(setup_simulation)
         plotter.regroup(num_intervals=3, interval_size=1)
         plotter.add_plot(
             *plot,
             row=0,
             col=0,
         )
-        # Create a unique directory for each plot
-        temp_dir = tmpdir.mkdir(f"plot_{plot_index}")
+        temp_dir = os.path.join(save_dir, f"plot_{plot_index}")
+        os.makedirs(temp_dir, exist_ok=True)
         plotter.plot_dynamics(
-            mode=[],
-            save_dir=str(temp_dir),  # Use the pathlib.Path compatible temp_dir
-            animation_path=temp_dir.join(
-                f"gif_{plot_index}.gif"),  # Construct the file path
+            mode=['save'],
+            save_dir=temp_dir,
+            animation_path=os.path.join(temp_dir, f"gif_{plot_index}.gif"),
         )
+        if save_dir != tmpdir:
+            baseline_dir = os.path.join("tests/baseline", f"plot_{plot_index}")
+            assert compare_dirs(
+                temp_dir, baseline_dir), f"Content mismatch in plot {plot_index}"
 
-    def test_plot_2x1(self, tmpdir):
-        plotter = Plotter.create_plotter(self.S)
+    def test_plot_2x1(self, setup_simulation, save_dir, tmpdir):
+        plotter = Plotter.create_plotter(setup_simulation)
         plotter.regroup(num_intervals=3, interval_size=1)
         plot = ["Scatter",
                 {
@@ -309,14 +310,20 @@ class TestPlotter:
             col=1,
         )
 
+        temp_dir = os.path.join(save_dir, "plot_2x1")
+        os.makedirs(temp_dir, exist_ok=True)
         plotter.plot_dynamics(
-            mode=[],
-            save_dir=f"{tmpdir}",
-            animation_path=f"{tmpdir}/gif.gif",
+            mode=['save'],
+            save_dir=str(temp_dir),
+            animation_path=os.path.join(temp_dir, "gif.gif"),
         )
+        if save_dir != tmpdir:
+            baseline_dir = os.path.join("tests/baseline", "plot_2x1")
+            assert compare_dirs(
+                str(temp_dir), baseline_dir), "Content mismatch in plot_2x1"
 
-    def test_plot_1x2(self, tmpdir):
-        plotter = Plotter.create_plotter(self.S)
+    def test_plot_1x2(self, setup_simulation, save_dir, tmpdir):
+        plotter = Plotter.create_plotter(setup_simulation)
         plotter.regroup(num_intervals=3, interval_size=1)
         plot = ["Scatter",
                 {
@@ -334,14 +341,20 @@ class TestPlotter:
             col=0,
         )
 
+        temp_dir = os.path.join(save_dir, "plot_1x2")
+        os.makedirs(temp_dir, exist_ok=True)
         plotter.plot_dynamics(
-            mode=[],
-            save_dir=f"{tmpdir}",
-            animation_path=f"{tmpdir}/gif.gif",
+            mode=['save'],
+            save_dir=str(temp_dir),
+            animation_path=os.path.join(temp_dir, "gif.gif"),
         )
+        if save_dir != tmpdir:
+            baseline_dir = os.path.join("tests/baseline", "plot_1x2")
+            assert compare_dirs(
+                str(temp_dir), baseline_dir), "Content mismatch in plot_1x2"
 
-    def test_plot_2x2(self, tmpdir):
-        plotter = Plotter.create_plotter(self.S)
+    def test_plot_2x2(self, setup_simulation, save_dir, tmpdir):
+        plotter = Plotter.create_plotter(setup_simulation)
         plotter.regroup(num_intervals=3, interval_size=1)
         plot = ["Scatter",
                 {
@@ -369,14 +382,20 @@ class TestPlotter:
             col=1,
         )
 
+        temp_dir = os.path.join(save_dir, "plot_2x2")
+        os.makedirs(temp_dir, exist_ok=True)
         plotter.plot_dynamics(
-            mode=[],
-            save_dir=f"{tmpdir}",
-            animation_path=f"{tmpdir}/gif.gif",
+            mode=['save'],
+            save_dir=str(temp_dir),
+            animation_path=os.path.join(temp_dir, "gif.gif"),
         )
+        if save_dir != tmpdir:
+            baseline_dir = os.path.join("tests/baseline", "plot_2x2")
+            assert compare_dirs(
+                str(temp_dir), baseline_dir), "Content mismatch in plot_2x2"
 
-    def test_plotter_info(self):
-        plotter = Plotter.create_plotter(self.S)
+    def test_plotter_info(self, setup_simulation):
+        plotter = Plotter.create_plotter(setup_simulation)
         plotter.regroup(num_intervals=3, interval_size=1)
         plotter.add_plot(
             "Scatter",
@@ -389,9 +408,9 @@ class TestPlotter:
         )
         plotter.info()
 
-    def test_multiple_runs_plot(self, tmpdir):
-        I1 = Interface.create_interface(self.S)
-        I2 = Interface.create_interface(self.S)
+    def test_multiple_runs_plot(self, setup_simulation, save_dir, tmpdir):
+        I1 = Interface.create_interface(setup_simulation)
+        I2 = Interface.create_interface(setup_simulation)
         plotter = Plotter([I1, I2])
         plotter.regroup(num_intervals=3, interval_size=1)
         plotter.add_plot(
@@ -404,8 +423,14 @@ class TestPlotter:
             col=0,
         )
         plotter.info()
+        temp_dir = os.path.join(save_dir, "multiple_runs_plot")
+        os.makedirs(temp_dir, exist_ok=True)
         plotter.plot_dynamics(
-            mode=[],
-            save_dir=f"{tmpdir}",
-            animation_path=f"{tmpdir}/gif.gif",
+            mode=['save'],
+            save_dir=str(temp_dir),
+            animation_path=os.path.join(temp_dir, "gif.gif"),
         )
+        if save_dir != tmpdir:
+            baseline_dir = os.path.join("tests/baseline", "multiple_runs_plot")
+            assert compare_dirs(
+                str(temp_dir), baseline_dir), "Content mismatch in multiple_runs_plot"
