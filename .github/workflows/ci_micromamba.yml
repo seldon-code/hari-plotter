@@ -1,4 +1,4 @@
-name: CI-micromamba
+name: CI
 
 on: [push, pull_request]
 
@@ -20,6 +20,10 @@ jobs:
       with:
         micromamba-version: latest
         environment-file: environment.yml
+
+    - name: Remove existing environment if it exists
+      run: |
+        micromamba env remove -n hariplotterenv || echo "Environment not found, continuing..."
 
     - name: Install dependencies with Micromamba
       run: |
