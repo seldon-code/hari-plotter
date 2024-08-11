@@ -12,7 +12,7 @@ You can use a `micromamba` environment to get started, and get all your dependen
 
 ```bash
 micromamba create -f environment.yml # Just once 
-micromamba activate hairplotterenv # To activate, every time 
+micromamba activate hariplotterenv # To activate, every time 
 ```
 
 If you prefer `pip`:
