@@ -758,7 +758,7 @@ class Graph(nx.DiGraph):
                 return False
         return True
 
-    @ property
+    @property
     def mean_opinion(self) -> float:
         """
         Calculates the weighted mean opinion of the nodes in the graph.
@@ -809,7 +809,7 @@ class Graph(nx.DiGraph):
         '''Self call for union formatting with LazyHariGraph'''
         return self
 
-    @ property
+    @property
     def opinions(self):
         """
         Returns a dictionary with the opinions of the nodes.
@@ -817,7 +817,7 @@ class Graph(nx.DiGraph):
         """
         return {node: self.nodes[node]['Opinion'] for node in self.nodes}
 
-    @ opinions.setter
+    @opinions.setter
     def opinions(self, values: Union[int, float, Dict[Tuple[int]:float]]):
         if isinstance(values, (int, float)):
             for node in self.nodes:
