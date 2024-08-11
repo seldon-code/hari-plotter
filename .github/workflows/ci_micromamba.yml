@@ -1,4 +1,4 @@
-name: CI
+name: CI-Micromamba
 
 on: [push, pull_request]
 
@@ -21,13 +21,9 @@ jobs:
         micromamba-version: latest
         environment-file: environment.yml
 
-    - name: Remove existing environment if it exists
+    - name: Update or create environment with Micromamba
       run: |
-        micromamba env remove -n hariplotterenv || echo "Environment not found, continuing..."
-
-    - name: Install dependencies with Micromamba
-      run: |
-        micromamba create -f environment.yml
+        micromamba create -n hariplotterenv -f environment.yml --update-deps
         micromamba activate hariplotterenv
 
     - name: Run tests with pytest
