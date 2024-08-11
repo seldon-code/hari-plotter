@@ -79,7 +79,7 @@
 <span class="kn">import</span> <span class="nn">copy</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
 <span class="kn">from</span> <span class="nn">warnings</span> <span class="kn">import</span> <span class="n">warn</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
@@ -112,12 +112,12 @@
 <span class="sd">        It allows for the dynamic registration of parameters to be gathered from the graph.</span>
 
 <span class="sd">        Attributes:</span>
-<span class="sd">            parameters (Dict[str, Any]): A dictionary mapping parameter names to their corresponding functions</span>
+<span class="sd">            parameters (dict[str, Any]): A dictionary mapping parameter names to their corresponding functions</span>
 <span class="sd">                or values within the graph structure.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">parameters</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">property_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
@@ -217,31 +217,31 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">G</span> <span class="o">=</span> <span class="n">G</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">node_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">node_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of all registered node parameter names.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_parameter_logger</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">edge_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">edge_parameters</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a list of all registered edge parameter names.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">edge_parameter_logger</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
 
 <div class="viewcode-block" id="NodeEdgeGatherer.gather_unprocessed">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer.gather_unprocessed">[docs]</a>
-    <span class="k">def</span> <span class="nf">gather_unprocessed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">gather_unprocessed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gathers unprocessed parameter data for all nodes or edges in the graph based on the specified parameter(s).</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            param (Union[str, List[str]]): The parameter name(s) to extract data for.</span>
+<span class="sd">            param (Union[str, list[str]]): The parameter name(s) to extract data for.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Any]: A dictionary containing the raw data for the requested parameter(s).</span>
+<span class="sd">            dict[str, Any]: A dictionary containing the raw data for the requested parameter(s).</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
             <span class="n">param</span> <span class="o">=</span> <span class="p">[</span><span class="n">param</span><span class="p">]</span>
 
-        <span class="n">result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
 
         <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">param</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">p</span> <span class="ow">not</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">node_parameter_logger</span><span class="p">:</span>
@@ -257,15 +257,15 @@
 
 <div class="viewcode-block" id="NodeEdgeGatherer.gather">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer.gather">[docs]</a>
-    <span class="k">def</span> <span class="nf">gather</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">gather</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">param</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gathers and organizes parameter data for all nodes or edges in the graph based on the specified parameter(s).</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            param (Union[str, List[str]]): The parameter name(s) to extract data for.</span>
+<span class="sd">            param (Union[str, list[str]]): The parameter name(s) to extract data for.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Any]: A dictionary containing organized data for the requested parameter(s), including</span>
+<span class="sd">            dict[str, Any]: A dictionary containing organized data for the requested parameter(s), including</span>
 <span class="sd">                            a &#39;Nodes&#39; key with a list of node names/IDs.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">param</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
@@ -273,7 +273,7 @@
 
         <span class="n">result</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_unprocessed</span><span class="p">(</span><span class="n">param</span><span class="p">)</span>
 
-        <span class="n">transformed_result</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">transformed_result</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="n">nodes</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="nb">next</span><span class="p">(</span><span class="nb">iter</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
         <span class="n">transformed_result</span><span class="p">[</span><span class="s1">&#39;Nodes&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">nodes</span>
 
@@ -286,12 +286,12 @@
 
 <div class="viewcode-block" id="NodeEdgeGatherer.gather_everything">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.NodeEdgeGatherer.gather_everything">[docs]</a>
-    <span class="k">def</span> <span class="nf">gather_everything</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">gather_everything</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Gathers data for all registered parameters for nodes or edges in the graph.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Any]: A dictionary containing data for all registered parameters.</span>
+<span class="sd">            dict[str, Any]: A dictionary containing data for all registered parameters.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">gather_unprocessed</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">node_parameter_logger</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span></div>
 </div>
@@ -313,14 +313,14 @@
 
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.merge_nodes">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_nodes">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges two specified nodes into a single new node within the graph. The new node&#39;s attributes are determined</span>
 <span class="sd">        by the attributes of the merged nodes, and the edges are updated accordingly.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            i (Tuple[int]): Identifier for the first node to be merged.</span>
-<span class="sd">            j (Tuple[int]): Identifier for the second node to be merged.</span>
+<span class="sd">            i (tuple[int]): Identifier for the first node to be merged.</span>
+<span class="sd">            j (tuple[int]): Identifier for the second node to be merged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Node identifiers must be tuples.&#39;</span><span class="p">)</span>
@@ -343,14 +343,14 @@
 
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.merge_clusters">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge_clusters">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional</span>
 <span class="sd">        node. Each new node represents its constituent cluster.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.</span>
-<span class="sd">            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.</span>
+<span class="sd">            clusters (list[list[tuple[int]]]): A list of clusters, each represented as a list of node identifiers.</span>
+<span class="sd">            labels (Union[list[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.</span>
 <span class="sd">            merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="ow">or</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
@@ -390,13 +390,13 @@
 
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.mean_graph">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.mean_graph">[docs]</a>
-    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">nx</span><span class="o">.</span><span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the mean graph from a list of Graph instances. The mean graph&#39;s nodes and edges have attributes</span>
 <span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            images (List[nx.Graph]): A list of Graph instances from which to calculate the mean graph.</span>
+<span class="sd">            images (list[nx.Graph]): A list of Graph instances from which to calculate the mean graph.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            nx.Graph: A new Graph instance representing the mean of the input graphs.</span>
@@ -465,16 +465,16 @@
 
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.merge">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.merge">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]]:</span>
+    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,</span>
 <span class="sd">        cluster size, and aggregate opinions.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            node_ids (List[dict]): A list of node attribute dictionaries to be merged.</span>
+<span class="sd">            node_ids (list[dict]): A list of node attribute dictionaries to be merged.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes.</span>
+<span class="sd">            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes of the nodes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">node_ids</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No nodes provided for merging.&quot;</span><span class="p">)</span>
@@ -502,7 +502,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.opinion">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s2">&quot;Opinion&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their opinions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -520,7 +520,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.opinion_density">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.opinion_density">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s2">&quot;Opinion density&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">opinion_density</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">opinion_density</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their opinion distribution density.&quot;&quot;&quot;</span>
         <span class="n">opinions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">opinion</span><span class="p">()</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span>
         <span class="n">densities</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">kde_scipy</span><span class="p">(</span><span class="n">opinions</span><span class="p">,</span> <span class="n">opinions</span><span class="p">)</span>
@@ -530,7 +530,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.cluster_size">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.cluster_size">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s2">&quot;Cluster size&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">cluster_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">cluster_size</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their cluster sizes.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Cluster size&#39;</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -538,7 +538,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.importance">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.importance">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s2">&quot;Importance&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">importance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">importance</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Calculates and returns a mapping of node IDs to their importance, based on influence and size.&quot;&quot;&quot;</span>
         <span class="n">importance_dict</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
@@ -553,7 +553,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.neighbor_mean_opinion">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.neighbor_mean_opinion">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s2">&quot;Neighbor mean opinion&quot;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">neighbor_mean_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">neighbor_mean_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to the average opinion of their neighbors.&quot;&quot;&quot;</span>
         <span class="n">data</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
@@ -569,7 +569,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.inner_opinions">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.inner_opinions">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">inner_opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">Dict</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">inner_opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their inner opinions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">,</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]})</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -577,7 +577,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.max_opinion">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.max_opinion">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Max opinion&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">max_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">max_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to the maximum opinion value among their inner opinions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="nb">max</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -585,7 +585,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.min_opinion">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.min_opinion">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Min opinion&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">min_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">min_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to the minimum opinion value among their inner opinions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="nb">min</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">values</span><span class="p">())</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -593,7 +593,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.std_opinion">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.std_opinion">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Opinion Standard Deviation&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">std_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">std_opinion</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to the standard deviation of opinion values among their inner opinions.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Inner opinions&#39;</span><span class="p">,</span> <span class="p">{</span><span class="kc">None</span><span class="p">:</span> <span class="n">data</span><span class="p">[</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]})</span><span class="o">.</span><span class="n">values</span><span class="p">()))</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -601,7 +601,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.label">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.label">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Label&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">label</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their labels.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Label&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 
@@ -609,7 +609,7 @@
 <div class="viewcode-block" id="DefaultNodeEdgeGatherer.type">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.DefaultNodeEdgeGatherer.type">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Type&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">str</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their types for all nodes including bots.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Type&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 </div>
@@ -630,15 +630,15 @@
 
 <div class="viewcode-block" id="ActivityDefaultNodeEdgeGatherer.merge">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.merge">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]]:</span>
+    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Extends the merge function to include activity in the merged node attributes.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            node_ids (List[dict]): A list of node dictionaries to be merged.</span>
+<span class="sd">            node_ids (list[dict]): A list of node dictionaries to be merged.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes, including activity.</span>
+<span class="sd">            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes, including activity.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">base_merged_data</span> <span class="o">=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">node_ids</span><span class="p">)</span>
         <span class="n">activity</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node_id</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">(</span>
@@ -654,7 +654,7 @@
 <div class="viewcode-block" id="ActivityDefaultNodeEdgeGatherer.activity">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDefaultNodeEdgeGatherer.activity">[docs]</a>
     <span class="nd">@node_parameter_logger</span><span class="p">(</span><span class="s1">&#39;Activity&#39;</span><span class="p">)</span>
-    <span class="k">def</span> <span class="nf">activity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">activity</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns a mapping of node IDs to their activity levels.&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="n">data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s1">&#39;Activity&#39;</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">nan</span><span class="p">)</span> <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">G</span><span class="o">.</span><span class="n">nodes</span><span class="p">(</span><span class="n">data</span><span class="o">=</span><span class="kc">True</span><span class="p">)}</span></div>
 </div>
@@ -673,14 +673,14 @@
 
 <div class="viewcode-block" id="ActivityDrivenNodeEdgeGatherer.merge_nodes">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_nodes">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges two specified nodes into a single new node within the graph. The new node&#39;s attributes are determined</span>
 <span class="sd">        by the attributes of the merged nodes, and the edges are updated accordingly.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            i (Tuple[int]): Identifier for the first node to be merged.</span>
-<span class="sd">            j (Tuple[int]): Identifier for the second node to be merged.</span>
+<span class="sd">            i (tuple[int]): Identifier for the first node to be merged.</span>
+<span class="sd">            j (tuple[int]): Identifier for the second node to be merged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="p">(</span><span class="nb">isinstance</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">j</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span>
             <span class="k">raise</span> <span class="ne">TypeError</span><span class="p">(</span><span class="s1">&#39;Node identifiers must be tuples.&#39;</span><span class="p">)</span>
@@ -706,14 +706,14 @@
 
 <div class="viewcode-block" id="ActivityDrivenNodeEdgeGatherer.merge_clusters">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge_clusters">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional</span>
 <span class="sd">        node. Each new node represents its constituent cluster.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.</span>
-<span class="sd">            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.</span>
+<span class="sd">            clusters (list[list[tuple[int]]]): A list of clusters, each represented as a list of node identifiers.</span>
+<span class="sd">            labels (Union[list[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.</span>
 <span class="sd">            merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">labels</span> <span class="o">=</span> <span class="n">labels</span> <span class="ow">or</span> <span class="p">[</span><span class="kc">None</span><span class="p">]</span> <span class="o">*</span> <span class="nb">len</span><span class="p">(</span><span class="n">clusters</span><span class="p">)</span>
@@ -753,16 +753,16 @@
 
 <div class="viewcode-block" id="ActivityDrivenNodeEdgeGatherer.merge">
 <a class="viewcode-back" href="../../source/hari_plotter.node_gatherer.html#hari_plotter.node_gatherer.ActivityDrivenNodeEdgeGatherer.merge">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">]]:</span>
+    <span class="k">def</span> <span class="nf">merge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_ids</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">dict</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,</span>
 <span class="sd">        cluster size, aggregate opinions, and activity.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            node_ids (List[dict]): A list of node attribute dictionaries to be merged.</span>
+<span class="sd">            node_ids (list[dict]): A list of node attribute dictionaries to be merged.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes, including activity.</span>
+<span class="sd">            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes of the nodes, including activity.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">node_ids</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;No nodes provided for merging.&quot;</span><span class="p">)</span>

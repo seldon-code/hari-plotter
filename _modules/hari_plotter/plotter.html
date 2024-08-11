@@ -80,8 +80,7 @@
 <span class="kn">import</span> <span class="nn">shutil</span>
 <span class="kn">import</span> <span class="nn">tempfile</span>
 <span class="kn">import</span> <span class="nn">warnings</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="p">(</span><span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span>
-                    <span class="n">Sequence</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span><span class="p">)</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">TYPE_CHECKING</span><span class="p">,</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Optional</span>
 
 <span class="k">if</span> <span class="n">TYPE_CHECKING</span><span class="p">:</span>
     <span class="kn">from</span> <span class="nn">.plot</span> <span class="kn">import</span> <span class="n">Plot</span>
@@ -115,7 +114,7 @@
                        <span class="s1">&#39;Max opinion&#39;</span><span class="p">:</span> <span class="s1">&#39;Node Max Opinion&#39;</span><span class="p">,</span>
                        <span class="s1">&#39;Min opinion&#39;</span><span class="p">:</span> <span class="s1">&#39;Node Min Opinion&#39;</span><span class="p">}</span>
 
-    <span class="n">_plot_types</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">Plot</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="n">_plot_types</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">type</span><span class="p">[</span><span class="n">Plot</span><span class="p">]]</span> <span class="o">=</span> <span class="p">{}</span>
 
 <div class="viewcode-block" id="Plotter.PlotSaver">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.PlotSaver">[docs]</a>
@@ -127,7 +126,7 @@
 <span class="sd">        and even create GIFs from a sequence of plots.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;show&#39;</span><span class="p">,</span>
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;show&#39;</span><span class="p">,</span>
                      <span class="n">save_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span>
                      <span class="n">save_format</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;image_</span><span class="si">{}</span><span class="s1">&#39;</span><span class="p">,</span>
                      <span class="n">animation_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
@@ -135,7 +134,7 @@
 <span class="sd">            Initialize the PlotSaver instance.</span>
 
 <span class="sd">            Args:</span>
-<span class="sd">                mode (str | List[str]): The mode(s) in which to operate. </span>
+<span class="sd">                mode (str | list[str]): The mode(s) in which to operate. </span>
 <span class="sd">                    It can be a list or a single string, e.g. [&#39;show&#39;, &#39;save&#39;] or &#39;gif&#39;. Available modes: [&quot;show&quot;, &quot;save&quot;, &quot;gif&quot;, &quot;mp4&quot;]</span>
 <span class="sd">                save_path (Optional[str]): Path to save individual plots (used if &#39;save&#39; is in mode)</span>
 <span class="sd">                save_format (Optional[str]): string with {} for formatting in the number</span>
@@ -294,13 +293,13 @@
 
 <div class="viewcode-block" id="Plotter.PlotLattice.get_figsize">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.PlotLattice.get_figsize">[docs]</a>
-        <span class="k">def</span> <span class="nf">get_figsize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+        <span class="k">def</span> <span class="nf">get_figsize</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">float</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Get the figure size. If a size was set during initialization, it returns that size.</span>
 <span class="sd">            Otherwise, it calculates the size based on the sum of size_ratios.</span>
 
 <span class="sd">            Returns:</span>
-<span class="sd">            Tuple[float, float]: The size of the figure as (height, width).</span>
+<span class="sd">            tuple[float, float]: The size of the figure as (height, width).</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figsize</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_figsize</span>
@@ -331,7 +330,7 @@
 <span class="sd">            Set the figure size.</span>
 
 <span class="sd">            Parameters:</span>
-<span class="sd">            value (Tuple[float, float]): The size of the figure as (height, width).</span>
+<span class="sd">            value (tuple[float, float]): The size of the figure as (height, width).</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">))</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="n">value</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span>
@@ -389,12 +388,12 @@
 
 <div class="viewcode-block" id="Plotter.PlotLattice.fig_axs">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.PlotLattice.fig_axs">[docs]</a>
-        <span class="k">def</span> <span class="nf">fig_axs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Axes</span><span class="p">]]]:</span>
+        <span class="k">def</span> <span class="nf">fig_axs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">Axes</span><span class="p">]]]:</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Get the figure and axes objects.</span>
 
 <span class="sd">            Returns:</span>
-<span class="sd">            Tuple[Figure, list[list[Axes]]]: The figure and axes objects.</span>
+<span class="sd">            tuple[Figure, list[list[Axes]]]: The figure and axes objects.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_fig</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">create_fig_and_axs</span><span class="p">()</span>
@@ -452,12 +451,12 @@
 
 <div class="viewcode-block" id="Plotter.PlotLattice.create_fig_and_axs">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.PlotLattice.create_fig_and_axs">[docs]</a>
-        <span class="k">def</span> <span class="nf">create_fig_and_axs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="n">Axes</span><span class="p">]:</span>
+        <span class="k">def</span> <span class="nf">create_fig_and_axs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="n">Axes</span><span class="p">]:</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Create the figure and axes objects.</span>
 
 <span class="sd">            Returns:</span>
-<span class="sd">            Tuple[Figure, Axes]: The figure and axes objects.</span>
+<span class="sd">            tuple[Figure, Axes]: The figure and axes objects.</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="n">size_ratios</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">size_ratios</span>
             <span class="n">figsize</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_figsize</span><span class="p">()</span>
@@ -633,7 +632,7 @@
 
 <div class="viewcode-block" id="Plotter.plot">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.plot">[docs]</a>
-    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="n">Axes</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">plot</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group_number</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">Figure</span><span class="p">,</span> <span class="n">Axes</span><span class="p">]:</span>
         <span class="n">fig</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">plot_grid</span><span class="o">.</span><span class="n">fig</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_plot</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">group_number</span><span class="p">)</span>
 
@@ -642,7 +641,7 @@
 
 <div class="viewcode-block" id="Plotter.plot_dynamics">
 <a class="viewcode-back" href="../../source/hari_plotter.plotter.html#hari_plotter.plotter.Plotter.plot_dynamics">[docs]</a>
-    <span class="k">def</span> <span class="nf">plot_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;show&#39;</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">animation_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;opinion_histogram&#39;</span><span class="p">,</span> <span class="n">preview</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">plot_dynamics</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mode</span><span class="p">:</span> <span class="nb">str</span> <span class="o">|</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s1">&#39;show&#39;</span><span class="p">,</span> <span class="n">save_dir</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">animation_path</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">name</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;opinion_histogram&#39;</span><span class="p">,</span> <span class="n">preview</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Create and display the plots based on the stored configurations.</span>
 <span class="sd">        mode : [&quot;show&quot;, &quot;save&quot;, &quot;gif&quot;, &quot;mp4&quot;]</span>
@@ -660,12 +659,12 @@
                     <span class="k">break</span></div>
 
 
-    <span class="k">def</span> <span class="nf">_determine_plot_order</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">_determine_plot_order</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Determine the order in which plots should be rendered based on dependencies.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of tuples: Each tuple represents the row and column indices of a plot,</span>
+<span class="sd">            list of tuples: Each tuple represents the row and column indices of a plot,</span>
 <span class="sd">            sorted in the order they should be rendered.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">dependency_graph</span> <span class="o">=</span> <span class="n">nx</span><span class="o">.</span><span class="n">DiGraph</span><span class="p">()</span>
@@ -702,7 +701,7 @@
 <span class="sd">            dependency_graph (networkx.DiGraph): The dependency graph.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List of tuples: Sorted order of plots.</span>
+<span class="sd">            list of tuples: Sorted order of plots.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="c1"># Check for cycles</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">nx</span><span class="o">.</span><span class="n">is_directed_acyclic_graph</span><span class="p">(</span><span class="n">dependency_graph</span><span class="p">):</span>

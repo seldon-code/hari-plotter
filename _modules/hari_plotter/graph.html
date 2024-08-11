@@ -79,10 +79,8 @@
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="kn">import</span> <span class="nn">os</span>
 <span class="kn">import</span> <span class="nn">random</span>
-<span class="kn">import</span> <span class="nn">re</span>
-<span class="kn">import</span> <span class="nn">warnings</span>
 <span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span><span class="p">,</span> <span class="n">permutations</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
 
 <span class="kn">import</span> <span class="nn">networkx</span> <span class="k">as</span> <span class="nn">nx</span>
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
@@ -136,13 +134,13 @@
 
 <div class="viewcode-block" id="Graph.add_parameters_to_nodes">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.add_parameters_to_nodes">[docs]</a>
-    <span class="k">def</span> <span class="nf">add_parameters_to_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">add_parameters_to_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nodes</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Adds or updates parameters for the specified nodes based on the current gatherer&#39;s criteria. If no nodes</span>
 <span class="sd">        are specified, parameters are added or updated for all nodes in the graph.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            nodes (Optional[List[Tuple[int]]]): List of node identifiers to update. If None, updates all nodes.</span>
+<span class="sd">            nodes (Optional[list[tuple[int]]]): list of node identifiers to update. If None, updates all nodes.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">nodes</span> <span class="o">=</span> <span class="n">nodes</span> <span class="ow">or</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">)</span>
         <span class="n">parameters</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">gather_everything</span><span class="p">()</span>
@@ -289,13 +287,13 @@
 
 <div class="viewcode-block" id="Graph.mean_graph">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.mean_graph">[docs]</a>
-    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="s1">&#39;Graph&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;Graph&#39;</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">mean_graph</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="s1">&#39;Graph&#39;</span><span class="p">])</span> <span class="o">-&gt;</span> <span class="s1">&#39;Graph&#39;</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculates the mean graph from a list of HariGraph instances. The mean graph&#39;s nodes and edges have attributes</span>
 <span class="sd">        that are the average of the corresponding attributes in the input graphs.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            images (List[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
+<span class="sd">            images (list[&#39;HariGraph&#39;]): A list of HariGraph instances from which to calculate the mean graph.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            &#39;HariGraph&#39;: A new HariGraph instance representing the mean of the input graphs.</span>
@@ -424,9 +422,9 @@
 
             <span class="c1"># Iterate over the node mapping in sorted order of integer IDs</span>
             <span class="k">for</span> <span class="n">node</span><span class="p">,</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">node_mapping</span><span class="o">.</span><span class="n">items</span><span class="p">(),</span> <span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">x</span><span class="p">[</span><span class="mi">1</span><span class="p">]):</span>
-                <span class="c1"># List of nodes influencing the current node</span>
+                <span class="c1"># list of nodes influencing the current node</span>
                 <span class="n">neighbors</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">predecessors</span><span class="p">(</span><span class="n">node</span><span class="p">))</span>
-                <span class="c1"># List of influence weights from each neighbor</span>
+                <span class="c1"># list of influence weights from each neighbor</span>
                 <span class="n">weights</span> <span class="o">=</span> <span class="p">[</span><span class="bp">self</span><span class="p">[</span><span class="n">neighbor</span><span class="p">][</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Influence&#39;</span><span class="p">]</span>
                            <span class="k">for</span> <span class="n">neighbor</span> <span class="ow">in</span> <span class="n">neighbors</span><span class="p">]</span>
                 <span class="c1"># Use the mapping to get integer IDs for the neighbors</span>
@@ -615,11 +613,11 @@
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.strongly_connected_components">[docs]</a>
     <span class="nd">@classmethod</span>
     <span class="k">def</span> <span class="nf">strongly_connected_components</span><span class="p">(</span>
-            <span class="bp">cls</span><span class="p">,</span> <span class="n">cluster_sizes</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">inter_cluster_edges</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mean_opinion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
+            <span class="bp">cls</span><span class="p">,</span> <span class="n">cluster_sizes</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">inter_cluster_edges</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">mean_opinion</span><span class="p">:</span> <span class="nb">float</span> <span class="o">=</span> <span class="mf">0.5</span><span class="p">,</span> <span class="n">seed</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="kc">None</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Graph</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Creates a HariGraph instance with multiple strongly connected components.</span>
 
-<span class="sd">        :param cluster_sizes: List[int], sizes of the clusters.</span>
+<span class="sd">        :param cluster_sizes: list[int], sizes of the clusters.</span>
 <span class="sd">        :param inter_cluster_edges: int, number of edges between the components.</span>
 <span class="sd">        :param mean_opinion: float, mean opinion of the graph.</span>
 <span class="sd">        :param seed: int, random seed.</span>
@@ -753,7 +751,7 @@
 
 <div class="viewcode-block" id="Graph.get_cluster_mapping">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.get_cluster_mapping">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_cluster_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
+    <span class="k">def</span> <span class="nf">get_cluster_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Generates a list of nodes in the unclustered graph to be clustered to get the current graph</span>
 <span class="sd">        :return: A list representing the current clusters in the graph.</span>
@@ -763,7 +761,7 @@
 
 <div class="viewcode-block" id="Graph.merge_nodes">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_nodes">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">merge_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">],</span> <span class="n">j</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges two nodes in the graph into a new node.</span>
 
@@ -773,20 +771,20 @@
 <span class="sd">        and the old nodes are removed.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            i Tuple[int]: The identifier for the first node to merge.</span>
-<span class="sd">            j Tuple[int]: The identifier for the second node to merge.</span>
+<span class="sd">            i tuple[int]: The identifier for the first node to merge.</span>
+<span class="sd">            j tuple[int]: The identifier for the second node to merge.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">gatherer</span><span class="o">.</span><span class="n">merge_nodes</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">)</span></div>
 
 
 <div class="viewcode-block" id="Graph.merge_clusters">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_clusters">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">merge_clusters</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">clusters</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]]],</span> <span class="n">labels</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="kc">None</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span><span class="p">,</span> <span class="n">merge_remaining</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing</span>
+<span class="sd">            clusters (Union[list[Set[int]], dict[int, int]]): A list where each element is a set containing</span>
 <span class="sd">                                    the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs</span>
 <span class="sd">                                    to new node IDs.</span>
 <span class="sd">            merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.</span>
@@ -809,7 +807,7 @@
 <span class="sd">            min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.</span>
+<span class="sd">            list[list[int]]: A list of lists, where each inner list represents a cluster of node identifiers.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="n">clusters</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="n">visited_nodes</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -862,12 +860,12 @@
 
 <div class="viewcode-block" id="Graph.merge_by_intervals">
 <a class="viewcode-back" href="../../source/hari_plotter.graph.html#hari_plotter.graph.Graph.merge_by_intervals">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_by_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intervals</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">merge_by_intervals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">intervals</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">float</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merges nodes into clusters based on the intervals defined by the input list of opinions.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            intervals (List[float]): A sorted list of opinions representing the boundaries of the intervals.</span>
+<span class="sd">            intervals (list[float]): A sorted list of opinions representing the boundaries of the intervals.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">intervals</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s2">&quot;Intervals list cannot be empty&quot;</span><span class="p">)</span>
@@ -977,7 +975,7 @@
         <span class="k">return</span> <span class="p">{</span><span class="n">node</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">}</span>
 
     <span class="nd">@opinions</span><span class="o">.</span><span class="n">setter</span>
-    <span class="k">def</span> <span class="nf">opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span><span class="nb">float</span><span class="p">]]):</span>
+    <span class="k">def</span> <span class="nf">opinions</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">values</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">,</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span><span class="nb">float</span><span class="p">]]):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">values</span><span class="p">,</span> <span class="p">(</span><span class="nb">int</span><span class="p">,</span> <span class="nb">float</span><span class="p">)):</span>
             <span class="k">for</span> <span class="n">node</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">nodes</span><span class="p">[</span><span class="n">node</span><span class="p">][</span><span class="s1">&#39;Opinion&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">values</span>

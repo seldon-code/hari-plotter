@@ -116,7 +116,7 @@ networks and opinions, and provides a unified interface to access and manipulate
 <dd><p>A list of LazyHariGraph objects.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[LazyHariGraph]</p>
+<dd class="field-odd"><p>list[LazyHariGraph]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -127,7 +127,7 @@ networks and opinions, and provides a unified interface to access and manipulate
 <dd><p>A list where each element is a list of indices representing a group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[List[int]]</p>
+<dd class="field-odd"><p>list[list[int]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -177,14 +177,14 @@ from all LazyHariGraph instances will be returned.</p>
 </div>
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.get_grouped_graphs">
-<span class="sig-name descname"><span class="pre">get_grouped_graphs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.lazy_graph.html#hari_plotter.lazy_graph.LazyGraph" title="hari_plotter.lazy_graph.LazyGraph"><span class="pre">LazyGraph</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.get_grouped_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.get_grouped_graphs" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">get_grouped_graphs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.lazy_graph.html#hari_plotter.lazy_graph.LazyGraph" title="hari_plotter.lazy_graph.LazyGraph"><span class="pre">LazyGraph</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.get_grouped_graphs"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.get_grouped_graphs" title="Link to this definition"></a></dt>
 <dd><p>Retrieves grouped LazyHariGraph objects based on the indices in self.groups.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List of lists where each sublist contains LazyHariGraph objects.</p>
+<dd class="field-odd"><p>list of lists where each sublist contains LazyHariGraph objects.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>List[List[LazyHariGraph]]</p>
+<dd class="field-even"><p>list[list[LazyHariGraph]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -207,8 +207,8 @@ Indices might show up multiple times or might never show up, depending on the pa
 
 <dl class="py property">
 <dt class="sig sig-object py" id="id0">
-<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialized</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
-<dd><p>List of indices of initialized LazyHariGraph instances.</p>
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">initialized</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></em><a class="headerlink" href="#id0" title="Link to this definition"></a></dt>
+<dd><p>list of indices of initialized LazyHariGraph instances.</p>
 <p>Iterates over each LazyHariGraph in the list <cite>lazy_hari_graphs</cite> and checks if it’s initialized.
 Returns a list containing the indices of all the LazyHariGraphs that are initialized.</p>
 <dl class="field-list simple">
@@ -216,7 +216,7 @@ Returns a list containing the indices of all the LazyHariGraphs that are initial
 <dd class="field-odd"><p>Indices of all initialized LazyHariGraph instances.</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>List[int]</p>
+<dd class="field-even"><p>list[int]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -235,12 +235,12 @@ The graph at the provided index is skipped during merging.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping">
-<span class="sig-name descname"><span class="pre">merge_nodes_by_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.merge_nodes_by_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">merge_nodes_by_mapping</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">mapping</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">int</span><span class="p"><span class="pre">]</span></span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.merge_nodes_by_mapping"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping" title="Link to this definition"></a></dt>
 <dd><p>Merge nodes in each LazyHariGraph based on the provided mapping.
 If a graph was already initialized, uninitialize it first.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>mapping</strong> (<em>Tuple</em><em>[</em><em>int</em><em>]</em>) – A dictionary representing how nodes should be merged.</p>
+<dd class="field-odd"><p><strong>mapping</strong> (<em>tuple</em><em>[</em><em>int</em><em>]</em>) – A dictionary representing how nodes should be merged.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -252,14 +252,14 @@ If a graph was already initialized, uninitialize it first.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.dynamics.Dynamics.read_json">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><span class="pre">Dynamics</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.read_json" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_json</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">json_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><span class="pre">Dynamics</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_json"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.dynamics.Dynamics.read_json" title="Link to this definition"></a></dt>
 <dd><p>Reads a list of network files and a list of opinion files to create LazyHariGraph objects
 and appends them to the lazy_hari_graphs list of a HariDynamics instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>network_files</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Either a single path or a list of paths to the network files.</p></li>
-<li><p><strong>opinion_files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of paths to the opinion files.</p></li>
+<li><p><strong>network_files</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>list</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Either a single path or a list of paths to the network files.</p></li>
+<li><p><strong>opinion_files</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – A list of paths to the opinion files.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -276,14 +276,14 @@ and appends them to the lazy_hari_graphs list of a HariDynamics instance.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="id1">
-<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opinion_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><span class="pre">Dynamics</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">classmethod</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">read_network</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">network_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">opinion_files</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">load_request</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">Any</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">{}</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#hari_plotter.dynamics.Dynamics" title="hari_plotter.dynamics.Dynamics"><span class="pre">Dynamics</span></a></span></span><a class="reference internal" href="../_modules/hari_plotter/dynamics.html#Dynamics.read_network"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#id1" title="Link to this definition"></a></dt>
 <dd><p>Reads a list of network files and a list of opinion files to create LazyHariGraph objects
 and appends them to the lazy_hari_graphs list of a HariDynamics instance.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>network_files</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>List</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Either a single path or a list of paths to the network files.</p></li>
-<li><p><strong>opinion_files</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – A list of paths to the opinion files.</p></li>
+<li><p><strong>network_files</strong> (<em>Union</em><em>[</em><em>str</em><em>, </em><em>list</em><em>[</em><em>str</em><em>]</em><em>]</em>) – Either a single path or a list of paths to the network files.</p></li>
+<li><p><strong>opinion_files</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – A list of paths to the opinion files.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>

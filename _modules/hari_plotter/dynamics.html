@@ -76,13 +76,14 @@
   <h1>Source code for hari_plotter.dynamics</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Union</span>
+<span class="kn">import</span> <span class="nn">math</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Union</span>
+
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.graph</span> <span class="kn">import</span> <span class="n">Graph</span>
 <span class="kn">from</span> <span class="nn">.lazy_graph</span> <span class="kn">import</span> <span class="n">LazyGraph</span>
-<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
-<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
-<span class="kn">import</span> <span class="nn">math</span>
 
 
 <div class="viewcode-block" id="Dynamics">
@@ -95,8 +96,8 @@
 <span class="sd">    networks and opinions, and provides a unified interface to access and manipulate each LazyHariGraph.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        lazy_hari_graphs (List[LazyHariGraph]): A list of LazyHariGraph objects.</span>
-<span class="sd">        groups (List[List[int]]): A list where each element is a list of indices representing a group.</span>
+<span class="sd">        lazy_hari_graphs (list[LazyHariGraph]): A list of LazyHariGraph objects.</span>
+<span class="sd">        groups (list[list[int]]): A list where each element is a list of indices representing a group.</span>
 
 <span class="sd">    Methods:</span>
 <span class="sd">        initialized: Returns indices of initialized LazyHariGraph instances.</span>
@@ -114,19 +115,19 @@
 <span class="sd">    &quot;&quot;&quot;</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span> <span class="o">=</span> <span class="p">[]</span>
 
     <span class="nd">@property</span>
-    <span class="k">def</span> <span class="nf">initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">initialized</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">int</span><span class="p">]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">        List of indices of initialized LazyHariGraph instances.</span>
+<span class="sd">        list of indices of initialized LazyHariGraph instances.</span>
 
 <span class="sd">        Iterates over each LazyHariGraph in the list `lazy_hari_graphs` and checks if it&#39;s initialized.</span>
 <span class="sd">        Returns a list containing the indices of all the LazyHariGraphs that are initialized.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[int]: Indices of all initialized LazyHariGraph instances.</span>
+<span class="sd">            list[int]: Indices of all initialized LazyHariGraph instances.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[</span><span class="n">index</span> <span class="k">for</span> <span class="n">index</span><span class="p">,</span> <span class="n">graph</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">)</span> <span class="k">if</span> <span class="n">graph</span><span class="o">.</span><span class="n">is_initialized</span><span class="p">]</span>
 
@@ -147,14 +148,14 @@
 <div class="viewcode-block" id="Dynamics.read_network">
 <a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.read_network">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">read_network</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">network_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">opinion_files</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">load_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dynamics</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">read_network</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">network_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">opinion_files</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">load_request</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dynamics</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reads a list of network files and a list of opinion files to create LazyHariGraph objects</span>
 <span class="sd">        and appends them to the lazy_hari_graphs list of a HariDynamics instance.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.</span>
-<span class="sd">            opinion_files (List[str]): A list of paths to the opinion files.</span>
+<span class="sd">            network_files (Union[str, list[str]]): Either a single path or a list of paths to the network files.</span>
+<span class="sd">            opinion_files (list[str]): A list of paths to the opinion files.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.</span>
@@ -193,14 +194,14 @@
 <div class="viewcode-block" id="Dynamics.read_json">
 <a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.read_json">[docs]</a>
     <span class="nd">@classmethod</span>
-    <span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">json_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">List</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">load_request</span><span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dynamics</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">read_json</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">json_files</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">list</span><span class="p">[</span><span class="nb">str</span><span class="p">]],</span> <span class="n">load_request</span><span class="p">:</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">Any</span><span class="p">]</span> <span class="o">=</span> <span class="p">{})</span> <span class="o">-&gt;</span> <span class="n">Dynamics</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Reads a list of network files and a list of opinion files to create LazyHariGraph objects</span>
 <span class="sd">        and appends them to the lazy_hari_graphs list of a HariDynamics instance.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.</span>
-<span class="sd">            opinion_files (List[str]): A list of paths to the opinion files.</span>
+<span class="sd">            network_files (Union[str, list[str]]): Either a single path or a list of paths to the network files.</span>
+<span class="sd">            opinion_files (list[str]): A list of paths to the opinion files.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.</span>
@@ -352,12 +353,12 @@
 
 <div class="viewcode-block" id="Dynamics.get_grouped_graphs">
 <a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.get_grouped_graphs">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_grouped_graphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]]:</span>
+    <span class="k">def</span> <span class="nf">get_grouped_graphs</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">[</span><span class="nb">list</span><span class="p">[</span><span class="n">LazyGraph</span><span class="p">]]:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Retrieves grouped LazyHariGraph objects based on the indices in self.groups.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            List[List[LazyHariGraph]]: List of lists where each sublist contains LazyHariGraph objects.</span>
+<span class="sd">            list[list[LazyHariGraph]]: list of lists where each sublist contains LazyHariGraph objects.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="p">[[</span><span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">group_indices</span><span class="p">]</span>
                 <span class="k">for</span> <span class="n">group_indices</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">groups</span><span class="p">]</span></div>
@@ -365,13 +366,13 @@
 
 <div class="viewcode-block" id="Dynamics.merge_nodes_by_mapping">
 <a class="viewcode-back" href="../../source/hari_plotter.dynamics.html#hari_plotter.dynamics.Dynamics.merge_nodes_by_mapping">[docs]</a>
-    <span class="k">def</span> <span class="nf">merge_nodes_by_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
+    <span class="k">def</span> <span class="nf">merge_nodes_by_mapping</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">mapping</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">int</span><span class="p">]):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Merge nodes in each LazyHariGraph based on the provided mapping.</span>
 <span class="sd">        If a graph was already initialized, uninitialize it first.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            mapping (Tuple[int]): A dictionary representing how nodes should be merged.</span>
+<span class="sd">            mapping (tuple[int]): A dictionary representing how nodes should be merged.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
 
         <span class="k">for</span> <span class="n">lazy_graph</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">lazy_hari_graphs</span><span class="p">:</span>

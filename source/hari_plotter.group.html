@@ -105,7 +105,7 @@
 <span id="hari-plotter-group-module"></span><h1>hari_plotter.group module<a class="headerlink" href="#module-hari_plotter.group" title="Link to this heading"></a></h1>
 <dl class="py class">
 <dt class="sig sig-object py" id="hari_plotter.group.Group">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.group.</span></span><span class="sig-name descname"><span class="pre">Group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">List</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">hari_plotter.group.</span></span><span class="sig-name descname"><span class="pre">Group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">images</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><a class="reference internal" href="hari_plotter.graph.html#hari_plotter.graph.Graph" title="hari_plotter.graph.Graph"><span class="pre">Graph</span></a><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">time</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <p>Represents a group of HariGraph images, allowing for operations like calculating mean graphs,
 performing clustering, and extracting node values. This facilitates analyzing similarities and
@@ -117,7 +117,7 @@ similar domains.</p>
 <dd><p>A list of HariGraph instances representing individual images in the group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>List[HariGraph]</p>
+<dd class="field-odd"><p>list[HariGraph]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -128,7 +128,7 @@ similar domains.</p>
 <dd><p>Optional time values associated with each image, used for time-based analyses.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[List[float]]</p>
+<dd class="field-odd"><p>Optional[list[float]]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -150,7 +150,7 @@ similar domains.</p>
 <dd><p>A dictionary to store clustering results with their settings as keys to avoid recomputation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Dict</p>
+<dd class="field-odd"><p>dict</p>
 </dd>
 </dl>
 </dd></dl>
@@ -183,7 +183,7 @@ similar domains.</p>
 <dd><p>Cached node parameters from the first image, ensuring consistency across the group.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Optional[Dict]</p>
+<dd class="field-odd"><p>Optional[dict]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -200,12 +200,12 @@ numpy function objects, allowing for flexible data aggregation and analysis.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.group.Group.calculate_function_of_node_values">
-<span class="sig-name descname"><span class="pre">calculate_function_of_node_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.calculate_function_of_node_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.calculate_function_of_node_values" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">calculate_function_of_node_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">function</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Mean'</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.calculate_function_of_node_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.calculate_function_of_node_values" title="Link to this definition"></a></dt>
 <dd><p>Calculate the function of mean node values based on parameters, treating ‘Time’ specially.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>parameters</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of parameter names.</p></li>
+<li><p><strong>parameters</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of parameter names.</p></li>
 <li><p><strong>function</strong> (<em>str</em>) – The name of the function to be applied to the mean values of the nodes, except for ‘Time’.</p></li>
 </ul>
 </dd>
@@ -220,11 +220,11 @@ numpy function objects, allowing for flexible data aggregation and analysis.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.group.Group.calculate_node_values">
-<span class="sig-name descname"><span class="pre">calculate_node_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.calculate_node_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.calculate_node_values" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">calculate_node_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.calculate_node_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.calculate_node_values" title="Link to this definition"></a></dt>
 <dd><p>Calculate the node values based on parameters.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>parameters</strong> (<em>List</em><em>[</em><em>str</em><em>]</em>) – List of parameter names.</p>
+<dd class="field-odd"><p><strong>parameters</strong> (<em>list</em><em>[</em><em>str</em><em>]</em>) – list of parameter names.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A dictionary containing mean node values.</p>
@@ -247,7 +247,7 @@ numpy function objects, allowing for flexible data aggregation and analysis.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="hari_plotter.group.Group.clustering_graph_values">
-<span class="sig-name descname"><span class="pre">clustering_graph_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clustering_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">Dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.clustering_graph_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.clustering_graph_values" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">clustering_graph_values</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">parameters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span></span></em>, <em class="sig-param"><span class="n"><span class="pre">clustering_settings</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">tuple</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">settings</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="reference internal" href="../_modules/hari_plotter/group.html#Group.clustering_graph_values"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#hari_plotter.group.Group.clustering_graph_values" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
 <dl class="py attribute">
@@ -312,13 +312,13 @@ that represents the average structure and attributes of all graphs in the group.
 especially useful for caching and retrieving results based on unique request settings.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>request</strong> (<em>Union</em><em>[</em><em>Dict</em><em>, </em><em>List</em><em>, </em><em>Any</em><em>]</em>) – The request to convert, which may include nested dictionaries and lists.</p>
+<dd class="field-odd"><p><strong>request</strong> (<em>Union</em><em>[</em><em>dict</em><em>, </em><em>list</em><em>, </em><em>Any</em><em>]</em>) – The request to convert, which may include nested dictionaries and lists.</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>A nested tuple representation of the request, providing a hashable and consistent key for caching.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>Tuple</p>
+<dd class="field-odd"><p>tuple</p>
 </dd>
 </dl>
 </dd></dl>

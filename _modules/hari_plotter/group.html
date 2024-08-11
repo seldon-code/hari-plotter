@@ -76,11 +76,6 @@
   <h1>Source code for hari_plotter.group</h1><div class="highlight"><pre>
 <span></span><span class="kn">from</span> <span class="nn">__future__</span> <span class="kn">import</span> <span class="n">annotations</span>
 
-<span class="kn">from</span> <span class="nn">abc</span> <span class="kn">import</span> <span class="n">ABC</span><span class="p">,</span> <span class="n">abstractmethod</span><span class="p">,</span> <span class="n">abstractproperty</span>
-<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span>
-<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">combinations</span>
-<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">Any</span><span class="p">,</span> <span class="n">Dict</span><span class="p">,</span> <span class="n">Iterator</span><span class="p">,</span> <span class="n">List</span><span class="p">,</span> <span class="n">Optional</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">Type</span><span class="p">,</span> <span class="n">Union</span>
-
 <span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
 
 <span class="kn">from</span> <span class="nn">.cluster</span> <span class="kn">import</span> <span class="n">Clustering</span>
@@ -97,20 +92,20 @@
 <span class="sd">    similar domains.</span>
 
 <span class="sd">    Attributes:</span>
-<span class="sd">        images (List[HariGraph]): A list of HariGraph instances representing individual images in the group.</span>
-<span class="sd">        time (Optional[List[float]]): Optional time values associated with each image, used for time-based analyses.</span>
+<span class="sd">        images (list[HariGraph]): A list of HariGraph instances representing individual images in the group.</span>
+<span class="sd">        time (Optional[list[float]]): Optional time values associated with each image, used for time-based analyses.</span>
 <span class="sd">        model (Optional[Any]): An optional model associated with the group, which can be used for further analysis or processing.</span>
-<span class="sd">        clusterings (Dict): A dictionary to store clustering results with their settings as keys to avoid recomputation.</span>
+<span class="sd">        clusterings (dict): A dictionary to store clustering results with their settings as keys to avoid recomputation.</span>
 <span class="sd">        _mean_graph (Optional[HariGraph]): Cached mean graph of the group, calculated when needed to optimize performance.</span>
 <span class="sd">        _nodes (Optional[set]): Cached set of nodes present in the mean graph, used to speed up node-related computations.</span>
-<span class="sd">        _node_parameters (Optional[Dict]): Cached node parameters from the first image, ensuring consistency across the group.</span>
+<span class="sd">        _node_parameters (Optional[dict]): Cached node parameters from the first image, ensuring consistency across the group.</span>
 
 <span class="sd">    Common Functions:</span>
 <span class="sd">        Group class provides a dictionary mapping statistical function names (e.g., &#39;Mean&#39;, &#39;Sum&#39;) to their corresponding</span>
 <span class="sd">        numpy function objects, allowing for flexible data aggregation and analysis.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
 
-    <span class="c1"># Dictionary mapping function names to actual function objects for common statistical operations</span>
+    <span class="c1"># dictionary mapping function names to actual function objects for common statistical operations</span>
     <span class="n">common_functions</span> <span class="o">=</span> <span class="p">{</span>
         <span class="s1">&#39;Mean&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">,</span>
         <span class="s1">&#39;Sum&#39;</span><span class="p">:</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">,</span>
@@ -123,20 +118,20 @@
         <span class="c1"># Additional functions can be added here as needed</span>
     <span class="p">}</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Graph</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Graph</span><span class="p">],</span> <span class="n">time</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">model</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Initializes a Group instance with a list of images, optional time values, and an optional model.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            images (List[HariGraph]): A list of HariGraph instances to include in the group.</span>
-<span class="sd">            time (Optional[List[float] | float]): Time values associated with each image, can be a list of floats,</span>
+<span class="sd">            images (list[HariGraph]): A list of HariGraph instances to include in the group.</span>
+<span class="sd">            time (Optional[list[float] | float]): Time values associated with each image, can be a list of floats,</span>
 <span class="sd">                a single float (applied to all images), or None if time is not applicable.</span>
 <span class="sd">            model (Optional[Any]): An optional model to associate with the group for advanced analyses.</span>
 
 <span class="sd">        Raises:</span>
 <span class="sd">            ValueError: If the length of the time list does not match the number of images or an invalid type is provided for time.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">Graph</span><span class="p">]</span> <span class="o">=</span> <span class="n">images</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">images</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Graph</span><span class="p">]</span> <span class="o">=</span> <span class="n">images</span>
 
         <span class="k">if</span> <span class="n">time</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">time</span> <span class="o">=</span> <span class="kc">None</span>
@@ -172,10 +167,10 @@
 <span class="sd">        especially useful for caching and retrieving results based on unique request settings.</span>
 
 <span class="sd">        Parameters:</span>
-<span class="sd">            request (Union[Dict, List, Any]): The request to convert, which may include nested dictionaries and lists.</span>
+<span class="sd">            request (Union[dict, list, Any]): The request to convert, which may include nested dictionaries and lists.</span>
 
 <span class="sd">        Returns:</span>
-<span class="sd">            Tuple: A nested tuple representation of the request, providing a hashable and consistent key for caching.</span>
+<span class="sd">            tuple: A nested tuple representation of the request, providing a hashable and consistent key for caching.</span>
 <span class="sd">        &quot;&quot;&quot;</span>
         <span class="k">def</span> <span class="nf">convert</span><span class="p">(</span><span class="n">item</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">item</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
@@ -271,7 +266,7 @@
 
 <div class="viewcode-block" id="Group.clustering_graph_values">
 <a class="viewcode-back" href="../../source/hari_plotter.group.html#hari_plotter.group.Group.clustering_graph_values">[docs]</a>
-    <span class="k">def</span> <span class="nf">clustering_graph_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>  <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+    <span class="k">def</span> <span class="nf">clustering_graph_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">clustering_settings</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">,</span>  <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
 
         <span class="n">graph</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">clustering_graph</span><span class="p">(</span><span class="o">**</span><span class="n">clustering_settings</span><span class="p">)</span>
 
@@ -316,12 +311,12 @@
 
 <div class="viewcode-block" id="Group.calculate_node_values">
 <a class="viewcode-back" href="../../source/hari_plotter.group.html#hari_plotter.group.Group.calculate_node_values">[docs]</a>
-    <span class="k">def</span> <span class="nf">calculate_node_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">calculate_node_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate the node values based on parameters.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            parameters (List[str]): List of parameter names.</span>
+<span class="sd">            parameters (list[str]): list of parameter names.</span>
 
 <span class="sd">        Returns:</span>
 <span class="sd">            dict: A dictionary containing mean node values.</span>
@@ -335,12 +330,12 @@
 
 <div class="viewcode-block" id="Group.calculate_function_of_node_values">
 <a class="viewcode-back" href="../../source/hari_plotter.group.html#hari_plotter.group.Group.calculate_function_of_node_values">[docs]</a>
-    <span class="k">def</span> <span class="nf">calculate_function_of_node_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="n">Tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">function</span><span class="o">=</span><span class="s1">&#39;Mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">def</span> <span class="nf">calculate_function_of_node_values</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parameters</span><span class="p">:</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">],</span> <span class="n">function</span><span class="o">=</span><span class="s1">&#39;Mean&#39;</span><span class="p">,</span> <span class="o">**</span><span class="n">settings</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Calculate the function of mean node values based on parameters, treating &#39;Time&#39; specially.</span>
 
 <span class="sd">        Args:</span>
-<span class="sd">            parameters (List[str]): List of parameter names.</span>
+<span class="sd">            parameters (list[str]): list of parameter names.</span>
 <span class="sd">            function (str): The name of the function to be applied to the mean values of the nodes, except for &#39;Time&#39;.</span>
 
 <span class="sd">        Returns:</span>
