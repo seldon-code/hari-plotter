@@ -1,0 +1,31 @@
+name: CI-micromamba
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Micromamba
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: latest
+        environment-file: environment.yml
+
+    - name: Install dependencies with Micromamba
+      run: |
+        micromamba create -f environment.yml
+        micromamba activate hariplotterenv
+
+    - name: Run tests with pytest
+      run: |
+        micromamba run -n hariplotterenv pytest
