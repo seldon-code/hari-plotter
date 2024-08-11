@@ -1,0 +1,38 @@
+name: CI-Micromamba
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    name: test (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python-version: ['3.10', '3.11']
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Micromamba
+      uses: mamba-org/setup-micromamba@v1
+      with:
+        micromamba-version: latest
+        environment-file: environment.yml
+
+    - name: Create or update environment with Micromamba
+      run: |
+        micromamba create -n hariplotterenv -f environment.yml --yes
+
+    - name: Install the package in editable mode
+      run: |
+        micromamba run -n hariplotterenv pip install -e .
+
+    - name: Install pytest in the environment
+      run: |
+        micromamba run -n hariplotterenv micromamba install pytest --yes
+
+    - name: Run tests with pytest
+      run: |
+        micromamba run -n hariplotterenv pytest

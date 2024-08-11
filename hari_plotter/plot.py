@@ -1,24 +1,19 @@
 from __future__ import annotations
 
-import math
-import warnings
 from abc import ABC
-from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
-                    Union)
+from typing import Any, Optional, Sequence
 
-import matplotlib.cm as cm
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
 import pandas as pd
 import seaborn as sns
-from matplotlib.colors import ListedColormap, NoNorm
+from matplotlib.colors import ListedColormap
 
 from .cluster import Clustering, ParameterBasedClustering
 from .color_scheme import ColorScheme
 from .interface import Interface
-from .parameters import (BoolParameter, FloatParameter, ListParameter,
-                         NoneOrFloatParameter, NoneRangeParameter, Parameter)
+from .parameters import (BoolParameter, NoneRangeParameter, Parameter,
+                         ListParameter)
 from .plotter import Plotter
 
 
@@ -26,8 +21,8 @@ class Plot(ABC):
     def __init__(self):
         self.interface: Interface
         self.color_scheme: ColorScheme
-        self.parameters: Tuple[str]
-        self.scale: Tuple[str]
+        self.parameters: tuple[str]
+        self.scale: tuple[str]
         self.show_x_label: bool
         self.show_y_label: bool
         self._x_lim: Sequence[float] | None
@@ -66,7 +61,7 @@ class Plot(ABC):
                 dependencies['after'].append(ref_plot)
         return dependencies
 
-    def get_limits(self, axis_limits: dict) -> List[Tuple[float | None]]:
+    def get_limits(self, axis_limits: dict) -> list[tuple[float | None]]:
         final_limits = []
         parameters = list(self.parameters) + [None] * \
             max(2 - len(self.parameters), 0)
@@ -133,11 +128,11 @@ class Plot(ABC):
     def get_dynamic_plot_requests(self):
         return []
 
-    def get_track_clusterings_requests(self) -> List[Dict[str, Any]]:
+    def get_track_clusterings_requests(self) -> list[dict[str, Any]]:
         return []
 
     @staticmethod
-    def is_available(interface: Interface) -> Tuple[bool, str]:
+    def is_available(interface: Interface) -> tuple[bool, str]:
         ''' Returns True if available for this interface and comment why'''
         return True, ''
 
@@ -148,7 +143,7 @@ class Plot(ABC):
         return isinstance(color, (str, float)) or color.shape == (4,) or color.shape == (3,)
 
     @staticmethod
-    def tanh_axis_labels(ax: plt.Axes, scale: List[str]):
+    def tanh_axis_labels(ax: plt.Axes, scale: list[str]):
         """
         Adjust axis labels for tanh scaling.
 
@@ -156,7 +151,7 @@ class Plot(ABC):
         -----------
         ax : plt.Axes
             The Axes object to which the label adjustments should be applied.
-        scale : List[str]
+        scale : list[str]
             Which axis to adjust. Choices: 'x', 'y', or 'both'.
         """
         tickslabels = [-np.inf] + list(np.arange(-2.5, 2.6, 0.5)) + [np.inf]
@@ -186,18 +181,18 @@ class Plot(ABC):
 @Plotter.plot_type("Histogram")
 class plot_histogram(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameter: str,
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 exclude_types: Tuple[str] = (),
+                 exclude_types: tuple[str] = (),
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  histogram_color: str | dict | float | None = None):
         self.interface: Interface = interface
         self.color_scheme: ColorScheme = color_scheme
         self.parameter: str = parameter
-        self.parameters: Tuple[str] = (parameter,)
-        self.scale: Tuple[str] = tuple(scale or ('Linear', 'Linear'))
-        self.exclude_types: Tuple[str] = exclude_types
+        self.parameters: tuple[str] = (parameter,)
+        self.scale: tuple[str] = tuple(scale or ('Linear', 'Linear'))
+        self.exclude_types: tuple[str] = exclude_types
         self.rotated: bool = rotated
         self.show_x_label: bool = show_x_label
         self.show_y_label: bool = show_y_label
@@ -236,7 +231,7 @@ class plot_histogram(Plot):
                 ',\'histogram_color\':'+str(self.histogram_color_settings))
 
     @staticmethod
-    def settings(interface: Interface) -> List[Parameter]:
+    def settings(interface: Interface) -> list[Parameter]:
         return [ListParameter(name='Parameter', parameter_name='parameter', arguments=interface.node_parameters, comment='Parameter of the histogram'),
                 ListParameter(name='Scale', parameter_name='scale', arguments=[
                               'Linear', 'Tanh'], comment='Scale of the parameter'),
@@ -268,7 +263,7 @@ class plot_histogram(Plot):
 
         return settings
 
-    def get_dynamic_plot_requests(self) -> List[dict]:
+    def get_dynamic_plot_requests(self) -> list[dict]:
         return [{'method': 'calculate_node_values', 'settings': {'parameters': (self.parameter, 'Type'), 'scale': self.scale}}]
 
     def plot(self, ax: plt.Axes, group_number: int,  axis_limits: dict):
@@ -280,7 +275,7 @@ class plot_histogram(Plot):
         ax : plt.Axes
             Axes object where the histogram will be plotted.
         data : list[float]
-            List containing parameter values.
+            list containing parameter values.
         scale : str, optional
             The scale for the x-axis. Options: 'Linear' or 'Tanh'.
         rotated : bool, optional
@@ -359,7 +354,7 @@ class plot_histogram(Plot):
 @Plotter.plot_type("Hexbin")
 class plot_hexbin(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, colormap: str | None = None, show_colorbar: bool = False):
@@ -406,7 +401,7 @@ class plot_hexbin(Plot):
                 ',\'show_colorbar\':'+str(self.show_colorbar))
 
     @staticmethod
-    def settings(interface: Interface) -> List[Parameter]:
+    def settings(interface: Interface) -> list[Parameter]:
         return [ListParameter(name='X parameter', parameter_name='x_parameter', arguments=interface.node_parameters, comment=''),
                 ListParameter(name='X scale', parameter_name='x_scale', arguments=[
                               'Linear', 'Tanh'], comment=''),
@@ -458,7 +453,7 @@ class plot_hexbin(Plot):
         ax : plt.Axes
             Axes object where the hexbin will be plotted.
         x_values, y_values : list[float]
-            Lists containing x-values and y-values
+            lists containing x-values and y-values
         extent : list[float], optional
             The bounding box in data coordinates that the hexbin should fill.
         colormap : str, optional
@@ -548,7 +543,7 @@ class plot_hexbin(Plot):
 @Plotter.plot_type("Scatter")
 class plot_scatter(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
@@ -611,7 +606,7 @@ class plot_scatter(Plot):
         -----------
         ax : plt.Axes
             Axes object where the scatter plot will be plotted.
-        data : defaultdict[List[float]]
+        data : defaultdict[list[float]]
             A dictionary containing lists of x and y values.
         parameters : tuple[str]
             A tuple containing the names of the parameters to be plotted.
@@ -700,7 +695,7 @@ class plot_scatter(Plot):
 @Plotter.plot_type("Clustering: Centroids")
 class plot_clustering_centroids(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict,
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
@@ -851,7 +846,7 @@ class plot_clustering_centroids(Plot):
 @Plotter.plot_type("Clustering: Fill")
 class plot_clustering_fill(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  fill_color: dict = None, alpha: float = 0.2, resolution: int = 100):
@@ -955,7 +950,7 @@ class plot_clustering_fill(Plot):
 @Plotter.plot_type("Clustering: Degree of Membership")
 class plot_clustering_degree_of_membership(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  colormap=None, alpha: float = 0.2, resolution: int = 100):
@@ -1037,7 +1032,7 @@ class plot_clustering_degree_of_membership(Plot):
 @Plotter.plot_type("Clustering: Density Plot")
 class plot_clustering_density(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  fill_color: dict = None, alpha: float = 0.5, levels: int = 5, thresh: float = 0.5, resolution: int = 100):
@@ -1141,19 +1136,19 @@ class plot_clustering_density(Plot):
 class plot_clustered_histogram(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameter: str,
                  clustering_settings: Optional[dict] = None,
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  rotated: Optional[bool] = False,
                  show_x_label: bool = True, show_y_label: bool = True,
-                 exclude_types: Tuple[str] = (),
+                 exclude_types: tuple[str] = (),
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  fill_color: str | dict | float | None = None):
         self.interface: Interface = interface
         self.color_scheme: ColorScheme = color_scheme
         self.parameter: str = parameter
-        self.parameters: Tuple[str] = (parameter,)
+        self.parameters: tuple[str] = (parameter,)
         self.clustering_settings = clustering_settings
-        self.scale: Tuple[str] = tuple(scale or ('Linear', 'Linear'))
-        self.exclude_types: Tuple[str] = exclude_types
+        self.scale: tuple[str] = tuple(scale or ('Linear', 'Linear'))
+        self.exclude_types: tuple[str] = exclude_types
         self.rotated: bool = rotated
         self.show_x_label: bool = show_x_label
         self.show_y_label: bool = show_y_label
@@ -1187,7 +1182,7 @@ class plot_clustered_histogram(Plot):
                 ',\'fill_color\':' + str(self.fill_color_settings))
 
     @staticmethod
-    def settings(interface: Interface) -> List[Parameter]:
+    def settings(interface: Interface) -> list[Parameter]:
         return [ListParameter(name='Parameter', parameter_name='parameter', arguments=interface.node_parameters, comment='Parameter of the histogram'),
                 ListParameter(name='Scale', parameter_name='scale', arguments=[
                               'Linear', 'Tanh'], comment='Scale of the parameter'),
@@ -1267,7 +1262,7 @@ class plot_clustered_histogram(Plot):
 @Plotter.plot_type("Static: Time line")
 class plot_time_line(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  linestyle: str | None = None, color: str | None = None):
@@ -1355,8 +1350,8 @@ class plot_time_line(Plot):
 @Plotter.plot_type("Static: Node lines")
 class plot_node_lines(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[Tuple[str] | None] = None,
-                 exclude_types: Tuple[str] = (),
+                 scale: Optional[tuple[str] | None] = None,
+                 exclude_types: tuple[str] = (),
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  color: dict | None = None, linestyle: str | None = None, ):
@@ -1364,7 +1359,7 @@ class plot_node_lines(Plot):
         self.parameters = tuple(parameters)
         self.color_scheme = color_scheme
         self.scale = tuple(scale or ('Linear', 'Linear'))
-        self.exclude_types: Tuple[str] = exclude_types
+        self.exclude_types: tuple[str] = exclude_types
         self.show_x_label = show_x_label
         self.show_y_label = show_y_label
         self._x_lim = x_lim
@@ -1496,7 +1491,7 @@ class plot_node_lines(Plot):
 @Plotter.plot_type("Static: Graph line")
 class plot_graph_line(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str],
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None, function: str = 'Mean',
                  color: dict | None = None, linestyle: str | None = None, ):
@@ -1615,8 +1610,8 @@ class plot_graph_line(Plot):
 
 @Plotter.plot_type("Static: Graph Range")
 class plot_fill_between(Plot):
-    def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], functions: Optional[List[str]] = None,
-                 scale: Optional[Tuple[str] | None] = None,
+    def __init__(self, interface: Interface, color_scheme: ColorScheme, parameters: tuple[str], functions: Optional[list[str]] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  color: dict | None = None):
@@ -1716,7 +1711,7 @@ class plot_fill_between(Plot):
 @Plotter.plot_type("Static: Clustering Line")
 class plot_clustering_line(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameter: str, clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  color: dict | None = None, linestyle: str | None = None, show_legend: bool = True):
@@ -1854,7 +1849,7 @@ class plot_clustering_line(Plot):
 @Plotter.plot_type("Static: Clustering Range")
 class plot_fill_between_clustering(Plot):
     def __init__(self, interface: Interface, color_scheme: ColorScheme, parameter: str, range_parameter: str, clustering_settings: dict = {},
-                 scale: Optional[Tuple[str] | None] = None,
+                 scale: Optional[tuple[str] | None] = None,
                  show_x_label: bool = True, show_y_label: bool = True,
                  x_lim: Optional[Sequence[float] | None] = None, y_lim: Optional[Sequence[float] | None] = None,
                  color: dict | None = None, show_legend: bool = True, alpha: float = 0.3):

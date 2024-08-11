@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import warnings
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Set, Tuple, Union
+from typing import TYPE_CHECKING, Any, Union
 from warnings import warn
 
 if TYPE_CHECKING:
@@ -32,12 +32,12 @@ class NodeEdgeGatherer(ABC):
         It allows for the dynamic registration of parameters to be gathered from the graph.
 
         Attributes:
-            parameters (Dict[str, Any]): A dictionary mapping parameter names to their corresponding functions
+            parameters (dict[str, Any]): A dictionary mapping parameter names to their corresponding functions
                 or values within the graph structure.
         """
 
         def __init__(self) -> None:
-            self.parameters: Dict[str, Any] = {}
+            self.parameters: dict[str, Any] = {}
 
         def __call__(self, property_name: str):
             """
@@ -130,29 +130,29 @@ class NodeEdgeGatherer(ABC):
         self.G = G
 
     @property
-    def node_parameters(self) -> List[str]:
+    def node_parameters(self) -> list[str]:
         """Returns a list of all registered node parameter names."""
         return list(self.node_parameter_logger.keys())
 
     @property
-    def edge_parameters(self) -> List[str]:
+    def edge_parameters(self) -> list[str]:
         """Returns a list of all registered edge parameter names."""
         return list(self.edge_parameter_logger.keys())
 
-    def gather_unprocessed(self, param: Union[str, List[str]]) -> Dict[str, Any]:
+    def gather_unprocessed(self, param: Union[str, list[str]]) -> dict[str, Any]:
         """
         Gathers unprocessed parameter data for all nodes or edges in the graph based on the specified parameter(s).
 
         Parameters:
-            param (Union[str, List[str]]): The parameter name(s) to extract data for.
+            param (Union[str, list[str]]): The parameter name(s) to extract data for.
 
         Returns:
-            Dict[str, Any]: A dictionary containing the raw data for the requested parameter(s).
+            dict[str, Any]: A dictionary containing the raw data for the requested parameter(s).
         """
         if isinstance(param, str):
             param = [param]
 
-        result: Dict[str, Any] = {}
+        result: dict[str, Any] = {}
 
         for p in param:
             if p not in self.node_parameter_logger:
@@ -165,15 +165,15 @@ class NodeEdgeGatherer(ABC):
 
         return result
 
-    def gather(self, param: Union[str, List[str]]) -> Dict[str, Any]:
+    def gather(self, param: Union[str, list[str]]) -> dict[str, Any]:
         """
         Gathers and organizes parameter data for all nodes or edges in the graph based on the specified parameter(s).
 
         Parameters:
-            param (Union[str, List[str]]): The parameter name(s) to extract data for.
+            param (Union[str, list[str]]): The parameter name(s) to extract data for.
 
         Returns:
-            Dict[str, Any]: A dictionary containing organized data for the requested parameter(s), including
+            dict[str, Any]: A dictionary containing organized data for the requested parameter(s), including
                             a 'Nodes' key with a list of node names/IDs.
         """
         if isinstance(param, str):
@@ -181,7 +181,7 @@ class NodeEdgeGatherer(ABC):
 
         result = self.gather_unprocessed(param)
 
-        transformed_result: Dict[str, Any] = {}
+        transformed_result: dict[str, Any] = {}
         nodes = sorted(next(iter(result.values())).keys())
         transformed_result['Nodes'] = nodes
 
@@ -191,12 +191,12 @@ class NodeEdgeGatherer(ABC):
 
         return transformed_result
 
-    def gather_everything(self) -> Dict[str, Any]:
+    def gather_everything(self) -> dict[str, Any]:
         """
         Gathers data for all registered parameters for nodes or edges in the graph.
 
         Returns:
-            Dict[str, Any]: A dictionary containing data for all registered parameters.
+            dict[str, Any]: A dictionary containing data for all registered parameters.
         """
         return self.gather_unprocessed(list(self.node_parameter_logger.keys()))
 
@@ -212,14 +212,14 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
     node_parameter_logger = NodeEdgeGatherer.ParameterLogger()
     edge_parameter_logger = NodeEdgeGatherer.ParameterLogger()
 
-    def merge_nodes(self, i: Tuple[int], j: Tuple[int]) -> None:
+    def merge_nodes(self, i: tuple[int], j: tuple[int]) -> None:
         """
         Merges two specified nodes into a single new node within the graph. The new node's attributes are determined
         by the attributes of the merged nodes, and the edges are updated accordingly.
 
         Parameters:
-            i (Tuple[int]): Identifier for the first node to be merged.
-            j (Tuple[int]): Identifier for the second node to be merged.
+            i (tuple[int]): Identifier for the first node to be merged.
+            j (tuple[int]): Identifier for the second node to be merged.
         """
         if not (isinstance(i, tuple) and isinstance(j, tuple)):
             raise TypeError('Node identifiers must be tuples.')
@@ -239,14 +239,14 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         self.G.remove_node(i)
         self.G.remove_node(j)
 
-    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining: bool = False) -> None:
+    def merge_clusters(self, clusters: list[list[tuple[int]]], labels: Union[list[str], None] = None, merge_remaining: bool = False) -> None:
         """
         Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
         node. Each new node represents its constituent cluster.
 
         Parameters:
-            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
-            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
+            clusters (list[list[tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
+            labels (Union[list[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
             merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.
         """
         labels = labels or [None] * len(clusters)
@@ -283,13 +283,13 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
     node_parameters_in_mean_graph = {'Opinion': 'mean'}
     edge_parameters_in_mean_graph = {'Influence': 'mean'}
 
-    def mean_graph(self, images: List[nx.Graph]) -> nx.Graph:
+    def mean_graph(self, images: list[nx.Graph]) -> nx.Graph:
         """
         Calculates the mean graph from a list of Graph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
 
         Parameters:
-            images (List[nx.Graph]): A list of Graph instances from which to calculate the mean graph.
+            images (list[nx.Graph]): A list of Graph instances from which to calculate the mean graph.
 
         Returns:
             nx.Graph: A new Graph instance representing the mean of the input graphs.
@@ -355,16 +355,16 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
 
         return mean_graph
 
-    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
+    def merge(self, node_ids: list[dict]) -> dict[str, Union[int, float, dict]]:
         """
         Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
         cluster size, and aggregate opinions.
 
         Parameters:
-            node_ids (List[dict]): A list of node attribute dictionaries to be merged.
+            node_ids (list[dict]): A list of node attribute dictionaries to be merged.
 
         Returns:
-            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes.
+            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes of the nodes.
         """
         if not node_ids:
             raise ValueError("No nodes provided for merging.")
@@ -389,7 +389,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
 
     # Decorators to register node attributes for gathering
     @node_parameter_logger("Opinion")
-    def opinion(self) -> Dict[Tuple[int], float]:
+    def opinion(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to their opinions."""
         return {node: data['Opinion'] for node, data in self.G.nodes(data=True)}
 
@@ -401,19 +401,19 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         return kde.evaluate(x_grid)
 
     @node_parameter_logger("Opinion density")
-    def opinion_density(self) -> Dict[Tuple[int], float]:
+    def opinion_density(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to their opinion distribution density."""
         opinions = np.array(list(self.opinion().values()))
         densities = self.kde_scipy(opinions, opinions)
         return {node: density for node, density in zip(self.G.nodes, densities)}
 
     @node_parameter_logger("Cluster size")
-    def cluster_size(self) -> Dict[Tuple[int], int]:
+    def cluster_size(self) -> dict[tuple[int], int]:
         """Returns a mapping of node IDs to their cluster sizes."""
         return {node: data.get('Cluster size', 1) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger("Importance")
-    def importance(self) -> Dict[Tuple[int], float]:
+    def importance(self) -> dict[tuple[int], float]:
         """Calculates and returns a mapping of node IDs to their importance, based on influence and size."""
         importance_dict = {}
         for node in self.G.nodes:
@@ -425,7 +425,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         return importance_dict
 
     @node_parameter_logger("Neighbor mean opinion")
-    def neighbor_mean_opinion(self) -> Dict[Tuple[int], float]:
+    def neighbor_mean_opinion(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to the average opinion of their neighbors."""
         data = {}
         for node in self.G.nodes:
@@ -438,32 +438,32 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
         return data
 
     @node_parameter_logger('Inner opinions')
-    def inner_opinions(self) -> Dict[Tuple[int], Dict]:
+    def inner_opinions(self) -> dict[tuple[int], dict]:
         """Returns a mapping of node IDs to their inner opinions."""
         return {node: data.get('Inner opinions', {node: data['Opinion']}) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Max opinion')
-    def max_opinion(self) -> Dict[Tuple[int], float]:
+    def max_opinion(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to the maximum opinion value among their inner opinions."""
         return {node: max(data.get('Inner opinions', {None: data['Opinion']}).values()) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Min opinion')
-    def min_opinion(self) -> Dict[Tuple[int], float]:
+    def min_opinion(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to the minimum opinion value among their inner opinions."""
         return {node: min(data.get('Inner opinions', {None: data['Opinion']}).values()) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Opinion Standard Deviation')
-    def std_opinion(self) -> Dict[Tuple[int], float]:
+    def std_opinion(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to the standard deviation of opinion values among their inner opinions."""
         return {node: np.std(list(data.get('Inner opinions', {None: data['Opinion']}).values())) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Label')
-    def label(self) -> Dict[Tuple[int], str]:
+    def label(self) -> dict[tuple[int], str]:
         """Returns a mapping of node IDs to their labels."""
         return {node: data.get('Label', None) for node, data in self.G.nodes(data=True)}
 
     @node_parameter_logger('Type')
-    def type(self) -> Dict[Tuple[int], str]:
+    def type(self) -> dict[tuple[int], str]:
         """Returns a mapping of node IDs to their types for all nodes including bots."""
         return {node: data.get('Type', None) for node, data in self.G.nodes(data=True)}
 
@@ -478,15 +478,15 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
     node_parameter_logger = DefaultNodeEdgeGatherer.node_parameter_logger.copy()
     edge_parameter_logger = DefaultNodeEdgeGatherer.edge_parameter_logger.copy()
 
-    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
+    def merge(self, node_ids: list[dict]) -> dict[str, Union[int, float, dict]]:
         """
         Extends the merge function to include activity in the merged node attributes.
 
         Parameters:
-            node_ids (List[dict]): A list of node dictionaries to be merged.
+            node_ids (list[dict]): A list of node dictionaries to be merged.
 
         Returns:
-            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes, including activity.
+            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes, including activity.
         """
         base_merged_data = super().merge(node_ids)
         activity = sum(self.G.nodes[node_id].get(
@@ -499,7 +499,7 @@ class ActivityDefaultNodeEdgeGatherer(DefaultNodeEdgeGatherer):
     edge_parameters_in_mean_graph = {'Influence': 'mean'}
 
     @node_parameter_logger('Activity')
-    def activity(self) -> Dict[Tuple[int], float]:
+    def activity(self) -> dict[tuple[int], float]:
         """Returns a mapping of node IDs to their activity levels."""
         return {node: data.get('Activity', np.nan) for node, data in self.G.nodes(data=True)}
 
@@ -512,14 +512,14 @@ class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
     node_parameter_logger = ActivityDefaultNodeEdgeGatherer.node_parameter_logger.copy()
     edge_parameter_logger = ActivityDefaultNodeEdgeGatherer.edge_parameter_logger.copy()
 
-    def merge_nodes(self, i: Tuple[int], j: Tuple[int]) -> None:
+    def merge_nodes(self, i: tuple[int], j: tuple[int]) -> None:
         """
         Merges two specified nodes into a single new node within the graph. The new node's attributes are determined
         by the attributes of the merged nodes, and the edges are updated accordingly.
 
         Parameters:
-            i (Tuple[int]): Identifier for the first node to be merged.
-            j (Tuple[int]): Identifier for the second node to be merged.
+            i (tuple[int]): Identifier for the first node to be merged.
+            j (tuple[int]): Identifier for the second node to be merged.
         """
         if not (isinstance(i, tuple) and isinstance(j, tuple)):
             raise TypeError('Node identifiers must be tuples.')
@@ -542,14 +542,14 @@ class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
         self.G.remove_node(i)
         self.G.remove_node(j)
 
-    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining: bool = False) -> None:
+    def merge_clusters(self, clusters: list[list[tuple[int]]], labels: Union[list[str], None] = None, merge_remaining: bool = False) -> None:
         """
         Merges groups of nodes (clusters) into single nodes, optionally merging unclustered nodes into an additional
         node. Each new node represents its constituent cluster.
 
         Parameters:
-            clusters (List[List[Tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
-            labels (Union[List[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
+            clusters (list[list[tuple[int]]]): A list of clusters, each represented as a list of node identifiers.
+            labels (Union[list[str], None], optional): Labels for the new nodes created from each cluster. Defaults to None.
             merge_remaining (bool, optional): If True, merges nodes not included in any cluster into a separate new node. Defaults to False.
         """
         labels = labels or [None] * len(clusters)
@@ -586,16 +586,16 @@ class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
                                         **self.G[predecessor][old_node_id])
                 self.G.remove_node(old_node_id)
 
-    def merge(self, node_ids: List[dict]) -> Dict[str, Union[int, float, Dict]]:
+    def merge(self, node_ids: list[dict]) -> dict[str, Union[int, float, dict]]:
         """
         Merges a list of nodes based on their identifiers, calculating combined attributes such as inner opinions,
         cluster size, aggregate opinions, and activity.
 
         Parameters:
-            node_ids (List[dict]): A list of node attribute dictionaries to be merged.
+            node_ids (list[dict]): A list of node attribute dictionaries to be merged.
 
         Returns:
-            Dict[str, Union[int, float, Dict]]: A dictionary containing the merged attributes of the nodes, including activity.
+            dict[str, Union[int, float, dict]]: A dictionary containing the merged attributes of the nodes, including activity.
         """
         if not node_ids:
             raise ValueError("No nodes provided for merging.")

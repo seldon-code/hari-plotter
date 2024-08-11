@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+import math
+from typing import Any, Union
+
+import matplotlib.pyplot as plt
+import numpy as np
 
 from .graph import Graph
 from .lazy_graph import LazyGraph
-import numpy as np
-import matplotlib.pyplot as plt
-import math
 
 
 class Dynamics:
@@ -17,8 +18,8 @@ class Dynamics:
     networks and opinions, and provides a unified interface to access and manipulate each LazyHariGraph.
 
     Attributes:
-        lazy_hari_graphs (List[LazyHariGraph]): A list of LazyHariGraph objects.
-        groups (List[List[int]]): A list where each element is a list of indices representing a group.
+        lazy_hari_graphs (list[LazyHariGraph]): A list of LazyHariGraph objects.
+        groups (list[list[int]]): A list where each element is a list of indices representing a group.
 
     Methods:
         initialized: Returns indices of initialized LazyHariGraph instances.
@@ -36,19 +37,19 @@ class Dynamics:
     """
 
     def __init__(self):
-        self.lazy_hari_graphs: List[LazyGraph] = []
-        self.groups: List[List[int]] = []
+        self.lazy_hari_graphs: list[LazyGraph] = []
+        self.groups: list[list[int]] = []
 
     @property
-    def initialized(self) -> List[int]:
+    def initialized(self) -> list[int]:
         """
-        List of indices of initialized LazyHariGraph instances.
+        list of indices of initialized LazyHariGraph instances.
 
         Iterates over each LazyHariGraph in the list `lazy_hari_graphs` and checks if it's initialized.
         Returns a list containing the indices of all the LazyHariGraphs that are initialized.
 
         Returns:
-            List[int]: Indices of all initialized LazyHariGraph instances.
+            list[int]: Indices of all initialized LazyHariGraph instances.
         """
         return [index for index, graph in enumerate(self.lazy_hari_graphs) if graph.is_initialized]
 
@@ -64,14 +65,14 @@ class Dynamics:
             graph.uninitialize()
 
     @classmethod
-    def read_network(cls, network_files: Union[str, List[str]], opinion_files: List[str], load_request: Dict[str, Any] = {}) -> Dynamics:
+    def read_network(cls, network_files: Union[str, list[str]], opinion_files: list[str], load_request: dict[str, Any] = {}) -> Dynamics:
         """
         Reads a list of network files and a list of opinion files to create LazyHariGraph objects
         and appends them to the lazy_hari_graphs list of a HariDynamics instance.
 
         Parameters:
-            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.
-            opinion_files (List[str]): A list of paths to the opinion files.
+            network_files (Union[str, list[str]]): Either a single path or a list of paths to the network files.
+            opinion_files (list[str]): A list of paths to the opinion files.
 
         Returns:
             HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.
@@ -107,14 +108,14 @@ class Dynamics:
         return dynamics_instance
 
     @classmethod
-    def read_json(cls, json_files: Union[str, List[str]], load_request: Dict[str, Any] = {}) -> Dynamics:
+    def read_json(cls, json_files: Union[str, list[str]], load_request: dict[str, Any] = {}) -> Dynamics:
         """
         Reads a list of network files and a list of opinion files to create LazyHariGraph objects
         and appends them to the lazy_hari_graphs list of a HariDynamics instance.
 
         Parameters:
-            network_files (Union[str, List[str]]): Either a single path or a list of paths to the network files.
-            opinion_files (List[str]): A list of paths to the opinion files.
+            network_files (Union[str, list[str]]): Either a single path or a list of paths to the network files.
+            opinion_files (list[str]): A list of paths to the opinion files.
 
         Returns:
             HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.
@@ -251,23 +252,23 @@ class Dynamics:
             self.groups.append(
                 list(range(start_index, min(end_index, total_length))))
 
-    def get_grouped_graphs(self) -> List[List[LazyGraph]]:
+    def get_grouped_graphs(self) -> list[list[LazyGraph]]:
         """
         Retrieves grouped LazyHariGraph objects based on the indices in self.groups.
 
         Returns:
-            List[List[LazyHariGraph]]: List of lists where each sublist contains LazyHariGraph objects.
+            list[list[LazyHariGraph]]: list of lists where each sublist contains LazyHariGraph objects.
         """
         return [[self.lazy_hari_graphs[i] for i in group_indices]
                 for group_indices in self.groups]
 
-    def merge_nodes_by_mapping(self, mapping: Tuple[int]):
+    def merge_nodes_by_mapping(self, mapping: tuple[int]):
         """
         Merge nodes in each LazyHariGraph based on the provided mapping.
         If a graph was already initialized, uninitialize it first.
 
         Parameters:
-            mapping (Tuple[int]): A dictionary representing how nodes should be merged.
+            mapping (tuple[int]): A dictionary representing how nodes should be merged.
         """
 
         for lazy_graph in self.lazy_hari_graphs:

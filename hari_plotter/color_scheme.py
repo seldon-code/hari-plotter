@@ -3,23 +3,20 @@ from __future__ import annotations
 import copy
 import warnings
 from collections import defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Union
 
 import matplotlib as mpl
-import matplotlib.cm as cm
 import matplotlib.colors as colors
 import matplotlib.pyplot as plt
-import networkx as nx
 import numpy as np
-from matplotlib.colors import Colormap, to_rgba
+from matplotlib.colors import Colormap, LinearSegmentedColormap, to_rgba
 from matplotlib.lines import Line2D
-from matplotlib.colors import Colormap, LinearSegmentedColormap
 
 from .cluster import Clustering
 from .interface import Interface
 
 
-def anything_to_rgba(color) -> Tuple[float]:
+def anything_to_rgba(color) -> tuple[float]:
     if isinstance(color, str):
         if color == '':
             rgba = (0, 0, 0, 0)
@@ -49,7 +46,7 @@ def anything_to_rgba(color) -> Tuple[float]:
     return rgba_normalized
 
 
-def initialize_colormap(colormap: str | Dict[str, Any]) -> Tuple[str, Colormap]:
+def initialize_colormap(colormap: str | dict[str, Any]) -> tuple[str, Colormap]:
     '''
         Returns colormap name and colormap
         Example: initialize_colormap(
@@ -132,7 +129,7 @@ class ColorScheme:
                 self.methods)  # Deep copy the dictionary
             return new_instance
 
-        def keys(self) -> List[str]:
+        def keys(self) -> list[str]:
             return list(self.methods.keys())
 
         def __getitem__(self, key):
@@ -207,8 +204,8 @@ class ColorScheme:
 # Markers
 #############################
 
-    def get_cluster_marker(self, clustering_settings: Dict[str, Any], none_marker: str) -> dict:
-        request: Dict[str, Any] = {
+    def get_cluster_marker(self, clustering_settings: dict[str, Any], none_marker: str) -> dict:
+        request: dict[str, Any] = {
             'clustering_settings': clustering_settings, 'none_marker': none_marker}
         request_tuple = ColorScheme.request_to_tuple(request)
         if request_tuple not in self._cluster_marker_cache:
@@ -221,8 +218,8 @@ class ColorScheme:
             self._cluster_marker_cache[request_tuple] = cluster_markers
         return self._cluster_marker_cache[request_tuple]
 
-    def get_cluster_node_marker(self, image: int, clustering_settings: Dict[str, Any], none_marker: str) -> dict:
-        request: Dict[str, Any] = {
+    def get_cluster_node_marker(self, image: int, clustering_settings: dict[str, Any], none_marker: str) -> dict:
+        request: dict[str, Any] = {
             'image': image, 'clustering_settings': clustering_settings, 'none_marker': none_marker}
         request_tuple = ColorScheme.request_to_tuple(request)
 
@@ -240,8 +237,8 @@ class ColorScheme:
         return self._node_marker_cache[request_tuple]
 
     @method_logger('Scatter Marker', modes=('Constant Marker', 'Cluster Marker'))
-    def scatter_markers_nodes(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                              mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def scatter_markers_nodes(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                              mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Marker'
         image = self.get_image(settings, group_number)
 
@@ -262,8 +259,8 @@ class ColorScheme:
             return [data[node] for node in nodes]
 
     @method_logger('Centroid Marker', modes=('Constant Marker', 'Cluster Marker'))
-    def centroid_markers(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None,
-                         group_number: Union[int, None] = None,  mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def centroid_markers(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None,
+                         group_number: Union[int, None] = None,  mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Marker'
         image = self.get_image(settings, group_number)
 
@@ -284,8 +281,8 @@ class ColorScheme:
             return [data[cluster] for cluster in clusters]
 
     @method_logger('Timeline Style', modes=('Constant Style',))
-    def timeline_linestyle(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                           mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def timeline_linestyle(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                           mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Style'
         if mode == 'Constant Style':
             if settings is not None and 'linestyle' in settings:
@@ -293,8 +290,8 @@ class ColorScheme:
             return self.default_timeline_linestyle
 
     @method_logger('Line Style', modes=('Constant Style',))
-    def line_linestyle(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def line_linestyle(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Style'
         if mode == 'Constant Style':
             if settings is not None and 'linestyle' in settings:
@@ -305,8 +302,8 @@ class ColorScheme:
 # Colors
 #############################
 
-    def get_cluster_color(self, clustering_settings: Dict[str, Any], colormap: str, none_color: str) -> dict:
-        cluster_request: Dict[str, Any] = {
+    def get_cluster_color(self, clustering_settings: dict[str, Any], colormap: str, none_color: str) -> dict:
+        cluster_request: dict[str, Any] = {
             'clustering_settings': clustering_settings, 'colormap': colormap, 'none_color': none_color}
         cluster_request_tuple = ColorScheme.request_to_tuple(
             cluster_request)
@@ -324,8 +321,8 @@ class ColorScheme:
 
         return self._cluster_color_cache[cluster_request_tuple]
 
-    def get_cluster_node_color(self, image: int, clustering_settings: Dict[str, Any], colormap: str, none_color: str) -> dict:
-        request: Dict[str, Any] = {'image': image,
+    def get_cluster_node_color(self, image: int, clustering_settings: dict[str, Any], colormap: str, none_color: str) -> dict:
+        request: dict[str, Any] = {'image': image,
                                    'clustering_settings': clustering_settings, 'colormap': colormap, 'none_color': none_color}
         request_tuple = ColorScheme.request_to_tuple(request)
         if request_tuple not in self._node_color_cache:
@@ -341,13 +338,13 @@ class ColorScheme:
 
         return self._node_color_cache[request_tuple]
 
-    def get_parameter_based_cluster_color(self, parameter: str, clustering_settings: Dict[str, Any], colormap: str, none_color: str) -> dict:
-        cluster_request: Dict[str, Any] = {'parameters': (
+    def get_parameter_based_cluster_color(self, parameter: str, clustering_settings: dict[str, Any], colormap: str, none_color: str) -> dict:
+        cluster_request: dict[str, Any] = {'parameters': (
             parameter,), 'clustering_settings': clustering_settings, 'colormap': colormap, 'none_color': none_color}
         cluster_request_tuple = ColorScheme.request_to_tuple(
             cluster_request)
         if cluster_request_tuple not in self._cluster_color_cache:
-            cluster_values: Dict[str, float] = self.interface.cluster_tracker.get_final_value(
+            cluster_values: dict[str, float] = self.interface.cluster_tracker.get_final_value(
                 clustering_settings, parameter)
 
             floats = cluster_values.values()
@@ -359,8 +356,8 @@ class ColorScheme:
             self._cluster_color_cache[cluster_request_tuple] = cluster_colors
         return self._cluster_color_cache[cluster_request_tuple]
 
-    def get_parameter_based_cluster_node_color(self, image: int, parameter: str, clustering_settings: Dict[str, Any], colormap: str, none_color: str) -> dict:
-        request: Dict[str, Any] = {'image': image,
+    def get_parameter_based_cluster_node_color(self, image: int, parameter: str, clustering_settings: dict[str, Any], colormap: str, none_color: str) -> dict:
+        request: dict[str, Any] = {'image': image,
                                    'clustering_settings': clustering_settings, 'colormap': colormap, 'none_color': none_color}
         request_tuple = ColorScheme.request_to_tuple(request)
         if request_tuple not in self._node_color_cache:
@@ -376,8 +373,8 @@ class ColorScheme:
         return self._node_color_cache[request_tuple]
 
     @method_logger('Scatter Color', modes=('Constant Color', 'Parameter Colormap', 'Cluster Color', 'Cluster Parameter Color'))
-    def scatter_colors_nodes(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                             mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
+    def scatter_colors_nodes(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                             mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, list[list]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
 
@@ -442,8 +439,8 @@ class ColorScheme:
             return [data[node] for node in nodes]
 
     @method_logger('Centroid Color', modes=('Constant Color', 'Cluster Color', 'Cluster Parameter Color'))
-    def centroid_colors(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                        mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
+    def centroid_colors(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                        mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, list[list]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
 
@@ -483,8 +480,8 @@ class ColorScheme:
             return [data[cluster] for cluster in clusters]
 
     @method_logger('Fill Color', modes=('Cluster Color', 'Cluster Parameter Color'))
-    def fill_colors(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                    mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
+    def fill_colors(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                    mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, list[list]]:
         mode = mode or 'Cluster Color'
         image = self.get_image(settings, group_number)
 
@@ -519,8 +516,8 @@ class ColorScheme:
             return [data[cluster] for cluster in clusters]
 
     @method_logger('Distribution Color', modes=('Constant Color',))
-    def distribution_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                           mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def distribution_color(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                           mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
@@ -528,8 +525,8 @@ class ColorScheme:
             return self.default_distribution_color
 
     @method_logger('Timeline Color', modes=('Constant Color',))
-    def timeline_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def timeline_color(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                       mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Color'
         if mode == 'Constant Color':
             if settings is not None and 'Color' in settings:
@@ -537,8 +534,8 @@ class ColorScheme:
             return self.default_timeline_color
 
     @method_logger('Line Color', modes=('Constant Color', 'Parameter Colormap', 'Cluster Color', 'Cluster Parameter Color'))
-    def line_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                   mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def line_color(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                   mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
         if mode == 'Constant Color':
@@ -601,8 +598,8 @@ class ColorScheme:
             return [data[node] for node in nodes]
 
     @method_logger('Graph Line Color', modes=('Constant Color', 'Graph Parameter'))
-    def graph_line_color(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                         mode: str = None, settings: Union[dict, None] = None) -> Union[str, List[str]]:
+    def graph_line_color(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                         mode: str = None, settings: Union[dict, None] = None) -> Union[str, list[str]]:
         '''
         Graph parameters functions list can be accessed in Group.common_functions.keys()
         '''
@@ -640,8 +637,8 @@ class ColorScheme:
             return data
 
     @method_logger('Cluster Line Color', modes=('Constant Color', 'Cluster Color', 'Cluster Parameter Color'))
-    def cluster_line_colors(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                            mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, List[list]]:
+    def cluster_line_colors(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                            mode: str = None, settings: Union[dict, None] = None) -> Union[str, list, list[list]]:
         mode = mode or 'Constant Color'
         image = self.get_image(settings, group_number)
 
@@ -681,8 +678,8 @@ class ColorScheme:
             return [data[cluster] for cluster in clusters]
 
     @method_logger('Color Map', modes=('Independent Colormap',))
-    def colorbar(self, nodes: Union[List[Tuple[int]], None] = None, clusters: Union[List[str], None] = None, group_number: Union[int, None] = None,
-                 mode: str = None, settings: Union[Dict[str, Any], None] = None) -> Colormap:
+    def colorbar(self, nodes: Union[list[tuple[int]], None] = None, clusters: Union[list[str], None] = None, group_number: Union[int, None] = None,
+                 mode: str = None, settings: Union[dict[str, Any], None] = None) -> Colormap:
         mode = mode or 'Independent Colormap'
         if mode == 'Independent Colormap':
             if settings is not None and 'Color Pallet' in settings:

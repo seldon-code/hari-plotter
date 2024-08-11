@@ -1,6 +1,6 @@
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Dict, Type, Union
+from typing import Any, Type
 
 import numpy as np
 import toml
@@ -10,7 +10,7 @@ from .node_gatherer import ActivityDrivenNodeEdgeGatherer
 
 
 class ModelFactory:
-    _registry: Dict[str, Type['Model']] = {}
+    _registry: dict[str, Type['Model']] = {}
 
     @classmethod
     def register(cls, model_type: str):
@@ -29,7 +29,7 @@ class ModelFactory:
         return decorator
 
     @classmethod
-    def create_model(cls, model_type: str, params: Dict[str, Any]) -> 'Model':
+    def create_model(cls, model_type: str, params: dict[str, Any]) -> 'Model':
         """
         Create a model instance based on the model type and parameters.
 
@@ -82,7 +82,7 @@ class Model(ABC):
     Base abstract class for different types of models.
     """
 
-    def __init__(self, params: Dict[str, Any]):
+    def __init__(self, params: dict[str, Any]):
         """
         Initialize a Model instance.
 
@@ -114,7 +114,7 @@ class Model(ABC):
         pass
 
     @property
-    def load_request(self) -> Dict[str, Any]:
+    def load_request(self) -> dict[str, Any]:
         '''
         Results will be sent to Graph.from_network on setup
         '''
@@ -194,7 +194,7 @@ class ActivityDrivenModel(Model):
         return influences
 
     @property
-    def load_request(self) -> Dict[str, Any]:
+    def load_request(self) -> dict[str, Any]:
         '''
         Results will be sent to Graph.from_network on setup
         '''

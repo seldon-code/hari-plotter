@@ -1,5 +1,4 @@
-import warnings
-from typing import Any, Callable, Dict, List, Tuple, Union
+from typing import Any, Callable
 
 from .graph import Graph
 
@@ -61,17 +60,17 @@ class LazyGraph:
         return self._hari_graph is not None
 
     @property
-    def mapping(self) -> List[List[Tuple[int]]]:
+    def mapping(self) -> list[list[tuple[int]]]:
         """
         Get the current mapping of the LazyHariGraph.
 
         Returns:
-            List[List[Tuple[int]]]: The current mapping.
+            list[list[tuple[int]]]: The current mapping.
         """
         return self._mapping
 
     @mapping.setter
-    def mapping(self, new_mapping: List[List[Tuple[int]]]) -> None:
+    def mapping(self, new_mapping: list[list[tuple[int]]]) -> None:
         """
         Sets a new mapping and reinitializes the internal HariGraph instance with this mapping.
 
@@ -82,7 +81,7 @@ class LazyGraph:
         if self.is_initialized:
             self.reinitialize()
 
-    def _is_trivial_mapping(self, mapping: List[List[Tuple[int]]]) -> bool:
+    def _is_trivial_mapping(self, mapping: list[list[tuple[int]]]) -> bool:
         """
         Checks whether a given mapping is trivial.
 

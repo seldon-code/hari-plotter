@@ -1,10 +1,5 @@
 from __future__ import annotations
 
-from abc import ABC, abstractmethod, abstractproperty
-from collections import defaultdict
-from itertools import combinations
-from typing import Any, Dict, Iterator, List, Optional, Tuple, Type, Union
-
 import numpy as np
 
 from .cluster import Clustering
@@ -19,20 +14,20 @@ class Group:
     similar domains.
 
     Attributes:
-        images (List[HariGraph]): A list of HariGraph instances representing individual images in the group.
-        time (Optional[List[float]]): Optional time values associated with each image, used for time-based analyses.
+        images (list[HariGraph]): A list of HariGraph instances representing individual images in the group.
+        time (Optional[list[float]]): Optional time values associated with each image, used for time-based analyses.
         model (Optional[Any]): An optional model associated with the group, which can be used for further analysis or processing.
-        clusterings (Dict): A dictionary to store clustering results with their settings as keys to avoid recomputation.
+        clusterings (dict): A dictionary to store clustering results with their settings as keys to avoid recomputation.
         _mean_graph (Optional[HariGraph]): Cached mean graph of the group, calculated when needed to optimize performance.
         _nodes (Optional[set]): Cached set of nodes present in the mean graph, used to speed up node-related computations.
-        _node_parameters (Optional[Dict]): Cached node parameters from the first image, ensuring consistency across the group.
+        _node_parameters (Optional[dict]): Cached node parameters from the first image, ensuring consistency across the group.
 
     Common Functions:
         Group class provides a dictionary mapping statistical function names (e.g., 'Mean', 'Sum') to their corresponding
         numpy function objects, allowing for flexible data aggregation and analysis.
     """
 
-    # Dictionary mapping function names to actual function objects for common statistical operations
+    # dictionary mapping function names to actual function objects for common statistical operations
     common_functions = {
         'Mean': np.mean,
         'Sum': np.sum,
@@ -45,20 +40,20 @@ class Group:
         # Additional functions can be added here as needed
     }
 
-    def __init__(self, images: List[Graph], time=None, model=None):
+    def __init__(self, images: list[Graph], time=None, model=None):
         """
         Initializes a Group instance with a list of images, optional time values, and an optional model.
 
         Parameters:
-            images (List[HariGraph]): A list of HariGraph instances to include in the group.
-            time (Optional[List[float] | float]): Time values associated with each image, can be a list of floats,
+            images (list[HariGraph]): A list of HariGraph instances to include in the group.
+            time (Optional[list[float] | float]): Time values associated with each image, can be a list of floats,
                 a single float (applied to all images), or None if time is not applicable.
             model (Optional[Any]): An optional model to associate with the group for advanced analyses.
 
         Raises:
             ValueError: If the length of the time list does not match the number of images or an invalid type is provided for time.
         """
-        self.images: List[Graph] = images
+        self.images: list[Graph] = images
 
         if time is None:
             self.time = None
@@ -92,10 +87,10 @@ class Group:
         especially useful for caching and retrieving results based on unique request settings.
 
         Parameters:
-            request (Union[Dict, List, Any]): The request to convert, which may include nested dictionaries and lists.
+            request (Union[dict, list, Any]): The request to convert, which may include nested dictionaries and lists.
 
         Returns:
-            Tuple: A nested tuple representation of the request, providing a hashable and consistent key for caching.
+            tuple: A nested tuple representation of the request, providing a hashable and consistent key for caching.
         """
         def convert(item):
             if isinstance(item, dict):
@@ -170,7 +165,7 @@ class Group:
 
         return self.clusterings[clustering_key]['graph']
 
-    def clustering_graph_values(self, parameters: Tuple[str], clustering_settings: tuple,  **settings) -> Dict[str, np.ndarray]:
+    def clustering_graph_values(self, parameters: tuple[str], clustering_settings: tuple,  **settings) -> dict[str, np.ndarray]:
 
         graph = self.clustering_graph(**clustering_settings)
 
@@ -209,12 +204,12 @@ class Group:
         self._nodes = set(self.mean_graph.nodes)
         return self._nodes
 
-    def calculate_node_values(self, parameters: Tuple[str], **settings) -> dict:
+    def calculate_node_values(self, parameters: tuple[str], **settings) -> dict:
         """
         Calculate the node values based on parameters.
 
         Args:
-            parameters (List[str]): List of parameter names.
+            parameters (list[str]): list of parameter names.
 
         Returns:
             dict: A dictionary containing mean node values.
@@ -225,12 +220,12 @@ class Group:
             results['Time'] = self.mean_time()
         return results
 
-    def calculate_function_of_node_values(self, parameters: Tuple[str], function='Mean', **settings) -> dict:
+    def calculate_function_of_node_values(self, parameters: tuple[str], function='Mean', **settings) -> dict:
         """
         Calculate the function of mean node values based on parameters, treating 'Time' specially.
 
         Args:
-            parameters (List[str]): List of parameter names.
+            parameters (list[str]): list of parameter names.
             function (str): The name of the function to be applied to the mean values of the nodes, except for 'Time'.
 
         Returns:

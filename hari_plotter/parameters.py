@@ -1,17 +1,16 @@
-
-from abc import ABC, abstractclassmethod
-from typing import (Any, Dict, Iterator, List, Optional, Sequence, Tuple, Type,
-                    Union)
+from abc import abstractmethod
+from typing import Union
 
 
 class Parameter:
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def validate(self) -> bool:
         pass
 
 
 class ListParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, arguments: List[str], comment: str = '') -> None:
+    def __init__(self, name: str, parameter_name: str, arguments: list[str], comment: str = '') -> None:
         super().__init__()
         self.name = name
         self.parameter_name = parameter_name
@@ -35,7 +34,7 @@ class BoolParameter(Parameter):
 
 
 class FloatParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_value: float = 0.0, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
+    def __init__(self, name: str, parameter_name: str, default_value: float = 0.0, limits: tuple[float] = (None, None),  comment: str = '') -> None:
         super().__init__()
         self.name = name
         self.parameter_name = parameter_name
@@ -48,7 +47,7 @@ class FloatParameter(Parameter):
 
 
 class NoneOrFloatParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_value: Union[float, None] = None, limits: Tuple[float] = (None, None),  comment: str = '') -> None:
+    def __init__(self, name: str, parameter_name: str, default_value: Union[float, None] = None, limits: tuple[float] = (None, None),  comment: str = '') -> None:
         super().__init__()
         self.name = name
         self.parameter_name = parameter_name
@@ -61,7 +60,7 @@ class NoneOrFloatParameter(Parameter):
 
 
 class NoneRangeParameter(Parameter):
-    def __init__(self, name: str, parameter_name: str, default_min_value: Union[float, None] = None, default_max_value: Union[float, None] = None, limits: Tuple[float] = (None, None), comment: str = ''):
+    def __init__(self, name: str, parameter_name: str, default_min_value: Union[float, None] = None, default_max_value: Union[float, None] = None, limits: tuple[float] = (None, None), comment: str = ''):
         super().__init__()
         self.name = name
         self.parameter_name = parameter_name
@@ -70,7 +69,7 @@ class NoneRangeParameter(Parameter):
         self.limits = limits
         self.comment = comment
 
-    def validate(self, value: Tuple[float, None]) -> bool:
+    def validate(self, value: tuple[float, None]) -> bool:
         min_value, max_value = value
         # Check if both min and max values are None, floats, or one is None and the other is float
         if not ((min_value is None or isinstance(min_value, float)) and (max_value is None or isinstance(max_value, float))):
