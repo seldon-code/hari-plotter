@@ -24,6 +24,13 @@ jobs:
     - name: Create or update environment with Micromamba
       run: |
         micromamba create -n hariplotterenv -f environment.yml --yes
+        micromamba activate hariplotterenv
+
+        # Install the current package in editable mode
+        pip install -e .
+
+        # Install pytest in the environment
+        micromamba install -n hariplotterenv pytest --yes
 
     - name: Run tests with pytest
       run: |

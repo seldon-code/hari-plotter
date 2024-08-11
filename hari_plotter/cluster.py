@@ -1,21 +1,14 @@
 from __future__ import annotations
-from typing import List, Dict, Union, Tuple
-from sklearn.cluster import DBSCAN
 
-from abc import ABC, abstractclassmethod, abstractmethod, abstractproperty
+from abc import ABC, abstractmethod
 from collections import defaultdict
-from typing import (Any, Callable, Dict, Iterator, List, Optional, Tuple, Type,
-                    Union)
+from typing import (Any, Union)
 
 import matplotlib.pyplot as plt
 import numpy as np
-import seaborn as sns
-import skfuzzy as fuzz
 from scipy.spatial.distance import cdist
-from sklearn.cluster import KMeans
+from sklearn.cluster import DBSCAN, KMeans
 from sklearn.metrics import silhouette_score
-
-import matplotlib.pyplot as plt
 
 from .graph import Graph
 
@@ -25,10 +18,10 @@ class Clustering(ABC):
     Abstract base class representing a cluster. It provides a template for clustering algorithms.
 
     Attributes:
-        clusters (List[np.ndarray]): A list of clusters, where each cluster is represented by a numpy array.
+        clusters (list[np.ndarray]): A list of clusters, where each cluster is represented by a numpy array.
         centroids (np.ndarray): An array of centroids for the clusters.
         labels (np.ndarray): An array indicating the label of each data point.
-        parameters (List[str]): A list of parameter names used for clustering.
+        parameters (list[str]): A list of parameter names used for clustering.
     """
     _clustering_methods = {}
 
@@ -42,17 +35,17 @@ class Clustering(ABC):
         self.node_ids: np.ndarray = node_ids
 
     @property
-    def cluster_labels(self) -> List[str]:
+    def cluster_labels(self) -> list[str]:
         if self._cluster_labels is None:
             self._cluster_labels = [f'Cluster {i}' for i in range(
                 self.get_number_of_clusters())]
         return self._cluster_labels
 
-    def get_cluster_labels(self, **kwargs) -> List[str]:
+    def get_cluster_labels(self, **kwargs) -> list[str]:
         return self.cluster_labels
 
     @cluster_labels.setter
-    def cluster_labels(self, labels: List[str]):
+    def cluster_labels(self, labels: list[str]):
         if len(labels) != self.get_number_of_clusters():
             raise ValueError(
                 f'Labels number {len(labels)} is not equal to the number of clusters {self.get_number_of_clusters()}')
@@ -61,7 +54,7 @@ class Clustering(ABC):
     def label_to_index(self, label: str) -> int:
         return self.cluster_labels.index(label)
 
-    def reorder_labels(self, new_order: List[int]):
+    def reorder_labels(self, new_order: list[int]):
         current_labels = self.cluster_labels
         self._cluster_labels = [current_labels[i] for i in new_order]
 
@@ -75,7 +68,8 @@ class Clustering(ABC):
             return clustering_func
         return decorator
 
-    @abstractclassmethod
+    @classmethod
+    @abstractmethod
     def from_graph(cls, G: Graph, **kwargs) -> Clustering:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
@@ -117,19 +111,19 @@ class Clustering(ABC):
         pass
 
     @classmethod
-    def available_clustering_methods(self) -> List[str]:
+    def available_clustering_methods(self) -> list[str]:
         return list(self._clustering_methods.keys())
 
-    def get_values(self, key: Union[str, List[str]]) -> List[np.ndarray]:
+    def get_values(self, key: Union[str, list[str]]) -> list[np.ndarray]:
         """
         Returns the values corresponding to the given parameter(s) for all points in the clusters.
 
         Args:
-            key (Union[str, List[str]]): The parameter name or list of parameter names.
+            key (Union[str, list[str]]): The parameter name or list of parameter names.
             keep_scale *bool): For the convenience, some values are kept as the values of the scale function of themselves. You might need it as it is kept or the actual values, bu default, you need the actual values.
 
         Returns:
-            List[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
+            list[np.ndarray]: A list of numpy arrays, where each array corresponds to a cluster
                               and contains the values of the specified parameter(s) for each point in that cluster.
         """
         if isinstance(key, str):
@@ -140,19 +134,19 @@ class Clustering(ABC):
 
         return [np.array([[data[k][data['Nodes'].index(node)] for k in key] for node in cluster]) for cluster in self.labels_nodes_dict()]
 
-    def nodes_by_index(self, index: int) -> Tuple[Tuple[int]]:
+    def nodes_by_index(self, index: int) -> tuple[tuple[int]]:
         """
         Returns the nodes that are in the cluster with the given label
         """
         return self.node_ids[self.cluster_indexes == index]
 
-    def nodes_by_label(self, label: str) -> Tuple[Tuple[int]]:
+    def nodes_by_label(self, label: str) -> tuple[tuple[int]]:
         """
         Returns the nodes that are in the cluster with the given label
         """
         return self.nodes_by_index(self.label_to_index(label))
 
-    def labels_nodes_dict(self) -> Dict[str, Tuple[Tuple[int]]]:
+    def labels_nodes_dict(self) -> dict[str, tuple[tuple[int]]]:
         return {cluster_label: self.nodes_by_label(cluster_label) for cluster_label in self.cluster_labels}
 
     def nodes_labels_dict(self):
@@ -170,22 +164,22 @@ class ParameterBasedClustering(Clustering):
         'Tanh': {'direct': np.tanh, 'inverse': np.arctanh}
     }
 
-    def __init__(self, G: Graph, node_ids: np.ndarray, cluster_indexes: np.ndarray, parameters: List[str], scales: List[str]):
+    def __init__(self, G: Graph, node_ids: np.ndarray, cluster_indexes: np.ndarray, parameters: list[str], scales: list[str]):
         """
         Initializes the Cluster object with cluster data.
 
         Args:
             cluster_indexes: A numpy array of length N shows what cluster each point from data belongs to
             node_ids (np.ndarray): A numpy array of length N representing node ids for each data point. 
-            parameters (List[str]): A list of strings length M, representing the names of the parameters 
+            parameters (list[str]): A list of strings length M, representing the names of the parameters 
                                     or features used in clustering. These names correspond to the 
                                     dimensions/features in the data points. 
-            scales (List[str]): A list of strings representing the names of the scales used for clustering. More in scale_funcs
+            scales (list[str]): A list of strings representing the names of the scales used for clustering. More in scale_funcs
         """
         super().__init__(G, cluster_indexes=cluster_indexes, node_ids=node_ids)
-        self.parameters: List[str] = parameters
-        self.scales: List[str] = scales
-        self._cluster_labels: List[str] = None
+        self.parameters: list[str] = parameters
+        self.scales: list[str] = scales
+        self._cluster_labels: list[str] = None
 
     def centroids(self, keep_scale: bool = False):
         centroids = self.unscaled_centroids()
@@ -196,7 +190,7 @@ class ParameterBasedClustering(Clustering):
         return centroids
 
     @abstractmethod
-    def unscaled_centroids(self) -> List[np.ndarray]:
+    def unscaled_centroids(self) -> list[np.ndarray]:
         """
         A numpy array representing the centroids of the clusters.
         Each row in this array corresponds to a centroid.
@@ -205,13 +199,13 @@ class ParameterBasedClustering(Clustering):
             "This method must be implemented in subclasses")
 
     @abstractmethod
-    def predict_cluster(self, data_point: List[float], parameters: None | tuple[str] = None) -> int:
+    def predict_cluster(self, data_point: list[float], parameters: None | tuple[str] = None) -> int:
         """
         Abstract method to predict the cluster for a new data point.
         """
         pass
 
-    def degree_of_membership(self, data_point: List[float]) -> List[float]:
+    def degree_of_membership(self, data_point: list[float]) -> list[float]:
         """
         Predicts the 'probability' of belonging to each cluster for a new data point.
 
@@ -222,28 +216,28 @@ class ParameterBasedClustering(Clustering):
             data_point: The new data point's parameter values as a list of floats.
 
         Returns:
-            List[float]: A list of zeros and one one, indicating the cluster assignment.
+            list[float]: A list of zeros and one one, indicating the cluster assignment.
         """
         nearest_cluster_index = self.predict_cluster(data_point)
         return [nearest_cluster_index == i for i in range(self.get_number_of_clusters())]
 
     @abstractmethod
-    def reorder_clusters(self, new_order: List[int]):
+    def reorder_clusters(self, new_order: list[int]):
         """
         Abstract method to reorder clusters based on a new order.
         Assumes that the new_order list contains the indices of the clusters in their new order.
         """
         pass
 
-    def get_indices_from_parameters(self, params: Union[str, List[str]]) -> Union[int, List[int]]:
+    def get_indices_from_parameters(self, params: Union[str, list[str]]) -> Union[int, list[int]]:
         """
         Returns the indices corresponding to the given parameter(s).
 
         Args:
-            params (Union[str, List[str]]): The parameter name or list of parameter names.
+            params (Union[str, list[str]]): The parameter name or list of parameter names.
 
         Returns:
-            Union[int, List[int]]: The index or list of indices corresponding to the given parameter(s).
+            Union[int, list[int]]: The index or list of indices corresponding to the given parameter(s).
             Returns None if parameter is not present
         """
         if isinstance(params, str):
@@ -251,15 +245,15 @@ class ParameterBasedClustering(Clustering):
         else:
             return [self.parameters.index(param) if param in self.parameters else None for param in params]
 
-    def get_parameters_from_indices(self, indices: Union[int, List[int]]) -> Union[str, List[str]]:
+    def get_parameters_from_indices(self, indices: Union[int, list[int]]) -> Union[str, list[str]]:
         """
         Returns the parameter names corresponding to the given index/indices.
 
         Args:
-            indices (Union[int, List[int]]): The index or list of indices.
+            indices (Union[int, list[int]]): The index or list of indices.
 
         Returns:
-            Union[str, List[str]]: The parameter name or list of parameter names corresponding to the given index/indices.
+            Union[str, list[str]]: The parameter name or list of parameter names corresponding to the given index/indices.
         """
         if isinstance(indices, int):
             return self.parameters[indices]
@@ -278,7 +272,7 @@ class ParameterBasedClustering(Clustering):
 class ValueIntervalsClustering(ParameterBasedClustering):
     """Value Intervals clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: Graph, data: np.ndarray, parameter_boundaries: List[List[float]], node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, data: np.ndarray, parameter_boundaries: list[list[float]], node_ids: np.ndarray, parameters: list[str], scales: list[str], cluster_indexes: np.ndarray):
         super().__init__(G, node_ids=node_ids, parameters=parameters,
                          scales=scales, cluster_indexes=cluster_indexes)
         self.parameter_boundaries = parameter_boundaries
@@ -305,14 +299,14 @@ class ValueIntervalsClustering(ParameterBasedClustering):
         return cluster_indices
 
     @classmethod
-    def from_graph(cls, G: Graph, parameter_boundaries: List[List[float]], clustering_parameters: List[str], scale: Union[List[str], Dict[str, str], None] = None) -> 'ValueIntervalsClustering':
+    def from_graph(cls, G: Graph, parameter_boundaries: list[list[float]], clustering_parameters: list[str], scale: Union[list[str], dict[str, str], None] = None) -> 'ValueIntervalsClustering':
         """
         Creates an instance of valueIntervalsClustering from a HariGraph.
 
         Args:
             G: HariGraph.
-            parameter_boundaries: List of lists, each containing the boundaries for a parameter.
-            clustering_parameters: List of parameter names.
+            parameter_boundaries: list of lists, each containing the boundaries for a parameter.
+            clustering_parameters: list of parameter names.
             scale: Optional scaling functions for the clustering_parameters.
 
         Returns:
@@ -380,7 +374,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
             # Update the cluster index for the current point
             self.cluster_indexes[i] = self._indices_mapping[cluster_indices]
 
-    def reorder_clusters(self, new_order: List[int]):
+    def reorder_clusters(self, new_order: list[int]):
         # Implement the logic to reorder the clusters
         pass
 
@@ -457,7 +451,7 @@ class ValueIntervalsClustering(ParameterBasedClustering):
 class KMeansClustering(ParameterBasedClustering):
     """A KMeans clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: list[str], scales: list[str], cluster_indexes: np.ndarray):
         super().__init__(G, node_ids=node_ids, parameters=parameters,
                          scales=scales, cluster_indexes=cluster_indexes)
         self.data = data
@@ -518,7 +512,7 @@ class KMeansClustering(ParameterBasedClustering):
         self._centroids = kmeans.cluster_centers_
         self.cluster_indexes = kmeans.labels_
 
-    def reorder_clusters(self, new_order: List[int]):
+    def reorder_clusters(self, new_order: list[int]):
         """
         Reorders clusters and associated information based on a new order.
 
@@ -539,7 +533,7 @@ class KMeansClustering(ParameterBasedClustering):
         self.labels = np.array([label_mapping[label] for label in self.labels])
         self.reorder_labels(new_order)
 
-    def calculate_wcss(self, max_clusters: int = 10) -> List[float]:
+    def calculate_wcss(self, max_clusters: int = 10) -> list[float]:
         """
         Calculate the within-cluster sum of squares (WCSS) for different numbers of clusters.
 
@@ -547,7 +541,7 @@ class KMeansClustering(ParameterBasedClustering):
             max_clusters: The maximum number of clusters to consider.
 
         Returns:
-            List[float]: A list of WCSS values for each number of clusters.
+            list[float]: A list of WCSS values for each number of clusters.
         """
         wcss = []
         for i in range(1, max_clusters + 1):
@@ -571,7 +565,7 @@ class KMeansClustering(ParameterBasedClustering):
         plt.title('Elbow Method')
         plt.show()
 
-    def calculate_silhouette_scores(self, max_clusters: int = 10) -> List[float]:
+    def calculate_silhouette_scores(self, max_clusters: int = 10) -> list[float]:
         """
         Calculate the silhouette scores for different numbers of clusters.
 
@@ -579,7 +573,7 @@ class KMeansClustering(ParameterBasedClustering):
             max_clusters: The maximum number of clusters to consider.
 
         Returns:
-            List[float]: A list of silhouette scores for each number of clusters.
+            list[float]: A list of silhouette scores for each number of clusters.
         """
         silhouette_scores = []
         for i in range(2, max_clusters + 1):  # Silhouette score is undefined for 1 cluster
@@ -633,7 +627,7 @@ class KMeansClustering(ParameterBasedClustering):
         return optimal_clusters
 
     @classmethod
-    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str] | List[str]], scale: Union[List[str], Dict[str, str], None] = None, n_clusters: int = -1, method: str = 'silhouette', max_clusters: int = 10) -> Clustering:
+    def from_graph(cls, G: Graph, clustering_parameters: Union[tuple[str] | list[str]], scale: Union[list[str], dict[str, str], None] = None, n_clusters: int = -1, method: str = 'silhouette', max_clusters: int = 10) -> Clustering:
         """
         Creates an instance of KMeansClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
@@ -708,7 +702,7 @@ class KMeansClustering(ParameterBasedClustering):
 class DBSCANClustering(ParameterBasedClustering):
     """A DBSCAN clustering representation, extending the generic Clustering class."""
 
-    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: List[str], scales: List[str], cluster_indexes: np.ndarray):
+    def __init__(self, G: Graph, data: np.ndarray, node_ids: np.ndarray, parameters: list[str], scales: list[str], cluster_indexes: np.ndarray):
         super().__init__(G, node_ids=node_ids, parameters=parameters,
                          scales=scales, cluster_indexes=cluster_indexes)
         self.data = data
@@ -723,7 +717,7 @@ class DBSCANClustering(ParameterBasedClustering):
         return len(set(self.cluster_indexes)) - (1 if -1 in self.cluster_indexes else 0)
 
     @classmethod
-    def from_graph(cls, G: Graph, clustering_parameters: Union[Tuple[str], List[str]], scale: Union[List[str], Dict[str, str], None] = None, eps: float = 0.5, min_samples: int = 5) -> Clustering:
+    def from_graph(cls, G: Graph, clustering_parameters: Union[tuple[str], list[str]], scale: Union[list[str], dict[str, str], None] = None, eps: float = 0.5, min_samples: int = 5) -> Clustering:
         """
         Creates an instance of DBSCANClustering from a structured data dictionary,
         applying specified scaling to each parameter if needed.
@@ -844,7 +838,7 @@ class DBSCANClustering(ParameterBasedClustering):
 
         return cluster_indices
 
-    def reorder_clusters(self, new_order: List[int]):
+    def reorder_clusters(self, new_order: list[int]):
         """
         Reorders clusters and associated information based on a new order.
 

@@ -3,10 +3,8 @@ from __future__ import annotations
 import json
 import os
 import random
-import re
-import warnings
 from itertools import combinations, permutations
-from typing import Dict, List, Optional, Set, Tuple, Type, Union
+from typing import Optional, Type, Union
 
 import networkx as nx
 import numpy as np
@@ -53,13 +51,13 @@ class Graph(nx.DiGraph):
         """
         self.gatherer = new_gatherer(self)
 
-    def add_parameters_to_nodes(self, nodes: Optional[List[Tuple[int]]] = None) -> None:
+    def add_parameters_to_nodes(self, nodes: Optional[list[tuple[int]]] = None) -> None:
         """
         Adds or updates parameters for the specified nodes based on the current gatherer's criteria. If no nodes
         are specified, parameters are added or updated for all nodes in the graph.
 
         Parameters:
-            nodes (Optional[List[Tuple[int]]]): List of node identifiers to update. If None, updates all nodes.
+            nodes (Optional[list[tuple[int]]]): list of node identifiers to update. If None, updates all nodes.
         """
         nodes = nodes or list(self.nodes)
         parameters = self.gatherer.gather_everything()
@@ -185,13 +183,13 @@ class Graph(nx.DiGraph):
             for u, v in incoming_edges:
                 self.edges[u, v]['Influence'] /= total_influence
 
-    def mean_graph(self, images: List['Graph']) -> 'Graph':
+    def mean_graph(self, images: list['Graph']) -> 'Graph':
         """
         Calculates the mean graph from a list of HariGraph instances. The mean graph's nodes and edges have attributes
         that are the average of the corresponding attributes in the input graphs.
 
         Parameters:
-            images (List['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
+            images (list['HariGraph']): A list of HariGraph instances from which to calculate the mean graph.
 
         Returns:
             'HariGraph': A new HariGraph instance representing the mean of the input graphs.
@@ -314,9 +312,9 @@ class Graph(nx.DiGraph):
 
             # Iterate over the node mapping in sorted order of integer IDs
             for node, node_idx in sorted(node_mapping.items(), key=lambda x: x[1]):
-                # List of nodes influencing the current node
+                # list of nodes influencing the current node
                 neighbors = list(self.predecessors(node))
-                # List of influence weights from each neighbor
+                # list of influence weights from each neighbor
                 weights = [self[neighbor][node]['Influence']
                            for neighbor in neighbors]
                 # Use the mapping to get integer IDs for the neighbors
@@ -487,11 +485,11 @@ class Graph(nx.DiGraph):
 
     @classmethod
     def strongly_connected_components(
-            cls, cluster_sizes: List[int], inter_cluster_edges: int, mean_opinion: float = 0.5, seed: int = None) -> Graph:
+            cls, cluster_sizes: list[int], inter_cluster_edges: int, mean_opinion: float = 0.5, seed: int = None) -> Graph:
         """
         Creates a HariGraph instance with multiple strongly connected components.
 
-        :param cluster_sizes: List[int], sizes of the clusters.
+        :param cluster_sizes: list[int], sizes of the clusters.
         :param inter_cluster_edges: int, number of edges between the components.
         :param mean_opinion: float, mean opinion of the graph.
         :param seed: int, random seed.
@@ -616,14 +614,14 @@ class Graph(nx.DiGraph):
 
     # ---- Merge Methods ----
 
-    def get_cluster_mapping(self) -> List[List[Tuple[int]]]:
+    def get_cluster_mapping(self) -> list[list[tuple[int]]]:
         """
         Generates a list of nodes in the unclustered graph to be clustered to get the current graph
         :return: A list representing the current clusters in the graph.
         """
         return sorted([sorted([(element,) for element in node]) for node in self.nodes])
 
-    def merge_nodes(self, i: Tuple[int], j: Tuple[int]):
+    def merge_nodes(self, i: tuple[int], j: tuple[int]):
         """
         Merges two nodes in the graph into a new node.
 
@@ -633,17 +631,17 @@ class Graph(nx.DiGraph):
         and the old nodes are removed.
 
         Parameters:
-            i Tuple[int]: The identifier for the first node to merge.
-            j Tuple[int]: The identifier for the second node to merge.
+            i tuple[int]: The identifier for the first node to merge.
+            j tuple[int]: The identifier for the second node to merge.
         """
         self.gatherer.merge_nodes(i, j)
 
-    def merge_clusters(self, clusters: List[List[Tuple[int]]], labels: Union[List[str], None] = None, merge_remaining=False):
+    def merge_clusters(self, clusters: list[list[tuple[int]]], labels: Union[list[str], None] = None, merge_remaining=False):
         """
         Merges clusters of nodes in the graph into new nodes. Optionally merges the remaining nodes into an additional cluster.
 
         Parameters:
-            clusters (Union[List[Set[int]], Dict[int, int]]): A list where each element is a set containing
+            clusters (Union[list[Set[int]], dict[int, int]]): A list where each element is a set containing
                                     the IDs of the nodes in a cluster to be merged or a dictionary mapping old node IDs
                                     to new node IDs.
             merge_remaining (bool): If True, merge the nodes not included in clusters into an additional cluster. Default is False.
@@ -663,7 +661,7 @@ class Graph(nx.DiGraph):
             min_influence (float): Minimum required influence to form a cluster, adjusted by the size of the node.
 
         Returns:
-            List[List[int]]: A list of lists, where each inner list represents a cluster of node identifiers.
+            list[list[int]]: A list of lists, where each inner list represents a cluster of node identifiers.
         """
         clusters = []
         visited_nodes = set()
@@ -713,12 +711,12 @@ class Graph(nx.DiGraph):
 
         return clusters
 
-    def merge_by_intervals(self, intervals: List[float]):
+    def merge_by_intervals(self, intervals: list[float]):
         """
         Merges nodes into clusters based on the intervals defined by the input list of opinions.
 
         Parameters:
-            intervals (List[float]): A sorted list of opinions representing the boundaries of the intervals.
+            intervals (list[float]): A sorted list of opinions representing the boundaries of the intervals.
         """
         if not intervals:
             raise ValueError("Intervals list cannot be empty")
@@ -818,7 +816,7 @@ class Graph(nx.DiGraph):
         return {node: self.nodes[node]['Opinion'] for node in self.nodes}
 
     @opinions.setter
-    def opinions(self, values: Union[int, float, Dict[Tuple[int]:float]]):
+    def opinions(self, values: Union[int, float, dict[tuple[int]:float]]):
         if isinstance(values, (int, float)):
             for node in self.nodes:
                 self.nodes[node]['Opinion'] = values

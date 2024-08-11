@@ -1,16 +1,16 @@
 from __future__ import annotations
 
 import warnings
-from abc import ABC, abstractmethod, abstractproperty
-from typing import Any, Dict, Iterator, List, Optional, Type, Union
+from abc import ABC, abstractmethod
+from typing import Any, Optional, Type, Union
 
 import networkx as nx
 import numpy as np
 
 from .cluster import Clustering
-from .group import Group
 from .dynamics import Dynamics
 from .graph import Graph
+from .group import Group
 from .simulation import Simulation
 
 
@@ -19,11 +19,11 @@ class Interface(ABC):
 
     Attributes:
         REQUIRED_TYPE: Expected type for the data attribute.
-        available_classes: Dictionary mapping REQUIRED_TYPEs to their corresponding classes.
+        available_classes: dictionary mapping REQUIRED_TYPEs to their corresponding classes.
     """
 
     REQUIRED_TYPE: Optional[Type[Any]] = None
-    available_classes: Dict[Type[Any], Type['Interface']] = {}
+    available_classes: dict[Type[Any], Type['Interface']] = {}
 
     def __init__(self, data: Any, group_length: int = 0):
         """
@@ -153,7 +153,7 @@ class Interface(ABC):
 
     @property
     @abstractmethod
-    def time_range(self) -> List[float]:
+    def time_range(self) -> list[float]:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
@@ -226,7 +226,7 @@ class Interface(ABC):
         def clean(self):
             self._track_clusters_cache = {}
 
-        def get_clustering(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[Clustering]]:
+        def get_clustering(self, clusterization_settings: Union[dict, list[dict]]) -> list[list[Clustering]]:
             """
             Retrieves the clusterization for the given settings.
 
@@ -241,7 +241,7 @@ class Interface(ABC):
                     **clust_settings) for group in self._interface.groups])
             return clusterizations
 
-        def is_tracked(self, clusterization_settings: Union[dict, List[dict]]) -> List[bool]:
+        def is_tracked(self, clusterization_settings: Union[dict, list[dict]]) -> list[bool]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
 
@@ -262,7 +262,7 @@ class Interface(ABC):
         def generate_node_id(frame_index, cluster_identifier):
             return (frame_index, cluster_identifier)
 
-        def cluster_graph(self, cluster_settings: Dict[str, Any], clusters_dynamics: List[List[Clustering]] = None) -> nx.DiGraph:
+        def cluster_graph(self, cluster_settings: dict[str, Any], clusters_dynamics: list[list[Clustering]] = None) -> nx.DiGraph:
             """
             Constructs a graph representing the cluster dynamics, optionally using provided cluster dynamics.
 
@@ -371,7 +371,7 @@ class Interface(ABC):
 
             return G
 
-        def track_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[int, Dict[str, str]]]:
+        def track_clusters(self, clusterization_settings: Union[dict, list[dict]]) -> list[dict[int, dict[str, str]]]:
             """
             Tracks the clusters across frames based on the provided clusterization settings.
 
@@ -430,7 +430,7 @@ class Interface(ABC):
                     self._track_clusters_cache[cluster_tuple])
             return updated_labels_list
 
-        def get_unique_clusters(self, clusterization_settings: Union[dict, List[dict]]) -> List[List[str]]:
+        def get_unique_clusters(self, clusterization_settings: Union[dict, list[dict]]) -> list[list[str]]:
             """
             Retrieves a list of lists, each containing unique clusters based on the given clusterization settings.
             Each inner list corresponds to one clustering type if multiple types are provided.
@@ -450,7 +450,7 @@ class Interface(ABC):
 
             return unique_clusters_list
 
-        def get_cluster_presence(self, clusterization_settings: Union[dict, List[dict]]) -> List[Dict[str, List[int]]]:
+        def get_cluster_presence(self, clusterization_settings: Union[dict, list[dict]]) -> list[dict[str, list[int]]]:
             """
             Retrieves a list of dictionaries, each mapping unique clusters to the frames in which they appear, based on the given clusterization settings.
             Each dictionary corresponds to one clustering type if multiple types are provided.
@@ -481,7 +481,7 @@ class Interface(ABC):
 
             return cluster_presence_list
 
-        def get_final_value(self, clusterization_settings: Union[dict, List[dict]], parameter) -> Dict[str, float]:
+        def get_final_value(self, clusterization_settings: Union[dict, list[dict]], parameter) -> dict[str, float]:
             '''
             Returns the value of the parameter in the last group cluster appeared  
             '''
@@ -512,7 +512,7 @@ class Interface(ABC):
 
         return convert(request)
 
-    def group_time_range(self) -> List[float]:
+    def group_time_range(self) -> list[float]:
         return [self.groups[0].mean_time(),  self.groups[-1].mean_time()]
 
     def __repr__(self) -> str:
@@ -562,7 +562,7 @@ class HariGraphInterface(Interface):
         return self.data.gatherer.node_parameters
 
     @property
-    def time_range(self) -> List[float]:
+    def time_range(self) -> list[float]:
         return [0., 0.]
 
 
@@ -596,7 +596,7 @@ class HariDynamicsInterface(Interface):
         return self.data[0].gatherer.node_parameters
 
     @property
-    def time_range(self) -> List[float]:
+    def time_range(self) -> list[float]:
         return [0., float(len(self.data)-1)]
 
 
@@ -630,5 +630,5 @@ class SimulationInterface(Interface):
         return self.data.dynamics[0].gatherer.node_parameters
 
     @property
-    def time_range(self) -> List[float]:
+    def time_range(self) -> list[float]:
         return [0., float(len(self.data)-1) * self.data.dt]

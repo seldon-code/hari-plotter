@@ -4,8 +4,7 @@ import os
 import shutil
 import tempfile
 import warnings
-from typing import (TYPE_CHECKING, Any, Dict, Iterator, List, Optional,
-                    Sequence, Tuple, Type, Union)
+from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from .plot import Plot
@@ -37,7 +36,7 @@ class Plotter:
                        'Max opinion': 'Node Max Opinion',
                        'Min opinion': 'Node Min Opinion'}
 
-    _plot_types: Dict[str, type[Plot]] = {}
+    _plot_types: dict[str, type[Plot]] = {}
 
     class PlotSaver:
         """
@@ -47,7 +46,7 @@ class Plotter:
         and even create GIFs from a sequence of plots.
         """
 
-        def __init__(self, mode: str | List[str] = 'show',
+        def __init__(self, mode: str | list[str] = 'show',
                      save_path: Optional[str] = None,
                      save_format: Optional[str] = 'image_{}',
                      animation_path: Optional[str] = None) -> None:
@@ -55,7 +54,7 @@ class Plotter:
             Initialize the PlotSaver instance.
 
             Args:
-                mode (str | List[str]): The mode(s) in which to operate. 
+                mode (str | list[str]): The mode(s) in which to operate. 
                     It can be a list or a single string, e.g. ['show', 'save'] or 'gif'. Available modes: ["show", "save", "gif", "mp4"]
                 save_path (Optional[str]): Path to save individual plots (used if 'save' is in mode)
                 save_format (Optional[str]): string with {} for formatting in the number
@@ -203,13 +202,13 @@ class Plotter:
                     'Size ratios must have the same length as the current size ratios')
             self._size_ratios = value
 
-        def get_figsize(self) -> Tuple[float, float]:
+        def get_figsize(self) -> tuple[float, float]:
             """
             Get the figure size. If a size was set during initialization, it returns that size.
             Otherwise, it calculates the size based on the sum of size_ratios.
 
             Returns:
-            Tuple[float, float]: The size of the figure as (height, width).
+            tuple[float, float]: The size of the figure as (height, width).
             """
             if self._figsize is not None:
                 return self._figsize
@@ -237,7 +236,7 @@ class Plotter:
             Set the figure size.
 
             Parameters:
-            value (Tuple[float, float]): The size of the figure as (height, width).
+            value (tuple[float, float]): The size of the figure as (height, width).
             """
             if not isinstance(value, (list, tuple)) or len(value) != 2:
                 raise ValueError(
@@ -286,12 +285,12 @@ class Plotter:
                 self.create_fig_and_axs()
             return self._axs
 
-        def fig_axs(self) -> Tuple[Figure, list[list[Axes]]]:
+        def fig_axs(self) -> tuple[Figure, list[list[Axes]]]:
             """
             Get the figure and axes objects.
 
             Returns:
-            Tuple[Figure, list[list[Axes]]]: The figure and axes objects.
+            tuple[Figure, list[list[Axes]]]: The figure and axes objects.
             """
             if self._fig is None:
                 self.create_fig_and_axs()
@@ -337,12 +336,12 @@ class Plotter:
             self.update_size_ratios(index[0], index[1])
             return self.axs()[index[0]][index[1]]
 
-        def create_fig_and_axs(self) -> Tuple[Figure, Axes]:
+        def create_fig_and_axs(self) -> tuple[Figure, Axes]:
             """
             Create the figure and axes objects.
 
             Returns:
-            Tuple[Figure, Axes]: The figure and axes objects.
+            tuple[Figure, Axes]: The figure and axes objects.
             """
             size_ratios = self.size_ratios
             figsize = self.get_figsize()
@@ -496,13 +495,13 @@ class Plotter:
 
         return fig
 
-    def plot(self, group_number: int) -> Tuple[Figure, Axes]:
+    def plot(self, group_number: int) -> tuple[Figure, Axes]:
         fig = self.plot_grid.fig()
         self._plot(fig, group_number)
 
         return fig
 
-    def plot_dynamics(self, mode: str | List[str] = 'show', save_dir: Optional[str] = None, animation_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
+    def plot_dynamics(self, mode: str | list[str] = 'show', save_dir: Optional[str] = None, animation_path: Optional[str] = None, name: str = 'opinion_histogram', preview: bool = False) -> None:
         """
         Create and display the plots based on the stored configurations.
         mode : ["show", "save", "gif", "mp4"]
@@ -519,12 +518,12 @@ class Plotter:
                 if preview:
                     break
 
-    def _determine_plot_order(self) -> List[tuple]:
+    def _determine_plot_order(self) -> list[tuple]:
         """
         Determine the order in which plots should be rendered based on dependencies.
 
         Returns:
-            List of tuples: Each tuple represents the row and column indices of a plot,
+            list of tuples: Each tuple represents the row and column indices of a plot,
             sorted in the order they should be rendered.
         """
         dependency_graph = nx.DiGraph()
@@ -558,7 +557,7 @@ class Plotter:
             dependency_graph (networkx.DiGraph): The dependency graph.
 
         Returns:
-            List of tuples: Sorted order of plots.
+            list of tuples: Sorted order of plots.
         """
         # Check for cycles
         if not nx.is_directed_acyclic_graph(dependency_graph):

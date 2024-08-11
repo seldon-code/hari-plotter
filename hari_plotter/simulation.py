@@ -5,7 +5,7 @@ import os
 import pathlib
 import re
 import subprocess
-from typing import Any, Dict, Optional, Union
+from typing import Any, Optional, Union
 
 import toml
 
@@ -23,7 +23,7 @@ class Simulation:
 
     def __init__(self,
                  model: Model,
-                 parameters: Dict[str, Any],
+                 parameters: dict[str, Any],
                  dynamics: Optional[Dynamics | None] = None,):
         """
         Initialize a Simulation instance.
@@ -36,7 +36,7 @@ class Simulation:
             rng_seed: Seed for random number generation. Default is None.
         """
         self.model: Model = model
-        self.parameters: Dict[str, Any] = parameters
+        self.parameters: dict[str, Any] = parameters
         self.dynamics: Dynamics | None = dynamics
 
     def run(self, path_to_seldon, directory,
