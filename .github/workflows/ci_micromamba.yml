@@ -23,7 +23,7 @@ jobs:
 
     - name: Update or create environment with Micromamba
       run: |
-        micromamba create -n hariplotterenv -f environment.yml --update-deps
+        micromamba create -n hariplotterenv -f environment.yml --yes
         micromamba activate hariplotterenv
 
     - name: Run tests with pytest
