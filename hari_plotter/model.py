@@ -126,6 +126,10 @@ class Model(ABC):
         """
         return f"{self.__class__.__name__}(params={self.params})"
 
+    def copy(self) -> 'Model':
+        ''' Returns a copy of the model'''
+        return self.__class__(self.params)
+
 
 @ModelFactory.register("ActivityDriven")
 class ActivityDrivenModel(Model):

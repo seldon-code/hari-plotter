@@ -8,3 +8,4 @@ from .model import Model, ModelFactory
 from .plot import Plot
 from .plotter import Plotter
 from .simulation import Simulation
+from .multirun import Multirun

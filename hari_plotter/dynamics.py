@@ -31,8 +31,8 @@ class Dynamics:
 
     Note:
         Any attribute that isn't directly found on a HariDynamics object will attempt to be retrieved from its
-        LazyHariGraph objects. If the attribute is callable, a function will be returned that when called, will 
-        apply the method on all LazyHariGraph instances. If the attribute is not callable, a list of its values 
+        LazyHariGraph objects. If the attribute is callable, a function will be returned that when called, will
+        apply the method on all LazyHariGraph instances. If the attribute is not callable, a list of its values
         from all LazyHariGraph instances will be returned.
     """
 
@@ -140,6 +140,51 @@ class Dynamics:
             dynamics_instance.groups.append([idx])
 
         return dynamics_instance
+
+    @classmethod
+    def from_list_of_graphs(cls, graphs: list[Graph]) -> Dynamics:
+        """
+        Creates a HariDynamics instance with LazyHariGraph objects initialized with the provided graphs.
+
+        Parameters:
+            graphs (list[Graph]): A list of Graph instances to initialize LazyHariGraph objects.
+
+        Returns:
+            HariDynamics: An instance of HariDynamics with lazy_hari_graphs populated.
+        """
+        dynamics_instance = cls()
+        dynamics_instance.groups = []
+        for idx, graph in enumerate(graphs):
+
+            dynamics_instance.lazy_hari_graphs.append(
+                LazyGraph(Graph.from_harigraph, graph)
+            )
+            dynamics_instance.groups.append([idx])
+
+        return dynamics_instance
+
+    @classmethod
+    def merge(cls, dynamics: list[Dynamics]) -> Dynamics:
+        """
+        Merges multiple HariDynamics instances into a single HariDynamics instance.
+
+        Parameters:
+            dynamics (list[Dynamics]): A list of HariDynamics instances to merge.
+
+        Returns:
+            HariDynamics: A single HariDynamics instance containing all LazyHariGraph objects from the input instances.
+        """
+        assert all(isinstance(d, Dynamics)
+                   for d in dynamics), "All elements in the input list must be instances of HariDynamics."
+        assert all(len(d) == len(
+            dynamics[0]) for d in dynamics), "All HariDynamics instances must have the same number of LazyHariGraph objects."
+
+        merged_dynamics = cls()
+        merged_dynamics.groups = dynamics[0].groups
+        merged_dynamics.lazy_hari_graphs = [LazyGraph.merge(
+            [d.lazy_hari_graphs[i] for d in dynamics]) for i in range(len(dynamics[0]))]
+
+        return merged_dynamics
 
     def __getitem__(self, index):
         # Handle slices

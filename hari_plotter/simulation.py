@@ -281,3 +281,10 @@ class Simulation:
                 else:
                     original[key] = value
         return original
+
+    @classmethod
+    def merge(cls, simulations: list['Simulation']) -> 'Simulation':
+        model = simulations[0].model.copy()
+        parameters = simulations[0].parameters
+        dynamics = Dynamics.merge([sim.dynamics for sim in simulations])
+        return Simulation(model, parameters, dynamics)

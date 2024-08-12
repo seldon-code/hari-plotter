@@ -66,6 +66,30 @@ class Graph(nx.DiGraph):
             for node in nodes:
                 self.nodes[node][key] = value[node]
 
+    @classmethod
+    def merge(cls, graphs: list['Graph']) -> 'Graph':
+        """
+        Merges multiple Graph instances into a single Graph instance.
+        Nodes with the same ID across different graphs will be renamed 
+        to keep them distinct.
+
+        Parameters:
+            graphs (list['Graph']): A list of Graph instances to merge.
+
+        Returns:
+            'Graph': A new Graph instance representing the merged graph.
+        """
+        merged_graph = nx.Graph()
+
+        for i, graph in enumerate(graphs):
+            # Create a mapping to rename nodes by adding a unique prefix based on graph index
+            mapping = {node: f"{node}_g{i}" for node in graph.nodes()}
+            renamed_graph = nx.relabel_nodes(graph if isinstance(graph, Graph) else graph.get_graph(
+            ), mapping)  # different behavior for graphs and LazyGraphs
+            merged_graph = nx.compose(merged_graph, renamed_graph)
+
+        return merged_graph
+
     def has_self_loops(self) -> bool:
         """
         Checks if the graph contains any self-loops (edges that connect a node to itself).
@@ -195,6 +219,13 @@ class Graph(nx.DiGraph):
             'HariGraph': A new HariGraph instance representing the mean of the input graphs.
         """
         return self.gatherer.mean_graph(images)
+
+    @classmethod
+    def from_harigraph(cls, harigraph: 'Graph') -> 'Graph':
+        """
+        Returns the given graph. Created for the sake of consistency with the other methods.
+        """
+        return harigraph
 
     @classmethod
     def read_network(cls, network_file: str, opinion_file: str, gatherer: NodeEdgeGatherer | None = None, number_of_bots: int = 0) -> 'Graph':

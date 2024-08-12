@@ -24,7 +24,7 @@ class LazyGraph:
         self._classmethod = classmethod
         self._args = args  # Positional arguments to pass to the class method
         self._kwargs = kwargs  # Keyword arguments to pass to the class method
-        self._mapping = None
+        self._mapping = None  # The mapping of the HariGraph instance
 
     def _initialize(self) -> None:
         """
@@ -115,6 +115,19 @@ class LazyGraph:
         """
         self._initialize()
         return self._hari_graph
+
+    @classmethod
+    def merge(cls, graphs: list['LazyGraph']) -> 'LazyGraph':
+        """
+        Merge multiple graphs into a single LazyGraph instance without initializing them.
+
+        Parameters:
+            graphs: The list of graphs to merge.
+
+        Returns:
+            LazyGraph: A new uninitialized LazyGraph instance representing the merged graphs.
+        """
+        return cls(Graph.merge, graphs)
 
     def __getattr__(self, name: str) -> Any:
         """
