@@ -200,6 +200,30 @@ class NodeEdgeGatherer(ABC):
         """
         return self.gather_unprocessed(list(self.node_parameter_logger.keys()))
 
+    @staticmethod
+    def merged_node_id(cluster):
+        """
+        Returns a new node ID for a merged cluster.
+
+        Parameters:
+            cluster (list[tuple[int]]): A list of node IDs to be merged.
+
+        Returns:
+            tuple[int]: A new node ID representing the merged cluster.
+        """
+        def to_ints_and_tuples(node):
+            if isinstance(node, (int, np.integer)):
+                return int(node)
+            elif isinstance(node, (list, tuple, np.ndarray)):
+                return tuple(node)
+            else:
+                raise TypeError(f"Unsupported type: {type(node)}")
+
+        cluster_id = []
+        for node in cluster:
+            cluster_id.extend(tuple([to_ints_and_tuples(n) for n in node]))
+        return tuple(sorted(cluster_id))
+
 
 class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
     """
@@ -262,7 +286,7 @@ class DefaultNodeEdgeGatherer(NodeEdgeGatherer):
                 labels.append(None)
 
         for cluster, label in zip(clusters, labels):
-            new_node_id = tuple(sorted(sum(cluster, ())))
+            new_node_id = NodeEdgeGatherer.merged_node_id(cluster)
             merged_attributes = self.merge(cluster)
 
             self.G.add_node(new_node_id, **merged_attributes)
@@ -565,7 +589,7 @@ class ActivityDrivenNodeEdgeGatherer(ActivityDefaultNodeEdgeGatherer):
                 labels.append(None)
 
         for cluster, label in zip(clusters, labels):
-            new_node_id = tuple(sorted(sum(cluster, ())))
+            new_node_id = NodeEdgeGatherer.merged_node_id(cluster)
             merged_attributes = self.merge(cluster)
 
             self.G.add_node(new_node_id, **merged_attributes)

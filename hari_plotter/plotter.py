@@ -365,6 +365,8 @@ class Plotter:
         interface : Interface
             Interface instance to be used for plotting.
         """
+        assert interfaces is None or isinstance(
+            interfaces, (Interface, list)), "Interface must be an Interface instance or a list of Interface instances"
         self._interfaces:  list[Interface] | None = [interfaces] if isinstance(
             interfaces, Interface) else interfaces
         self.default_color_scheme: ColorScheme = ColorScheme()

@@ -79,14 +79,17 @@ class Graph(nx.DiGraph):
         Returns:
             'Graph': A new Graph instance representing the merged graph.
         """
-        merged_graph = nx.Graph()
+        merged_graph = cls()
 
         for i, graph in enumerate(graphs):
             # Create a mapping to rename nodes by adding a unique prefix based on graph index
-            mapping = {node: f"{node}_g{i}" for node in graph.nodes()}
+            mapping = {node: tuple([(n, i) for n in node])
+                       for node in graph.nodes()}
             renamed_graph = nx.relabel_nodes(graph if isinstance(graph, Graph) else graph.get_graph(
             ), mapping)  # different behavior for graphs and LazyGraphs
             merged_graph = nx.compose(merged_graph, renamed_graph)
+
+        merged_graph.set_gatherer(type(graphs[0].gatherer))
 
         return merged_graph
 

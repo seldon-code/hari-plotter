@@ -149,13 +149,21 @@ class Group:
 
         clustering_key = self.request_to_tuple(clustering_settings)
 
+        def to_ints_and_tuples(node):
+            if isinstance(node, np.integer):
+                return int(node)
+            elif isinstance(node, (tuple, list, np.ndarray)):
+                return tuple(to_ints_and_tuples(n) for n in node)
+            else:
+                raise TypeError(f"Unsupported type: {type(node)}")
+
         # initialize the graph
         if reinitialize or (clustering_key not in self.clusterings or 'graph' not in self.clusterings[clustering_key]):
 
             clustering = self.clustering(**clustering_settings)
 
             clustering_nodes = [
-                list([tuple(node) for node in nodes]) for nodes in clustering.labels_nodes_dict().values()]
+                list([to_ints_and_tuples(node) for node in nodes]) for nodes in clustering.labels_nodes_dict().values()]
             cluster_labels = clustering.cluster_labels
 
             clustering_graph = self.mean_graph.copy()

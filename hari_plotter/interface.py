@@ -11,6 +11,7 @@ from .cluster import Clustering
 from .dynamics import Dynamics
 from .graph import Graph
 from .group import Group
+from .multirun import Multirun
 from .simulation import Simulation
 
 
@@ -213,7 +214,7 @@ class Interface(ABC):
 
     @property
     @abstractmethod
-    def available_parameters(self) -> list:
+    def available_parameters(self) -> list[str]:
         raise NotImplementedError(
             "This method must be implemented in subclasses")
 
@@ -283,6 +284,21 @@ class Interface(ABC):
                     G.add_node(node_id, frame=frame_index,
                                cluster=cluster_name, Label=cluster_name)
 
+                def cluster_array_to_set_of_tuples(cluster):
+                    """
+                    Returns a set of tuples from a cluster array.
+                    If the shape of the cluster is (n, m), the code returns set[tuple[int]].
+                    If the shape is (n, m, 2), the code returns set[tuple[tuple[int, int]]].
+                    """
+                    if cluster.ndim == 2:
+                        # Case when shape is (n, m): return set of tuples
+                        return set(map(tuple, cluster))
+                    elif cluster.ndim == 3 and cluster.shape[2] == 2:
+                        # Case when shape is (n, m, 2): return set of tuples of tuples
+                        return set(tuple(map(tuple, sub_cluster)) for sub_cluster in cluster)
+                    else:
+                        raise ValueError("Unsupported array shape")
+
                 if frame_index > 0:  # There are previous frame clusters to connect to
                     current_frame_clusters = frame
                     prev_frame_clusters = clusters_dynamics[frame_index - 1]
@@ -295,12 +311,13 @@ class Interface(ABC):
                         for current_cluster_name, current_cluster in current_frame_clusters.items():
                             current_node_id = self.generate_node_id(
                                 frame_index, current_cluster_name)
-                            current_set = set(
-                                map(tuple, current_cluster))
+                            current_set = cluster_array_to_set_of_tuples(
+                                current_cluster)
                             best_match = None
                             max_overlap = 0
                             for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
-                                prev_set = set(map(tuple, prev_cluster))
+                                prev_set = cluster_array_to_set_of_tuples(
+                                    prev_cluster)
                                 prev_node_id = self.generate_node_id(
                                     frame_index - 1, prev_cluster_name)
 
@@ -316,7 +333,8 @@ class Interface(ABC):
                     else:
                         # More clusters in the previous frame, match each previous cluster to one from the current frame
                         for prev_cluster_name, prev_cluster in prev_frame_clusters.items():
-                            prev_set = set(map(tuple, prev_cluster))
+                            prev_set = cluster_array_to_set_of_tuples(
+                                prev_cluster)
                             prev_node_id = self.generate_node_id(
                                 frame_index - 1, prev_cluster_name)
 
@@ -325,7 +343,8 @@ class Interface(ABC):
                             for current_cluster_name, current_cluster in current_frame_clusters.items():
                                 current_node_id = self.generate_node_id(
                                     frame_index, current_cluster_name)
-                                current_set = set(map(tuple, current_cluster))
+                                current_set = cluster_array_to_set_of_tuples(
+                                    current_cluster)
                                 overlap = len(
                                     prev_set.intersection(current_set))
 
@@ -552,7 +571,7 @@ class HariGraphInterface(Interface):
         self._group_size = interval_size
 
     @property
-    def available_parameters(self) -> list:
+    def available_parameters(self) -> list[str]:
         """
         Retrieves the list of available parameters/methods from the data gatherer.
 
@@ -586,7 +605,7 @@ class HariDynamicsInterface(Interface):
         self.data.group(num_intervals, interval_size, offset)
 
     @property
-    def available_parameters(self) -> list:
+    def available_parameters(self) -> list[str]:
         """
         Retrieves the list of available parameters/methods from the data gatherer.
 
@@ -620,7 +639,7 @@ class SimulationInterface(Interface):
         self.data.dynamics.group(num_intervals, interval_size, offset)
 
     @property
-    def available_parameters(self) -> list:
+    def available_parameters(self) -> list[str]:
         """
         Retrieves the list of available parameters/methods from the data gatherer.
 
@@ -632,3 +651,38 @@ class SimulationInterface(Interface):
     @property
     def time_range(self) -> list[float]:
         return [0., float(len(self.data)-1) * self.data.dt]
+
+
+class MultirunInterface(Interface):
+
+    REQUIRED_TYPE = Multirun
+
+    def __init__(self, data):
+        super().__init__(data=data, group_length=len(
+            data.simulations[0].dynamics.groups))
+        self.merge = self.data.merge()
+        self.data: Multirun
+
+    def __len__(self):
+        return len(self.merge)
+
+    @property
+    def available_parameters(self) -> list[str]:
+        """
+        Retrieves the list of available parameters/methods from the data gatherer.
+
+        Returns:
+            list: A list of available parameters or methods.
+        """
+        return self.megre.available_parameters
+
+    def _initialize_group(self, i: int) -> Group:
+        group = self.merge.dynamics.groups[i]
+        return Group([self.merge.dynamics[j] for j in group], time=np.array(group) * self.merge.dt)
+
+    def _regroup_dynamics(self, num_intervals: int, interval_size: int = 1, offset: int = 0):
+        self.merge.dynamics.group(num_intervals, interval_size, offset)
+
+    @property
+    def time_range(self) -> list[float]:
+        return [0., float(len(self.merge)-1) * self.merge.dt]
