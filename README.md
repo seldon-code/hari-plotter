@@ -4,7 +4,7 @@
 
 ## About
 
-`hari-plotter` enables post-processing, plotting and visualizations of Seldon simulations and output (under development).
+`hari-plotter` enables post-processing, plotting, and visualization of Seldon simulation outputs (currently under development).
 
 ## Quick Start
 
